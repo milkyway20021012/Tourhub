@@ -30,7 +30,7 @@ export default function Home() {
             fontSize: '28px',
             fontWeight: 'bold'
           }}>
-            🧳 TripMate
+            Tourhub
           </h1>
 
           <div style={{ display: 'flex', gap: '1rem' }}>
@@ -59,60 +59,8 @@ export default function Home() {
                 }
               }}
             >
-              📋 行程列表
+              排行榜
             </button>
-
-            <button
-              onClick={() => setActiveTab('ranking')}
-              style={{
-                padding: '0.8rem 1.5rem',
-                backgroundColor: activeTab === 'ranking' ? '#3498db' : 'white',
-                color: activeTab === 'ranking' ? 'white' : '#333',
-                border: '2px solid #3498db',
-                borderRadius: '8px',
-                cursor: 'pointer',
-                fontSize: '16px',
-                fontWeight: 'bold',
-                transition: 'all 0.3s ease',
-                boxShadow: activeTab === 'ranking' ? '0 2px 8px rgba(52, 152, 219, 0.3)' : 'none'
-              }}
-              onMouseOver={(e) => {
-                if (activeTab !== 'ranking') {
-                  e.target.style.backgroundColor = '#f8f9fa';
-                }
-              }}
-              onMouseOut={(e) => {
-                if (activeTab !== 'ranking') {
-                  e.target.style.backgroundColor = 'white';
-                }
-              }}
-            >
-              🏆 排行榜
-            </button>
-          </div>
-
-          <div style={{ marginLeft: 'auto', display: 'flex', gap: '1rem' }}>
-            <a
-              href="/api/simple-test"
-              target="_blank"
-              style={{
-                padding: '0.5rem 1rem',
-                backgroundColor: '#27ae60',
-                color: 'white',
-                textDecoration: 'none',
-                borderRadius: '4px',
-                fontSize: '14px',
-                transition: 'all 0.3s ease'
-              }}
-              onMouseOver={(e) => {
-                e.target.style.backgroundColor = '#229954';
-              }}
-              onMouseOut={(e) => {
-                e.target.style.backgroundColor = '#27ae60';
-              }}
-            >
-              🔧 系統狀態
-            </a>
           </div>
         </div>
       </nav>
