@@ -1,18 +1,18 @@
 /* TripList.css - 第一部分：基礎樣式 */
-.trip-list-container {
+.tripListContainer {
     max-width: 1200px;
     margin: 0 auto;
     padding: 20px;
     font-family: 'Arial', sans-serif;
 }
 
-.trip-list-container h2 {
+.tripListContainer h2 {
     text-align: center;
     margin-bottom: 24px;
     color: #333;
 }
 
-.trip-table-container {
+.tripTableContainer {
     overflow-x: auto;
     background-color: white;
     border-radius: 8px;
@@ -20,24 +20,24 @@
     transition: all 0.3s ease;
 }
 
-.trip-table-container:hover {
+.tripTableContainer:hover {
     box-shadow: 0 5px 15px rgba(0, 0, 0, 0.15);
 }
 
-.trip-table {
+.tripTable {
     width: 100%;
     border-collapse: collapse;
     font-size: 14px;
 }
 
-.trip-table th,
-.trip-table td {
+.tripTable th,
+.tripTable td {
     padding: 12px 15px;
     text-align: left;
     border-bottom: 1px solid #e0e0e0;
 }
 
-.trip-table th {
+.tripTable th {
     background-color: #f9f9f9;
     font-weight: bold;
     color: #333;
@@ -46,12 +46,12 @@
     position: relative;
 }
 
-.trip-table th:hover {
+.tripTable th:hover {
     background-color: #e8f4fc;
     color: #3498db;
 }
 
-.trip-table th:hover::after {
+.tripTable th:hover::after {
     content: "";
     position: absolute;
     bottom: 0;
@@ -61,16 +61,16 @@
     background-color: #3498db;
 }
 
-.trip-table tbody tr {
+.tripTable tbody tr {
     transition: all 0.3s ease;
 }
 
 /* 奇偶行背景色，增強可讀性 */
-.trip-table tbody tr:nth-child(even) {
+.tripTable tbody tr:nth-child(even) {
     background-color: #fafafa;
 }
 
-.trip-title {
+.tripTitle {
     font-weight: bold;
     color: #2c3e50;
     transition: color 0.2s ease;
@@ -78,11 +78,11 @@
     display: inline-block;
 }
 
-.trip-title:hover {
+.tripTitle:hover {
     color: #3498db;
 }
 
-.trip-title:hover::after {
+.tripTitle:hover::after {
     content: "";
     position: absolute;
     bottom: -2px;
@@ -93,17 +93,17 @@
 }
 
 /* TripList.css - 第二部分：標籤與分頁樣式 */
-.trip-tags {
+.tripTags {
     display: flex;
     flex-wrap: wrap;
     gap: 4px;
 }
 
-.trip-tag {
+.tripTag {
     transition: all 0.2s ease;
 }
 
-.trip-tag:hover {
+.tripTag:hover {
     transform: translateY(-2px);
     /* 微小的上移 */
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
@@ -119,7 +119,7 @@
     flex-wrap: wrap;
 }
 
-.pagination-button {
+.paginationButton {
     padding: 8px 12px;
     margin: 0 2px;
     background-color: white;
@@ -129,23 +129,23 @@
     transition: all 0.2s;
 }
 
-.pagination-button:hover:not(:disabled) {
+.paginationButton:hover:not(:disabled) {
     background-color: #f0f0f0;
     border-color: #ccc;
 }
 
-.pagination-button.active {
+.paginationButton.active {
     background-color: #3498db;
     color: white;
     border-color: #3498db;
 }
 
-.pagination-button:disabled {
+.paginationButton:disabled {
     color: #ccc;
     cursor: not-allowed;
 }
 
-.pagination-info {
+.paginationInfo {
     margin-left: 10px;
     color: #666;
     font-size: 14px;
@@ -153,7 +153,7 @@
 
 .loading,
 .error,
-.no-trips {
+.noTrips {
     text-align: center;
     padding: 30px;
     color: #666;
@@ -165,17 +165,17 @@
 
 @media (max-width: 768px) {
 
-    .trip-table th,
-    .trip-table td {
+    .tripTable th,
+    .tripTable td {
         padding: 8px 10px;
         font-size: 13px;
     }
 
-    .pagination-button {
+    .paginationButton {
         padding: 6px 10px;
     }
 
-    .pagination-info {
+    .paginationInfo {
         display: block;
         width: 100%;
         text-align: center;
@@ -184,7 +184,7 @@
 }
 
 /* TripList.css - 第三部分：篩選面板樣式 */
-.filter-panel {
+.filterPanel {
     background-color: white;
     border-radius: 8px;
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
@@ -192,26 +192,26 @@
     margin-bottom: 20px;
 }
 
-.filter-panel h3 {
+.filterPanel h3 {
     margin-top: 0;
     margin-bottom: 15px;
     color: #333;
     font-size: 18px;
 }
 
-.filter-row {
+.filterRow {
     display: flex;
     flex-wrap: wrap;
     gap: 20px;
     margin-bottom: 15px;
 }
 
-.filter-group {
+.filterGroup {
     flex: 1;
     min-width: 200px;
 }
 
-.filter-group label {
+.filterGroup label {
     display: block;
     margin-bottom: 5px;
     font-weight: bold;
@@ -219,8 +219,8 @@
     font-size: 14px;
 }
 
-.filter-group select,
-.filter-group input {
+.filterGroup select,
+.filterGroup input {
     width: 100%;
     padding: 8px 12px;
     border: 1px solid #ddd;
@@ -228,13 +228,13 @@
     font-size: 14px;
 }
 
-.filter-actions {
+.filterActions {
     display: flex;
     justify-content: flex-end;
     margin-top: 10px;
 }
 
-.reset-button {
+.resetButton {
     padding: 8px 16px;
     background-color: #f5f5f5;
     border: 1px solid #ddd;
@@ -244,22 +244,22 @@
     font-size: 14px;
 }
 
-.reset-button:hover {
+.resetButton:hover {
     background-color: #e0e0e0;
 }
 
 /* 搜尋欄位樣式 */
-.search-group {
+.searchGroup {
     flex: 1;
     width: 100%;
 }
 
-.search-input-container {
+.searchInputContainer {
     display: flex;
     width: 100%;
 }
 
-.search-input-container input {
+.searchInputContainer input {
     flex: 1;
     padding: 8px 12px;
     border: 1px solid #ddd;
@@ -267,7 +267,7 @@
     font-size: 14px;
 }
 
-.search-button {
+.searchButton {
     background-color: #3498db;
     color: white;
     border: none;
@@ -277,34 +277,34 @@
     transition: background-color 0.2s;
 }
 
-.search-button:hover {
+.searchButton:hover {
     background-color: #2980b9;
 }
 
 /* TripList.css - 第四部分：日期輸入和響應式樣式 */
 /* 日期輸入框樣式 */
-.date-group {
+.dateGroup {
     display: flex;
     flex-direction: column;
 }
 
-.date-inputs {
+.dateInputs {
     width: 100%;
 }
 
-.date-input-wrapper {
+.dateInputWrapper {
     width: 100%;
     display: flex;
     flex-direction: column;
 }
 
-.date-input-wrapper label {
+.dateInputWrapper label {
     font-size: 13px;
     color: #666;
     margin-bottom: 3px;
 }
 
-.date-input-wrapper input[type="date"] {
+.dateInputWrapper input[type="date"] {
     width: 100%;
     box-sizing: border-box;
     padding: 8px 10px;
@@ -313,29 +313,29 @@
     font-size: 14px;
 }
 
-.filter-group.date-group {
+.filterGroup.dateGroup {
     width: 100%;
 }
 
 /* 調整篩選面板佈局 */
-.filter-row {
+.filterRow {
     display: flex;
     flex-wrap: wrap;
     gap: 20px;
     margin-bottom: 15px;
 }
 
-.filter-group {
+.filterGroup {
     flex: 1;
     min-width: 200px;
 }
 
 @media (max-width: 768px) {
-    .filter-row {
+    .filterRow {
         flex-direction: column;
     }
 
-    .filter-group {
+    .filterGroup {
         width: 100%;
         margin-bottom: 15px;
     }
@@ -355,34 +355,34 @@
     }
 }
 
-.rank-1,
-.rank-2,
-.rank-3 {
+.rank1,
+.rank2,
+.rank3 {
     animation: gentle-bounce 3s ease-in-out infinite;
     /* 為前三名添加輕微的持續彈動效果 */
 }
 
 /* 確保前三名有不同的動畫時間，看起來不會同步 */
-.rank-1 {
+.rank1 {
     animation-delay: 0s;
 }
 
-.rank-2 {
+.rank2 {
     animation-delay: 0.5s;
 }
 
-.rank-3 {
+.rank3 {
     animation-delay: 1s;
 }
 
-.rank-1 {
+.rank1 {
     background: linear-gradient(135deg, #ffd700, #f9c824);
     /* 漸變金色 */
     color: #5a3800;
     box-shadow: 0 3px 8px rgba(255, 215, 0, 0.5);
 }
 
-.rank-1::after {
+.rank1::after {
     content: "👑";
     position: absolute;
     top: -15px;
@@ -391,14 +391,14 @@
     filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.3));
 }
 
-.rank-2 {
+.rank2 {
     background: linear-gradient(135deg, #e0e0e0, #c0c0c0);
     /* 漸變銀色 */
     color: #333;
     box-shadow: 0 3px 6px rgba(192, 192, 192, 0.5);
 }
 
-.rank-2::after {
+.rank2::after {
     content: "🥈";
     position: absolute;
     top: -12px;
@@ -406,14 +406,14 @@
     font-size: 12px;
 }
 
-.rank-3 {
+.rank3 {
     background: linear-gradient(135deg, #d7995a, #cd7f32);
     /* 漸變銅色 */
     color: white;
     box-shadow: 0 3px 6px rgba(205, 127, 50, 0.5);
 }
 
-.rank-3::after {
+.rank3::after {
     content: "🥉";
     position: absolute;
     top: -12px;
@@ -422,13 +422,13 @@
 }
 
 /* 4-10名排名樣式 */
-.rank-4,
-.rank-5,
-.rank-6,
-.rank-7,
-.rank-8,
-.rank-9,
-.rank-10 {
+.rank4,
+.rank5,
+.rank6,
+.rank7,
+.rank8,
+.rank9,
+.rank10 {
     background: linear-gradient(135deg, #edf6ff, #d4e8ff);
     /* 漸變藍色 */
     color: #0066cc;
@@ -452,7 +452,7 @@
 }
 
 /* 表格行互動體驗增強 */
-.trip-row {
+.tripRow {
     cursor: pointer;
     transition: all 0.25s cubic-bezier(0.2, 0, 0.2, 1);
     /* 使用更自然的緩動函數 */
@@ -460,7 +460,7 @@
     z-index: 1;
 }
 
-.trip-row:hover {
+.tripRow:hover {
     background-color: #f0f7ff !important;
     transform: translateY(-3px);
     /* 減小上移幅度，使其更微妙 */
@@ -470,7 +470,7 @@
     /* 確保懸停的行顯示在最上層 */
 }
 
-.trip-row:hover .rank {
+.tripRow:hover .rank {
     transform: scale(1.1);
     /* 懸停時稍微放大排名徽章 */
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
@@ -479,7 +479,7 @@
 
 /* TripList.css - 第六部分：時間篩選和類別樣式 */
 /* 時間段篩選標籤樣式 */
-.time-filter-tabs {
+.timeFilterTabs {
     display: flex;
     margin-bottom: 15px;
     border-bottom: 1px solid #eee;
@@ -487,7 +487,7 @@
     padding-bottom: 5px;
 }
 
-.time-filter-tab {
+.timeFilterTab {
     padding: 8px 16px;
     margin-right: 10px;
     background: none;
@@ -500,34 +500,34 @@
     transition: all 0.2s;
 }
 
-.time-filter-tab.active {
+.timeFilterTab.active {
     background-color: #3498db;
     color: white;
 }
 
-.time-filter-tab:hover:not(.active) {
+.timeFilterTab:hover:not(.active) {
     background-color: #f0f0f0;
 }
 
 /* 類別篩選標籤樣式 */
-.category-filter {
+.categoryFilter {
     margin-bottom: 15px;
 }
 
-.category-filter-title {
+.categoryFilterTitle {
     font-weight: bold;
     margin-bottom: 8px;
     font-size: 14px;
     color: #555;
 }
 
-.category-tags {
+.categoryTags {
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
 }
 
-.category-tag {
+.categoryTag {
     padding: 5px 12px;
     background-color: #f0f0f0;
     border-radius: 20px;
@@ -537,25 +537,33 @@
     color: #555;
 }
 
-.category-tag.active {
+.categoryTag.active {
     background-color: #3498db;
     color: white;
 }
 
-.category-tag:hover:not(.active) {
+.categoryTag:hover:not(.active) {
     background-color: #e0e0e0;
 }
 
 /* TripList.css - 第七部分：視圖切換和卡片視圖樣式 */
+/* 列表頭部樣式 */
+.listHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
 /* 切換視圖模式按鈕 */
-.view-toggle {
+.viewToggle {
     display: flex;
     gap: 10px;
     margin-left: auto;
     margin-bottom: 15px;
 }
 
-.view-toggle button {
+.viewToggle button {
     padding: 6px 12px;
     background-color: #f5f5f5;
     border: 1px solid #ddd;
@@ -567,25 +575,25 @@
     transition: all 0.2s;
 }
 
-.view-toggle button.active {
+.viewToggle button.active {
     background-color: #3498db;
     color: white;
     border-color: #3498db;
 }
 
-.view-toggle button:hover:not(.active) {
+.viewToggle button:hover:not(.active) {
     background-color: #e0e0e0;
 }
 
 /* 卡片視圖樣式 */
-.trip-card-view {
+.tripCardView {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
     gap: 20px;
     margin-top: 20px;
 }
 
-.trip-card {
+.tripCard {
     background: white;
     border-radius: 8px;
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
@@ -598,40 +606,40 @@
     /* 從底部中心開始變換 */
 }
 
-.trip-card:hover {
+.tripCard:hover {
     transform: translateY(-8px) scale(1.02);
     /* 上移加微小放大 */
     box-shadow: 0 12px 24px rgba(0, 0, 0, 0.12);
     /* 更明顯的陰影 */
 }
 
-.trip-card-header {
+.tripCardHeader {
     padding: 12px 15px;
     border-bottom: 1px solid #f0f0f0;
     position: relative;
 }
 
-.trip-card-rank {
+.tripCardRank {
     transition: transform 0.3s cubic-bezier(0.2, 0, 0.2, 1);
 }
 
-.trip-card:hover .trip-card-rank {
+.tripCard:hover .tripCardRank {
     transform: scale(1.1) rotate(5deg);
     /* 添加微小旋轉效果增加趣味性 */
 }
 
-.trip-card-title {
+.tripCardTitle {
     font-weight: bold;
     font-size: 16px;
     margin-right: 30px;
     color: #2c3e50;
 }
 
-.trip-card-content {
+.tripCardContent {
     padding: 15px;
 }
 
-.trip-card-info {
+.tripCardInfo {
     margin-bottom: 8px;
     display: flex;
     align-items: center;
@@ -639,21 +647,36 @@
     color: #666;
 }
 
-.trip-card-info svg {
+.tripCardInfo svg {
     margin-right: 5px;
     width: 16px;
     height: 16px;
     color: #3498db;
 }
 
-.trip-card-tags {
+.tripCardArea {
+    font-weight: bold;
+    color: #3498db;
+}
+
+.tripCardDate {
+    color: #666;
+}
+
+.tripCardDescription {
+    color: #444;
+    line-height: 1.4;
+    margin-bottom: 10px;
+}
+
+.tripCardTags {
     display: flex;
     flex-wrap: wrap;
     gap: 5px;
     margin-top: 10px;
 }
 
-.trip-card-footer {
+.tripCardFooter {
     padding: 10px 15px;
     background-color: #f9f9f9;
     display: flex;
@@ -663,9 +686,17 @@
     color: #777;
 }
 
+.tripCardCreator {
+    color: #555;
+}
+
+.tripCardViews {
+    color: #999;
+}
+
 /* TripList.css - 第八部分：資料視覺化和虛擬列表樣式 */
 /* 資料視覺化區塊樣式 */
-.visualization-panel {
+.visualizationPanel {
     background-color: white;
     border-radius: 8px;
     padding: 20px;
@@ -673,40 +704,40 @@
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
 }
 
-.visualization-panel h3 {
+.visualizationPanel h3 {
     font-size: 16px;
     margin-top: 0;
     margin-bottom: 15px;
     color: #333;
 }
 
-.chart-container {
+.chartContainer {
     height: 250px;
     margin-bottom: 10px;
 }
 
 /* 虛擬列表樣式（用於性能優化）*/
-.virtual-list-container {
+.virtualListContainer {
     height: 600px;
     overflow: auto;
     position: relative;
 }
 
-.virtual-list-item {
+.virtualListItem {
     position: absolute;
     left: 0;
     right: 0;
 }
 
 /* 無限滾動提示樣式 */
-.infinite-scroll-loader {
+.infiniteScrollLoader {
     text-align: center;
     padding: 20px 0;
     font-size: 14px;
     color: #666;
 }
 
-.infinite-scroll-loader::after {
+.infiniteScrollLoader::after {
     content: "";
     display: inline-block;
     width: 20px;
@@ -732,7 +763,7 @@
     cursor: help;
 }
 
-.tooltip .tooltip-text {
+.tooltip .tooltipText {
     visibility: hidden;
     width: 200px;
     background-color: #333;
@@ -751,7 +782,7 @@
     box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
 }
 
-.tooltip .tooltip-text::after {
+.tooltip .tooltipText::after {
     content: "";
     position: absolute;
     top: 100%;
@@ -762,23 +793,23 @@
     border-color: #333 transparent transparent transparent;
 }
 
-.tooltip:hover .tooltip-text {
+.tooltip:hover .tooltipText {
     visibility: visible;
     opacity: 1;
 }
 
 /* 移動設備下的調整 */
 @media (max-width: 768px) {
-    .trip-card-view {
+    .tripCardView {
         grid-template-columns: 1fr;
     }
 
-    .time-filter-tabs {
+    .timeFilterTabs {
         justify-content: flex-start;
         padding-bottom: 10px;
     }
 
-    .tooltip .tooltip-text {
+    .tooltip .tooltipText {
         width: 150px;
     }
 }

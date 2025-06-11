@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import TripDetail from './TripDetail';
-import './TripList.css';
+import styles from './TripList.module.css';
 
 const TripList = () => {
     const [trips, setTrips] = useState([]);
@@ -295,27 +295,27 @@ const TripList = () => {
     // 渲染時間段篩選標籤
     const renderTimeFilterTabs = () => {
         return (
-            <div className="time-filter-tabs">
+            <div className={styles.timeFilterTabs}>
                 <button
-                    className={`time-filter-tab ${timeFilter === 'all' ? 'active' : ''}`}
+                    className={`${styles.timeFilterTab} ${timeFilter === 'all' ? styles.active : ''}`}
                     onClick={() => handleTimeFilterChange('all')}
                 >
                     全部
                 </button>
                 <button
-                    className={`time-filter-tab ${timeFilter === 'week' ? 'active' : ''}`}
+                    className={`${styles.timeFilterTab} ${timeFilter === 'week' ? styles.active : ''}`}
                     onClick={() => handleTimeFilterChange('week')}
                 >
                     本週熱門
                 </button>
                 <button
-                    className={`time-filter-tab ${timeFilter === 'month' ? 'active' : ''}`}
+                    className={`${styles.timeFilterTab} ${timeFilter === 'month' ? styles.active : ''}`}
                     onClick={() => handleTimeFilterChange('month')}
                 >
                     本月熱門
                 </button>
                 <button
-                    className={`time-filter-tab ${timeFilter === 'season' ? 'active' : ''}`}
+                    className={`${styles.timeFilterTab} ${timeFilter === 'season' ? styles.active : ''}`}
                     onClick={() => handleTimeFilterChange('season')}
                 >
                     本季熱門
@@ -327,15 +327,15 @@ const TripList = () => {
     // 渲染視圖切換按鈕
     const renderViewToggle = () => {
         return (
-            <div className="view-toggle">
+            <div className={styles.viewToggle}>
                 <button
-                    className={viewMode === 'table' ? 'active' : ''}
+                    className={viewMode === 'table' ? styles.active : ''}
                     onClick={() => handleViewModeChange('table')}
                 >
                     <span>表格視圖</span>
                 </button>
                 <button
-                    className={viewMode === 'card' ? 'active' : ''}
+                    className={viewMode === 'card' ? styles.active : ''}
                     onClick={() => handleViewModeChange('card')}
                 >
                     <span>卡片視圖</span>
@@ -346,16 +346,16 @@ const TripList = () => {
 
     const renderFilterPanel = () => {
         return (
-            <div className="filter-panel">
+            <div className={styles.filterPanel}>
                 <h3>篩選選項</h3>
 
                 {renderTimeFilterTabs()}
 
-                <div className="filter-row">
+                <div className={styles.filterRow}>
                     {/* 搜尋欄位 */}
-                    <div className="filter-group search-group">
+                    <div className={`${styles.filterGroup} ${styles.searchGroup}`}>
                         <label htmlFor="search">搜尋行程</label>
-                        <div className="search-input-container">
+                        <div className={styles.searchInputContainer}>
                             <input
                                 type="text"
                                 id="search"
@@ -370,7 +370,7 @@ const TripList = () => {
                                 }}
                             />
                             <button
-                                className="search-button"
+                                className={styles.searchButton}
                                 onClick={handleSearch}
                             >
                                 搜尋
@@ -379,8 +379,8 @@ const TripList = () => {
                     </div>
                 </div>
 
-                <div className="filter-row">
-                    <div className="filter-group">
+                <div className={styles.filterRow}>
+                    <div className={styles.filterGroup}>
                         <label htmlFor="area">地區</label>
                         <select
                             id="area"
@@ -395,7 +395,7 @@ const TripList = () => {
                         </select>
                     </div>
 
-                    <div className="filter-group">
+                    <div className={styles.filterGroup}>
                         <label htmlFor="tag">標籤</label>
                         <select
                             id="tag"
@@ -410,10 +410,10 @@ const TripList = () => {
                         </select>
                     </div>
 
-                    <div className="filter-group date-group">
+                    <div className={`${styles.filterGroup} ${styles.dateGroup}`}>
                         <label>日期範圍</label>
-                        <div className="date-inputs">
-                            <div className="date-input-wrapper">
+                        <div className={styles.dateInputs}>
+                            <div className={styles.dateInputWrapper}>
                                 <label htmlFor="startDate">開始日期</label>
                                 <input
                                     type="date"
@@ -423,7 +423,7 @@ const TripList = () => {
                                     onChange={handleFilterChange}
                                 />
                             </div>
-                            <div className="date-input-wrapper">
+                            <div className={styles.dateInputWrapper}>
                                 <label htmlFor="endDate">結束日期</label>
                                 <input
                                     type="date"
@@ -437,9 +437,9 @@ const TripList = () => {
                     </div>
                 </div>
 
-                <div className="filter-actions">
+                <div className={styles.filterActions}>
                     <button
-                        className="reset-button"
+                        className={styles.resetButton}
                         onClick={handleResetFilters}
                     >
                         重置篩選
@@ -468,11 +468,11 @@ const TripList = () => {
         }
 
         return (
-            <div className="pagination">
+            <div className={styles.pagination}>
                 <button
                     onClick={() => handlePageChange(1)}
                     disabled={current_page === 1}
-                    className="pagination-button"
+                    className={styles.paginationButton}
                 >
                     &laquo;
                 </button>
@@ -480,7 +480,7 @@ const TripList = () => {
                 <button
                     onClick={() => handlePageChange(current_page - 1)}
                     disabled={current_page === 1}
-                    className="pagination-button"
+                    className={styles.paginationButton}
                 >
                     &lt;
                 </button>
@@ -489,7 +489,7 @@ const TripList = () => {
                     <button
                         key={number}
                         onClick={() => handlePageChange(number)}
-                        className={`pagination-button ${current_page === number ? 'active' : ''}`}
+                        className={`${styles.paginationButton} ${current_page === number ? styles.active : ''}`}
                     >
                         {number}
                     </button>
@@ -498,7 +498,7 @@ const TripList = () => {
                 <button
                     onClick={() => handlePageChange(current_page + 1)}
                     disabled={current_page === total_pages}
-                    className="pagination-button"
+                    className={styles.paginationButton}
                 >
                     &gt;
                 </button>
@@ -506,12 +506,12 @@ const TripList = () => {
                 <button
                     onClick={() => handlePageChange(total_pages)}
                     disabled={current_page === total_pages}
-                    className="pagination-button"
+                    className={styles.paginationButton}
                 >
                     &raquo;
                 </button>
 
-                <span className="pagination-info">
+                <span className={styles.paginationInfo}>
                     第 {current_page}/{total_pages} 頁，共 {pagination.total} 筆
                 </span>
             </div>
@@ -519,13 +519,13 @@ const TripList = () => {
     };
 
     const renderTripTable = () => {
-        if (loading) return <div className="loading">加載中...</div>;
-        if (error) return <div className="error">{error}</div>;
-        if (trips.length === 0) return <div className="no-trips">沒有找到符合條件的行程。</div>;
+        if (loading) return <div className={styles.loading}>加載中...</div>;
+        if (error) return <div className={styles.error}>{error}</div>;
+        if (trips.length === 0) return <div className={styles.noTrips}>沒有找到符合條件的行程。</div>;
 
         return (
-            <div className="trip-table-container">
-                <table className="trip-table">
+            <div className={styles.tripTableContainer}>
+                <table className={styles.tripTable}>
                     <thead>
                         <tr>
                             <th>排名</th>
@@ -558,22 +558,22 @@ const TripList = () => {
                                 <tr
                                     key={trip.trip_id}
                                     onClick={() => handleTripClick(trip.trip_id)}
-                                    className="trip-row"
+                                    className={styles.tripRow}
                                 >
                                     <td>
-                                        <div className={`rank rank-${rank}`}>
+                                        <div className={`${styles.rank} ${styles[`rank${rank}`]}`}>
                                             {rank}
                                         </div>
                                     </td>
-                                    <td className="trip-title">{trip.title}</td>
+                                    <td className={styles.tripTitle}>{trip.title}</td>
                                     <td>{formatDate(trip.start_date)}</td>
                                     <td>{formatDate(trip.end_date)}</td>
                                     <td>{trip.area}</td>
                                     <td>
                                         {trip.tags && (
-                                            <div className="trip-tags">
+                                            <div className={styles.tripTags}>
                                                 {trip.tags.split(',').map((tag, i) => (
-                                                    <span key={i} className="trip-tag">{tag.trim()}</span>
+                                                    <span key={i} className={styles.tripTag}>{tag.trim()}</span>
                                                 ))}
                                             </div>
                                         )}
@@ -592,12 +592,12 @@ const TripList = () => {
 
     // 卡片視圖渲染
     const renderCardView = () => {
-        if (loading) return <div className="loading">加載中...</div>;
-        if (error) return <div className="error">{error}</div>;
-        if (trips.length === 0) return <div className="no-trips">沒有找到符合條件的行程。</div>;
+        if (loading) return <div className={styles.loading}>加載中...</div>;
+        if (error) return <div className={styles.error}>{error}</div>;
+        if (trips.length === 0) return <div className={styles.noTrips}>沒有找到符合條件的行程。</div>;
 
         return (
-            <div className="trip-card-view">
+            <div className={styles.tripCardView}>
                 {trips.map((trip, index) => {
                     // 計算實際排名，考慮分頁
                     const rank = (pagination.current_page - 1) * pagination.limit + index + 1;
@@ -605,40 +605,40 @@ const TripList = () => {
                     return (
                         <div
                             key={trip.trip_id}
-                            className="trip-card"
+                            className={styles.tripCard}
                             onClick={() => handleTripClick(trip.trip_id)}
                         >
-                            <div className="trip-card-header">
-                                <div className="trip-card-title">{trip.title}</div>
-                                <div className={`trip-card-rank rank rank-${rank}`}>{rank}</div>
+                            <div className={styles.tripCardHeader}>
+                                <div className={styles.tripCardTitle}>{trip.title}</div>
+                                <div className={`${styles.tripCardRank} ${styles.rank} ${styles[`rank${rank}`]}`}>{rank}</div>
                             </div>
-                            <div className="trip-card-content">
-                                <div className="trip-card-info">
-                                    <span className="trip-card-area">{trip.area}</span>
+                            <div className={styles.tripCardContent}>
+                                <div className={styles.tripCardInfo}>
+                                    <span className={styles.tripCardArea}>{trip.area}</span>
                                 </div>
-                                <div className="trip-card-info">
-                                    <span className="trip-card-date">
+                                <div className={styles.tripCardInfo}>
+                                    <span className={styles.tripCardDate}>
                                         {formatDate(trip.start_date)} - {formatDate(trip.end_date)}
                                     </span>
                                 </div>
                                 {trip.description && (
-                                    <div className="trip-card-description">
+                                    <div className={styles.tripCardDescription}>
                                         {trip.description.length > 80
                                             ? trip.description.substring(0, 80) + '...'
                                             : trip.description}
                                     </div>
                                 )}
                                 {trip.tags && (
-                                    <div className="trip-card-tags">
+                                    <div className={styles.tripCardTags}>
                                         {trip.tags.split(',').map((tag, i) => (
-                                            <span key={i} className="trip-tag">{tag.trim()}</span>
+                                            <span key={i} className={styles.tripTag}>{tag.trim()}</span>
                                         ))}
                                     </div>
                                 )}
                             </div>
-                            <div className="trip-card-footer">
-                                <div className="trip-card-creator">由 {trip.creator_name} 創建</div>
-                                <div className="trip-card-views">{trip.view_count || 0} 次瀏覽</div>
+                            <div className={styles.tripCardFooter}>
+                                <div className={styles.tripCardCreator}>由 {trip.creator_name} 創建</div>
+                                <div className={styles.tripCardViews}>{trip.view_count || 0} 次瀏覽</div>
                             </div>
                         </div>
                     );
@@ -648,11 +648,11 @@ const TripList = () => {
     };
 
     return (
-        <div className="trip-list-container">
+        <div className={styles.tripListContainer}>
             <h2>行程排行榜</h2>
             {renderFilterPanel()}
 
-            <div className="list-header">
+            <div className={styles.listHeader}>
                 {renderViewToggle()}
             </div>
 

@@ -1,24 +1,24 @@
-.trip-ranking-container {
+.tripRankingContainer {
     max-width: 900px;
     margin: 0 auto;
     padding: 20px;
     font-family: 'Arial', sans-serif;
 }
 
-.trip-ranking-container h2 {
+.tripRankingContainer h2 {
     text-align: center;
     margin-bottom: 24px;
     color: #333;
 }
 
-.ranking-tabs {
+.rankingTabs {
     display: flex;
     justify-content: center;
     margin-bottom: 20px;
     border-bottom: 1px solid #e0e0e0;
 }
 
-.ranking-tabs button {
+.rankingTabs button {
     padding: 10px 20px;
     margin: 0 5px;
     background: none;
@@ -30,16 +30,16 @@
     transition: all 0.3s ease;
 }
 
-.ranking-tabs button:hover {
+.rankingTabs button:hover {
     color: #2c3e50;
 }
 
-.ranking-tabs button.active {
+.active {
     color: #3498db;
     font-weight: bold;
 }
 
-.ranking-tabs button.active::after {
+.active::after {
     content: '';
     position: absolute;
     bottom: -1px;
@@ -49,11 +49,11 @@
     background-color: #3498db;
 }
 
-.ranking-list {
+.rankingList {
     margin-top: 20px;
 }
 
-.ranking-item {
+.rankingItem {
     display: flex;
     align-items: center;
     padding: 15px;
@@ -64,7 +64,7 @@
     background-color: white;
 }
 
-.ranking-item:hover {
+.rankingItem:hover {
     transform: translateY(-3px);
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
 }
@@ -82,35 +82,35 @@
     color: #333;
 }
 
-.ranking-item:nth-child(1) .rank {
+.rankingItem:nth-child(1) .rank {
     background-color: #ffd700;
     /* 金色 */
     color: white;
 }
 
-.ranking-item:nth-child(2) .rank {
+.rankingItem:nth-child(2) .rank {
     background-color: #c0c0c0;
     /* 銀色 */
     color: white;
 }
 
-.ranking-item:nth-child(3) .rank {
+.rankingItem:nth-child(3) .rank {
     background-color: #cd7f32;
     /* 銅色 */
     color: white;
 }
 
-.trip-info {
+.tripInfo {
     flex: 1;
     cursor: pointer;
 }
 
-.trip-info h3 {
+.tripInfo h3 {
     margin: 0 0 8px 0;
     color: #2c3e50;
 }
 
-.trip-details {
+.tripDetails {
     display: flex;
     flex-wrap: wrap;
     gap: 12px;
@@ -162,7 +162,7 @@
 
 .loading,
 .error,
-.no-trips {
+.noTrips {
     text-align: center;
     padding: 30px;
     color: #666;
@@ -173,12 +173,12 @@
 }
 
 @media (max-width: 600px) {
-    .ranking-tabs button {
+    .rankingTabs button {
         padding: 8px 12px;
         font-size: 14px;
     }
 
-    .trip-details {
+    .tripDetails {
         flex-direction: column;
         gap: 6px;
     }
