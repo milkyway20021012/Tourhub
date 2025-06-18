@@ -1,4 +1,4 @@
-// components/TripList.js - 修正 API 路徑版本
+// components/TripList.js - 繁體中文版本，確保從資料庫獲取標籤和地區
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import TripDetail from './TripDetail';
@@ -25,9 +25,10 @@ const TripList = () => {
     const [sortField, setSortField] = useState('created_at');
     const [sortOrder, setSortOrder] = useState('DESC');
 
-    // 篩選選項
+    // 篩選選項 - 從資料庫獲取
     const [areas, setAreas] = useState([]);
     const [tags, setTags] = useState([]);
+    const [filterLoading, setFilterLoading] = useState(true);
 
     // 篩選狀態
     const [selectedArea, setSelectedArea] = useState('');
@@ -39,13 +40,13 @@ const TripList = () => {
     const [timeFilter, setTimeFilter] = useState('all');
 
     // UI狀態
-    const [viewMode, setViewMode] = useState('table'); // 'table' 或 'card'
+    const [viewMode, setViewMode] = useState('table');
 
     useEffect(() => {
         // 獲取篩選選項
         fetchFilterOptions();
 
-        // 獲取行程數據
+        // 獲取行程資料
         fetchTrips(
             pagination.current_page,
             pagination.limit,
@@ -60,12 +61,23 @@ const TripList = () => {
     }, [pagination.current_page, sortField, sortOrder, selectedArea, selectedTag, startDate, endDate, searchTerm]);
 
     const fetchFilterOptions = async () => {
+        setFilterLoading(true);
         try {
+            console.log('正在從資料庫獲取篩選選項...');
             const response = await axios.get(`/api/get-filters`);
-            setAreas(response.data.areas);
-            setTags(response.data.tags);
+
+            console.log('資料庫返回的地區:', response.data.areas);
+            console.log('資料庫返回的標籤:', response.data.tags);
+
+            setAreas(response.data.areas || []);
+            setTags(response.data.tags || []);
+
+            console.log('篩選選項設定完成 - 地區數量:', response.data.areas?.length, '標籤數量:', response.data.tags?.length);
         } catch (err) {
-            console.error('Error fetching filter options:', err);
+            console.error('獲取篩選選項失敗:', err);
+            setError('獲取篩選選項失敗，請稍後再試。');
+        } finally {
+            setFilterLoading(false);
         }
     };
 
@@ -90,8 +102,8 @@ const TripList = () => {
             setPagination(response.data.pagination);
             setError(null);
         } catch (err) {
-            console.error('Error fetching trips:', err);
-            setError('加載行程失敗，請稍後再試。');
+            console.error('獲取行程失敗:', err);
+            setError('載入行程失敗，請稍後再試。');
         } finally {
             setLoading(false);
         }
@@ -108,10 +120,8 @@ const TripList = () => {
 
     const handleSort = (field) => {
         if (field === sortField) {
-            // 如果點擊的是當前排序字段，則切換排序方向
             setSortOrder(sortOrder === 'ASC' ? 'DESC' : 'ASC');
         } else {
-            // 如果是新字段，則設置為降序
             setSortField(field);
             setSortOrder('DESC');
         }
@@ -120,13 +130,14 @@ const TripList = () => {
     const handleFilterChange = (e) => {
         const { name, value } = e.target;
 
-        // 更新對應的篩選狀態
         switch (name) {
             case 'area':
                 setSelectedArea(value);
+                console.log('選擇地區:', value);
                 break;
             case 'tag':
                 setSelectedTag(value);
+                console.log('選擇標籤:', value);
                 break;
             case 'startDate':
                 setStartDate(value);
@@ -138,27 +149,23 @@ const TripList = () => {
                 break;
         }
 
-        // 重置到第一頁
         setPagination({
             ...pagination,
             current_page: 1
         });
     };
 
-    // 搜尋處理函數
     const handleSearchChange = (e) => {
         setSearchTerm(e.target.value);
     };
 
     const handleSearch = () => {
-        // 重置到第一頁
         setPagination({
             ...pagination,
             current_page: 1
         });
         setIsSearching(true);
 
-        // 使用當前的搜尋條件重新獲取行程數據
         fetchTrips(
             1,
             pagination.limit,
@@ -172,7 +179,6 @@ const TripList = () => {
         );
     };
 
-    // 處理時間段篩選
     const handleTimeFilterChange = (filter) => {
         setTimeFilter(filter);
 
@@ -182,16 +188,13 @@ const TripList = () => {
         const today = new Date();
 
         if (filter === 'week') {
-            // 本週
             const firstDayOfWeek = new Date(today);
             firstDayOfWeek.setDate(today.getDate() - today.getDay());
             startDateFilter = firstDayOfWeek.toISOString().split('T')[0];
         } else if (filter === 'month') {
-            // 本月
             const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
             startDateFilter = firstDayOfMonth.toISOString().split('T')[0];
         } else if (filter === 'season') {
-            // 本季度
             const currentMonth = today.getMonth();
             const firstMonthOfQuarter = Math.floor(currentMonth / 3) * 3;
             const firstDayOfQuarter = new Date(today.getFullYear(), firstMonthOfQuarter, 1);
@@ -201,13 +204,11 @@ const TripList = () => {
         setStartDate(startDateFilter);
         setEndDate(endDateFilter);
 
-        // 重置到第一頁
         setPagination({
             ...pagination,
             current_page: 1
         });
 
-        // 使用時間篩選獲取數據
         fetchTrips(
             1,
             pagination.limit,
@@ -221,12 +222,10 @@ const TripList = () => {
         );
     };
 
-    // 處理視圖模式切換
     const handleViewModeChange = (mode) => {
         setViewMode(mode);
     };
 
-    // 合併功能的 handleResetFilters 函數
     const handleResetFilters = () => {
         setSelectedArea('');
         setSelectedTag('');
@@ -240,41 +239,25 @@ const TripList = () => {
             current_page: 1
         });
 
-        // 重置所有條件後重新獲取數據
         fetchTrips(1, pagination.limit, sortField, sortOrder, '', '', '', '', '');
     };
 
     const handleTripClick = async (tripId) => {
-        console.log('Trip clicked:', tripId);
+        console.log('點擊行程:', tripId);
         try {
-            // 增加瀏覽次數
-            await axios.post(`/api/increment-view`, { tripId });
-
             // 獲取行程詳情
             const response = await axios.get(`/api/trip-detail`, {
                 params: { id: tripId }
             });
 
-            console.log('Trip details response:', response.data);
+            console.log('行程詳情回應:', response.data);
 
-            // 設置行程詳情
+            // 設定行程詳情
             setTripDetails(response.data);
             setSelectedTrip(tripId);
 
-            // 重新加載行程列表（更新瀏覽次數）
-            fetchTrips(
-                pagination.current_page,
-                pagination.limit,
-                sortField,
-                sortOrder,
-                selectedArea,
-                selectedTag,
-                startDate,
-                endDate,
-                searchTerm
-            );
         } catch (err) {
-            console.error('Error fetching trip details:', err);
+            console.error('獲取行程詳情失敗:', err);
         }
     };
 
@@ -284,7 +267,7 @@ const TripList = () => {
 
     const formatDate = (dateString) => {
         const options = { year: 'numeric', month: 'short', day: 'numeric' };
-        return new Date(dateString).toLocaleDateString(undefined, options);
+        return new Date(dateString).toLocaleDateString('zh-TW', options);
     };
 
     const renderSortIcon = (field) => {
@@ -292,7 +275,6 @@ const TripList = () => {
         return sortOrder === 'ASC' ? ' ↑' : ' ↓';
     };
 
-    // 渲染時間段篩選標籤
     const renderTimeFilterTabs = () => {
         return (
             <div className={styles.timeFilterTabs}>
@@ -306,25 +288,24 @@ const TripList = () => {
                     className={`${styles.timeFilterTab} ${timeFilter === 'week' ? styles.active : ''}`}
                     onClick={() => handleTimeFilterChange('week')}
                 >
-                    本週熱門
+                    本週
                 </button>
                 <button
                     className={`${styles.timeFilterTab} ${timeFilter === 'month' ? styles.active : ''}`}
                     onClick={() => handleTimeFilterChange('month')}
                 >
-                    本月熱門
+                    本月
                 </button>
                 <button
                     className={`${styles.timeFilterTab} ${timeFilter === 'season' ? styles.active : ''}`}
                     onClick={() => handleTimeFilterChange('season')}
                 >
-                    本季熱門
+                    本季
                 </button>
             </div>
         );
     };
 
-    // 渲染視圖切換按鈕
     const renderViewToggle = () => {
         return (
             <div className={styles.viewToggle}>
@@ -332,13 +313,13 @@ const TripList = () => {
                     className={viewMode === 'table' ? styles.active : ''}
                     onClick={() => handleViewModeChange('table')}
                 >
-                    <span>表格視圖</span>
+                    <span>表格檢視</span>
                 </button>
                 <button
                     className={viewMode === 'card' ? styles.active : ''}
                     onClick={() => handleViewModeChange('card')}
                 >
-                    <span>卡片視圖</span>
+                    <span>卡片檢視</span>
                 </button>
             </div>
         );
@@ -352,7 +333,6 @@ const TripList = () => {
                 {renderTimeFilterTabs()}
 
                 <div className={styles.filterRow}>
-                    {/* 搜尋欄位 */}
                     <div className={`${styles.filterGroup} ${styles.searchGroup}`}>
                         <label htmlFor="search">搜尋行程</label>
                         <div className={styles.searchInputContainer}>
@@ -387,12 +367,15 @@ const TripList = () => {
                             name="area"
                             value={selectedArea}
                             onChange={handleFilterChange}
+                            disabled={filterLoading}
                         >
                             <option value="">所有地區</option>
-                            {areas.map(area => (
-                                <option key={area} value={area}>{area}</option>
+                            {areas.map((area, index) => (
+                                <option key={`area-${index}`} value={area}>{area}</option>
                             ))}
                         </select>
+                        {filterLoading && <small style={{ color: '#666' }}>載入地區中...</small>}
+                        {!filterLoading && areas.length === 0 && <small style={{ color: '#999' }}>無可用地區</small>}
                     </div>
 
                     <div className={styles.filterGroup}>
@@ -402,12 +385,15 @@ const TripList = () => {
                             name="tag"
                             value={selectedTag}
                             onChange={handleFilterChange}
+                            disabled={filterLoading}
                         >
                             <option value="">所有標籤</option>
-                            {tags.map(tag => (
-                                <option key={tag} value={tag}>{tag}</option>
+                            {tags.map((tag, index) => (
+                                <option key={`tag-${index}`} value={tag}>{tag}</option>
                             ))}
                         </select>
+                        {filterLoading && <small style={{ color: '#666' }}>載入標籤中...</small>}
+                        {!filterLoading && tags.length === 0 && <small style={{ color: '#999' }}>無可用標籤</small>}
                     </div>
 
                     <div className={`${styles.filterGroup} ${styles.dateGroup}`}>
@@ -445,6 +431,11 @@ const TripList = () => {
                         重置篩選
                     </button>
                 </div>
+
+                {/* 顯示篩選狀態 */}
+                <div style={{ marginTop: '10px', fontSize: '12px', color: '#666' }}>
+                    資料庫篩選選項: 地區 {areas.length} 個，標籤 {tags.length} 個
+                </div>
             </div>
         );
     };
@@ -454,7 +445,6 @@ const TripList = () => {
 
         if (total_pages === 0) return null;
 
-        // 計算要顯示的頁碼範圍
         let startPage = Math.max(1, current_page - 2);
         let endPage = Math.min(total_pages, startPage + 4);
 
@@ -519,7 +509,7 @@ const TripList = () => {
     };
 
     const renderTripTable = () => {
-        if (loading) return <div className={styles.loading}>加載中...</div>;
+        if (loading) return <div className={styles.loading}>載入中...</div>;
         if (error) return <div className={styles.error}>{error}</div>;
         if (trips.length === 0) return <div className={styles.noTrips}>沒有找到符合條件的行程。</div>;
 
@@ -542,11 +532,6 @@ const TripList = () => {
                                 地區 {renderSortIcon('area')}
                             </th>
                             <th>標籤</th>
-                            <th onClick={() => handleSort('view_count')}>
-                                瀏覽次數 {renderSortIcon('view_count')}
-                            </th>
-                            <th>參與者數量</th>
-                            <th>創建者</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -578,9 +563,6 @@ const TripList = () => {
                                             </div>
                                         )}
                                     </td>
-                                    <td>{trip.view_count || 0}</td>
-                                    <td>{trip.total_participants || 0}</td>
-                                    <td>{trip.creator_name}</td>
                                 </tr>
                             );
                         })}
@@ -590,16 +572,14 @@ const TripList = () => {
         );
     };
 
-    // 卡片視圖渲染
     const renderCardView = () => {
-        if (loading) return <div className={styles.loading}>加載中...</div>;
+        if (loading) return <div className={styles.loading}>載入中...</div>;
         if (error) return <div className={styles.error}>{error}</div>;
         if (trips.length === 0) return <div className={styles.noTrips}>沒有找到符合條件的行程。</div>;
 
         return (
             <div className={styles.tripCardView}>
                 {trips.map((trip, index) => {
-                    // 計算實際排名，考慮分頁
                     const rank = (pagination.current_page - 1) * pagination.limit + index + 1;
 
                     return (
@@ -610,7 +590,9 @@ const TripList = () => {
                         >
                             <div className={styles.tripCardHeader}>
                                 <div className={styles.tripCardTitle}>{trip.title}</div>
-                                <div className={`${styles.tripCardRank} ${styles.rank} ${styles[`rank${rank}`]}`}>{rank}</div>
+                                <div className={`${styles.tripCardRank} ${styles.rank} ${styles[`rank${rank}`]}`}>
+                                    {rank}
+                                </div>
                             </div>
                             <div className={styles.tripCardContent}>
                                 <div className={styles.tripCardInfo}>
@@ -636,10 +618,6 @@ const TripList = () => {
                                     </div>
                                 )}
                             </div>
-                            <div className={styles.tripCardFooter}>
-                                <div className={styles.tripCardCreator}>由 {trip.creator_name} 創建</div>
-                                <div className={styles.tripCardViews}>{trip.view_count || 0} 次瀏覽</div>
-                            </div>
                         </div>
                     );
                 })}
@@ -649,7 +627,7 @@ const TripList = () => {
 
     return (
         <div className={styles.tripListContainer}>
-            <h2>行程排行榜</h2>
+            <h2>行程列表</h2>
             {renderFilterPanel()}
 
             <div className={styles.listHeader}>

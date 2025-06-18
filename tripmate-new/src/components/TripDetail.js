@@ -1,4 +1,4 @@
-// components/TripDetail.js
+// components/TripDetail.js - 繁體中文版本
 import React from 'react';
 import styles from './TripDetail.module.css';
 
@@ -7,7 +7,7 @@ const TripDetail = ({ trip, details, participants, onClose }) => {
 
   const formatDate = (dateString) => {
     const options = { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' };
-    return new Date(dateString).toLocaleDateString(undefined, options);
+    return new Date(dateString).toLocaleDateString('zh-TW', options);
   };
 
   const formatTime = (timeString) => {
@@ -23,10 +23,6 @@ const TripDetail = ({ trip, details, participants, onClose }) => {
 
         <div className={styles.tripDetailHeader}>
           <h2>{trip.title}</h2>
-          <div className={styles.tripMeta}>
-            <span className={styles.tripCreator}>由 {trip.creator_name} 創建</span>
-            <span className={styles.tripViews}>👁️ {trip.view_count || 0} 次瀏覽</span>
-          </div>
         </div>
 
         <div className={styles.tripDetailContent}>
@@ -39,13 +35,27 @@ const TripDetail = ({ trip, details, participants, onClose }) => {
                   <span>{trip.area}</span>
                 </div>
                 <div className={styles.infoItem}>
+                  <label>開始日期</label>
+                  <span>{formatDate(trip.start_date)}</span>
+                </div>
+                <div className={styles.infoItem}>
                   <label>結束日期</label>
                   <span>{formatDate(trip.end_date)}</span>
                 </div>
                 <div className={styles.infoItem}>
                   <label>預算</label>
-                  <span>{trip.budget ? `${trip.budget}` : '未設定'}</span>
+                  <span>{trip.budget ? `$${trip.budget}` : '未設定'}</span>
                 </div>
+                <div className={styles.infoItem}>
+                  <label>建立時間</label>
+                  <span>{formatDate(trip.created_at)}</span>
+                </div>
+                {trip.updated_at !== trip.created_at && (
+                  <div className={styles.infoItem}>
+                    <label>更新時間</label>
+                    <span>{formatDate(trip.updated_at)}</span>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -90,21 +100,33 @@ const TripDetail = ({ trip, details, participants, onClose }) => {
             )}
           </div>
 
-          <div className={styles.tripParticipants}>
-            <h3>參與者 ({participants.length})</h3>
-            <div className={styles.participantsList}>
-              {participants.map((participant) => (
-                <div key={participant.participant_id} className={`${styles.participantItem} ${styles[participant.status]}`}>
-                  <span className={styles.participantName}>{participant.username}</span>
-                  <span className={styles.participantStatus}>
-                    {participant.status === 'accepted' ? '已接受' :
-                      participant.status === 'invited' ? '已邀請' : '已拒絕'}
-                  </span>
-                </div>
-              ))}
-              {participants.length === 0 && (
-                <p className={styles.noParticipants}>尚無參與者</p>
-              )}
+          <div className={styles.tripStats}>
+            <h3>統計資訊</h3>
+            <div className={styles.tripInfoGrid}>
+              <div className={styles.infoItem}>
+                <label>行程天數</label>
+                <span>
+                  {Math.ceil((new Date(trip.end_date) - new Date(trip.start_date)) / (1000 * 60 * 60 * 24)) + 1} 天
+                </span>
+              </div>
+              <div className={styles.infoItem}>
+                <label>詳細安排</label>
+                <span>{details.length} 項活動</span>
+              </div>
+              <div className={styles.infoItem}>
+                <label>參與人數</label>
+                <span>{participants.length} 人</span>
+              </div>
+              <div className={styles.infoItem}>
+                <label>行程狀態</label>
+                <span>
+                  {new Date(trip.start_date) > new Date()
+                    ? '尚未開始'
+                    : new Date(trip.end_date) < new Date()
+                      ? '已結束'
+                      : '進行中'}
+                </span>
+              </div>
             </div>
           </div>
         </div>
