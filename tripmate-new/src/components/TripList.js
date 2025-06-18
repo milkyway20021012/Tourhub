@@ -395,32 +395,6 @@ const TripList = () => {
                         {filterLoading && <small style={{ color: '#666' }}>載入標籤中...</small>}
                         {!filterLoading && tags.length === 0 && <small style={{ color: '#999' }}>無可用標籤</small>}
                     </div>
-
-                    <div className={`${styles.filterGroup} ${styles.dateGroup}`}>
-                        <label>日期範圍</label>
-                        <div className={styles.dateInputs}>
-                            <div className={styles.dateInputWrapper}>
-                                <label htmlFor="startDate">開始日期</label>
-                                <input
-                                    type="date"
-                                    id="startDate"
-                                    name="startDate"
-                                    value={startDate}
-                                    onChange={handleFilterChange}
-                                />
-                            </div>
-                            <div className={styles.dateInputWrapper}>
-                                <label htmlFor="endDate">結束日期</label>
-                                <input
-                                    type="date"
-                                    id="endDate"
-                                    name="endDate"
-                                    value={endDate}
-                                    onChange={handleFilterChange}
-                                />
-                            </div>
-                        </div>
-                    </div>
                 </div>
 
                 <div className={styles.filterActions}>
