@@ -92,20 +92,23 @@
     transition: all 0.2s ease;
 }
 
-/* 前三名使用漸變色 */
+/* 前三名使用淺色漸變 */
 .rank1 {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
+    background: linear-gradient(135deg, #ddd6fe 0%, #e0e7ff 100%);
+    color: #5b21b6;
+    border: 1px solid #c4b5fd;
 }
 
 .rank2 {
-    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-    color: white;
+    background: linear-gradient(135deg, #fce7f3 0%, #fdf2f8 100%);
+    color: #be185d;
+    border: 1px solid #f9a8d4;
 }
 
 .rank3 {
-    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-    color: white;
+    background: linear-gradient(135deg, #dbeafe 0%, #eff6ff 100%);
+    color: #1d4ed8;
+    border: 1px solid #93c5fd;
 }
 
 /* 4-10名 */
