@@ -1,4 +1,4 @@
-// components/TripList.js - 繁體中文版本，確保從資料庫獲取標籤和地區
+// components/TripList.js - 繁體中文版本，移除日期欄位
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import TripDetail from './TripDetail';
@@ -518,12 +518,6 @@ const TripList = () => {
                             <th onClick={() => handleSort('title')}>
                                 行程標題 {renderSortIcon('title')}
                             </th>
-                            <th onClick={() => handleSort('start_date')}>
-                                開始日期 {renderSortIcon('start_date')}
-                            </th>
-                            <th onClick={() => handleSort('end_date')}>
-                                結束日期 {renderSortIcon('end_date')}
-                            </th>
                             <th onClick={() => handleSort('area')}>
                                 地區 {renderSortIcon('area')}
                             </th>
@@ -547,8 +541,6 @@ const TripList = () => {
                                         </div>
                                     </td>
                                     <td className={styles.tripTitle}>{trip.title}</td>
-                                    <td>{formatDate(trip.start_date)}</td>
-                                    <td>{formatDate(trip.end_date)}</td>
                                     <td>{trip.area}</td>
                                     <td>
                                         {trip.tags && (
