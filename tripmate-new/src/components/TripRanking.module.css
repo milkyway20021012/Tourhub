@@ -169,6 +169,187 @@
     color: #e53e3e;
 }
 
+/* 新增：統計面板樣式 */
+.statsPanel {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+    padding: 20px;
+    background: white;
+    border-radius: 12px;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+}
+
+.statItem {
+    text-align: center;
+    padding: 16px;
+    border-radius: 8px;
+    background: #f7fafc;
+}
+
+.statValue {
+    display: block;
+    font-size: 24px;
+    font-weight: 700;
+    color: #3182ce;
+    margin-bottom: 4px;
+}
+
+.statLabel {
+    font-size: 14px;
+    color: #718096;
+    font-weight: 500;
+}
+
+/* 新增：篩選和排序面板 */
+.filterSortPanel {
+    background: white;
+    border-radius: 12px;
+    border: 1px solid #e2e8f0;
+    padding: 20px;
+    margin-bottom: 24px;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+}
+
+.filterRow {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    margin-bottom: 16px;
+}
+
+.filterGroup {
+    flex: 1;
+    min-width: 200px;
+}
+
+.filterGroup label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 600;
+    color: #4a5568;
+    font-size: 14px;
+}
+
+.filterGroup select,
+.filterGroup input {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    font-size: 14px;
+    background: white;
+}
+
+.searchBox {
+    position: relative;
+}
+
+.searchBox input {
+    padding-right: 40px;
+}
+
+.searchIcon {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #718096;
+}
+
+/* 新增：收藏按鈕樣式 */
+.favoriteButton {
+    position: absolute;
+    top: 12px;
+    right: 50px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 50%;
+    transition: all 0.2s ease;
+    color: #718096;
+}
+
+.favoriteButton:hover {
+    background: #f7fafc;
+    color: #e53e3e;
+}
+
+.favoriteButton.favorited {
+    color: #e53e3e;
+}
+
+/* 新增：分享按鈕樣式 */
+.shareButton {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    background: #10b981;
+    color: white;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.shareButton:hover {
+    background: #059669;
+    transform: translateY(-1px);
+}
+
+/* 新增：標籤樣式 */
+.durationTag,
+.budgetTag,
+.seasonTag,
+.statusTag {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 500;
+    margin-right: 6px;
+}
+
+.durationTag {
+    background: #e6fffa;
+    color: #234e52;
+}
+
+.budgetTag {
+    background: #fef5e7;
+    color: #744210;
+}
+
+.seasonTag {
+    background: #f0fff4;
+    color: #22543d;
+}
+
+.statusTag {
+    background: #edf2f7;
+    color: #4a5568;
+}
+
+.statusTag.upcoming {
+    background: #e6fffa;
+    color: #234e52;
+}
+
+.statusTag.ongoing {
+    background: #fff5f5;
+    color: #742a2a;
+}
+
+.statusTag.completed {
+    background: #f7fafc;
+    color: #718096;
+}
+
 @media (max-width: 600px) {
     .tripRankingContainer {
         padding: 16px;
