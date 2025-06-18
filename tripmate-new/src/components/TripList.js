@@ -432,10 +432,6 @@ const TripList = () => {
                     </button>
                 </div>
 
-                {/* 顯示篩選狀態 */}
-                <div style={{ marginTop: '10px', fontSize: '12px', color: '#666' }}>
-                    資料庫篩選選項: 地區 {areas.length} 個，標籤 {tags.length} 個
-                </div>
             </div>
         );
     };
