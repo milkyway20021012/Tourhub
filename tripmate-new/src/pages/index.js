@@ -81,7 +81,7 @@ export default function Home() {
       }}>
         <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 20px' }}>
           <p style={{ margin: 0, fontSize: '16px' }}>
-            © 2024 TripMate - 讓旅行更美好 ✈️
+            © 2025 Tourhub - 讓旅行更美好
           </p>
           <p style={{ margin: '0.5rem 0 0 0', fontSize: '14px', opacity: 0.8 }}>
             探索世界，分享回憶
