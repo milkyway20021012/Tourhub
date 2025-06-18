@@ -43,11 +43,6 @@ export default async function handler(req, res) {
 
         const tags = Array.from(allTagsSet).sort();
 
-        console.log('從資料庫找到的地區:', areas.length, '個');
-        console.log('地區列表:', areas);
-        console.log('從資料庫找到的標籤:', tags.length, '個');
-        console.log('標籤列表:', tags.slice(0, 10), tags.length > 10 ? '...' : '');
-
         // 驗證資料
         if (areas.length === 0) {
             console.warn('警告: 資料庫中沒有找到任何地區資料');
