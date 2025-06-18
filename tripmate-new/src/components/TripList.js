@@ -21,8 +21,8 @@ const TripList = () => {
         participants: []
     });
 
-    // 排序狀態
-    const [sortField, setSortField] = useState('created_at');
+    // 排序狀態 - 預設按預算排序
+    const [sortField, setSortField] = useState('budget');
     const [sortOrder, setSortOrder] = useState('DESC');
 
     // 篩選選項 - 從資料庫獲取
@@ -521,6 +521,9 @@ const TripList = () => {
                             <th onClick={() => handleSort('area')}>
                                 地區 {renderSortIcon('area')}
                             </th>
+                            <th onClick={() => handleSort('budget')}>
+                                預算 {renderSortIcon('budget')}
+                            </th>
                             <th>標籤</th>
                         </tr>
                     </thead>
@@ -542,6 +545,9 @@ const TripList = () => {
                                     </td>
                                     <td className={styles.tripTitle}>{trip.title}</td>
                                     <td>{trip.area}</td>
+                                    <td>
+                                        {trip.budget ? `${trip.budget.toLocaleString()}` : '未設定'}
+                                    </td>
                                     <td>
                                         {trip.tags && (
                                             <div className={styles.tripTags}>

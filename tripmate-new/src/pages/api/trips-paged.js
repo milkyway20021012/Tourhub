@@ -1,4 +1,4 @@
-// pages/api/trips-paged.js - 繁體中文版本
+// pages/api/trips-paged.js - 繁體中文版本，支援預算排序
 import { query } from '../../lib/db';
 
 export default async function handler(req, res) {
@@ -13,7 +13,7 @@ export default async function handler(req, res) {
         const {
             page = 1,
             limit = 10,
-            sort = 'created_at',
+            sort = 'budget',
             order = 'DESC',
             area = '',
             tag = '',
@@ -91,16 +91,28 @@ export default async function handler(req, res) {
         const offset = (pageNum - 1) * limitNum;
         const totalPages = Math.ceil(total / limitNum);
 
-        // 處理排序
-        const allowedSortFields = ['title', 'start_date', 'end_date', 'area', 'created_at'];
-        const sortField = allowedSortFields.includes(sort) ? sort : 'created_at';
+        // 處理排序 - 新增預算排序支援
+        const allowedSortFields = ['title', 'area', 'budget', 'created_at'];
+        const sortField = allowedSortFields.includes(sort) ? sort : 'budget';
         const sortOrder = (order && order.toUpperCase() === 'ASC') ? 'ASC' : 'DESC';
+
+        // 特殊處理預算排序 - 將 NULL 值放在最後
+        let orderByClause = '';
+        if (sortField === 'budget') {
+            if (sortOrder === 'DESC') {
+                orderByClause = `ORDER BY t.budget IS NULL ASC, t.budget DESC`;
+            } else {
+                orderByClause = `ORDER BY t.budget IS NULL ASC, t.budget ASC`;
+            }
+        } else {
+            orderByClause = `ORDER BY t.${sortField} ${sortOrder}`;
+        }
 
         // 組建資料查詢
         const dataSql = `
             ${baseSql}
             ${whereSql}
-            ORDER BY t.${sortField} ${sortOrder}
+            ${orderByClause}
             LIMIT ${limitNum} OFFSET ${offset}
         `;
 
@@ -124,6 +136,10 @@ export default async function handler(req, res) {
                 startDate: startDate || null,
                 endDate: endDate || null,
                 search: search || null
+            },
+            sort_info: {
+                field: sortField,
+                order: sortOrder
             }
         });
 
