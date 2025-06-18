@@ -113,20 +113,6 @@
     white-space: pre-line;
 }
 
-.tripTags {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-}
-
-.tripTag {
-    background-color: #e0f7fa;
-    color: #00838f;
-    padding: 4px 12px;
-    border-radius: 20px;
-    font-size: 13px;
-}
-
 /* 行程安排時間線 */
 .scheduleTimeline {
     position: relative;

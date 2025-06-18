@@ -153,22 +153,6 @@
     font-weight: 500;
 }
 
-.tags {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-    margin-top: 12px;
-}
-
-.tag {
-    background-color: #e6fffa;
-    color: #234e52;
-    padding: 4px 8px;
-    border-radius: 6px;
-    font-size: 12px;
-    font-weight: 500;
-}
-
 .loading,
 .error,
 .noTrips {

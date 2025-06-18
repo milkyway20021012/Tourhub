@@ -1,4 +1,4 @@
-// pages/api/get-filters.js - 確保從資料庫獲取地區和標籤
+// pages/api/get-filters.js - 確保從資料庫獲取地區，移除標籤功能
 import { query } from '../../lib/db';
 
 export default async function handler(req, res) {
@@ -17,48 +17,19 @@ export default async function handler(req, res) {
             ORDER BY area
         `);
 
-        // 獲取所有標籤 - 從資料庫查詢並處理
-        const tagsResult = await query(`
-            SELECT DISTINCT tags
-            FROM trip 
-            WHERE tags IS NOT NULL AND tags != '' AND TRIM(tags) != ''
-        `);
-
         // 處理地區資料
         const areas = areasResult.map(row => row.area.trim()).filter(area => area.length > 0);
-
-        // 處理標籤資料 - 分割逗號分隔的標籤
-        const allTagsSet = new Set();
-        tagsResult.forEach(row => {
-            if (row.tags && row.tags.trim()) {
-                const tagArray = row.tags.split(',');
-                tagArray.forEach(tag => {
-                    const trimmedTag = tag.trim();
-                    if (trimmedTag.length > 0) {
-                        allTagsSet.add(trimmedTag);
-                    }
-                });
-            }
-        });
-
-        const tags = Array.from(allTagsSet).sort();
 
         // 驗證資料
         if (areas.length === 0) {
             console.warn('警告: 資料庫中沒有找到任何地區資料');
         }
 
-        if (tags.length === 0) {
-            console.warn('警告: 資料庫中沒有找到任何標籤資料');
-        }
-
         res.status(200).json({
             success: true,
             areas: areas,
-            tags: tags,
             metadata: {
                 areas_count: areas.length,
-                tags_count: tags.length,
                 source: 'database',
                 timestamp: new Date().toISOString()
             }
@@ -70,8 +41,7 @@ export default async function handler(req, res) {
             success: false,
             message: '伺服器錯誤',
             error: error.message,
-            areas: [],
-            tags: []
+            areas: []
         });
     }
 }

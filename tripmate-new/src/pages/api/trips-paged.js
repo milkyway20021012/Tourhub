@@ -1,4 +1,4 @@
-// pages/api/trips-paged.js - 繁體中文版本，支援預算排序
+// pages/api/trips-paged.js - 繁體中文版本，支援預算排序，移除標籤功能
 import { query } from '../../lib/db';
 
 export default async function handler(req, res) {
@@ -16,7 +16,6 @@ export default async function handler(req, res) {
             sort = 'budget',
             order = 'DESC',
             area = '',
-            tag = '',
             startDate = '',
             endDate = '',
             search = ''
@@ -31,7 +30,6 @@ export default async function handler(req, res) {
                 t.start_date,
                 t.end_date,
                 t.area,
-                t.tags,
                 t.budget,
                 t.created_at,
                 t.updated_at
@@ -50,12 +48,6 @@ export default async function handler(req, res) {
             const searchTerm = search.trim().replace(/'/g, "''");
             whereConditions.push("(t.title LIKE '%" + searchTerm + "%' OR t.description LIKE '%" + searchTerm + "%')");
             console.log('套用搜尋篩選:', searchTerm);
-        }
-
-        if (tag && tag.trim()) {
-            const tagTerm = tag.trim().replace(/'/g, "''");
-            whereConditions.push("t.tags LIKE '%" + tagTerm + "%'");
-            console.log('套用標籤篩選:', tagTerm);
         }
 
         if (startDate && startDate.trim()) {
@@ -132,7 +124,6 @@ export default async function handler(req, res) {
             },
             filters_applied: {
                 area: area || null,
-                tag: tag || null,
                 startDate: startDate || null,
                 endDate: endDate || null,
                 search: search || null

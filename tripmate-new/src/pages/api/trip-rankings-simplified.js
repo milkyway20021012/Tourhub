@@ -1,4 +1,4 @@
-// pages/api/trip-rankings-simplified.js - 繁體中文簡化版排行榜 API
+// pages/api/trip-rankings-simplified.js - 繁體中文簡化版排行榜 API，移除標籤
 import { query } from '../../lib/db';
 
 export default async function handler(req, res) {
@@ -24,7 +24,6 @@ export default async function handler(req, res) {
                         t.start_date,
                         t.end_date,
                         t.area,
-                        t.tags,
                         t.budget,
                         t.created_at
                     FROM trip t 
@@ -53,7 +52,6 @@ export default async function handler(req, res) {
                         t.start_date,
                         t.end_date,
                         t.area,
-                        t.tags,
                         t.budget,
                         t.created_at
                     FROM trip t 

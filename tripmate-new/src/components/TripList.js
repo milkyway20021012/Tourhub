@@ -1,4 +1,4 @@
-// components/TripList.js - 繁體中文版本，移除日期欄位
+// components/TripList.js - 繁體中文版本，移除標籤功能
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import TripDetail from './TripDetail';
@@ -27,12 +27,10 @@ const TripList = () => {
 
     // 篩選選項 - 從資料庫獲取
     const [areas, setAreas] = useState([]);
-    const [tags, setTags] = useState([]);
     const [filterLoading, setFilterLoading] = useState(true);
 
     // 篩選狀態
     const [selectedArea, setSelectedArea] = useState('');
-    const [selectedTag, setSelectedTag] = useState('');
     const [startDate, setStartDate] = useState('');
     const [endDate, setEndDate] = useState('');
     const [searchTerm, setSearchTerm] = useState('');
@@ -53,12 +51,11 @@ const TripList = () => {
             sortField,
             sortOrder,
             selectedArea,
-            selectedTag,
             startDate,
             endDate,
             searchTerm
         );
-    }, [pagination.current_page, sortField, sortOrder, selectedArea, selectedTag, startDate, endDate, searchTerm]);
+    }, [pagination.current_page, sortField, sortOrder, selectedArea, startDate, endDate, searchTerm]);
 
     const fetchFilterOptions = async () => {
         setFilterLoading(true);
@@ -67,12 +64,10 @@ const TripList = () => {
             const response = await axios.get(`/api/get-filters`);
 
             console.log('資料庫返回的地區:', response.data.areas);
-            console.log('資料庫返回的標籤:', response.data.tags);
 
             setAreas(response.data.areas || []);
-            setTags(response.data.tags || []);
 
-            console.log('篩選選項設定完成 - 地區數量:', response.data.areas?.length, '標籤數量:', response.data.tags?.length);
+            console.log('篩選選項設定完成 - 地區數量:', response.data.areas?.length);
         } catch (err) {
             console.error('獲取篩選選項失敗:', err);
             setError('獲取篩選選項失敗，請稍後再試。');
@@ -81,7 +76,7 @@ const TripList = () => {
         }
     };
 
-    const fetchTrips = async (page, limit, sort, order, area, tag, startDate, endDate, search) => {
+    const fetchTrips = async (page, limit, sort, order, area, startDate, endDate, search) => {
         setLoading(true);
         try {
             const response = await axios.get(`/api/trips-paged`, {
@@ -91,7 +86,6 @@ const TripList = () => {
                     sort,
                     order,
                     area,
-                    tag,
                     startDate,
                     endDate,
                     search
@@ -135,10 +129,6 @@ const TripList = () => {
                 setSelectedArea(value);
                 console.log('選擇地區:', value);
                 break;
-            case 'tag':
-                setSelectedTag(value);
-                console.log('選擇標籤:', value);
-                break;
             case 'startDate':
                 setStartDate(value);
                 break;
@@ -172,7 +162,6 @@ const TripList = () => {
             sortField,
             sortOrder,
             selectedArea,
-            selectedTag,
             startDate,
             endDate,
             searchTerm
@@ -215,7 +204,6 @@ const TripList = () => {
             sortField,
             sortOrder,
             selectedArea,
-            selectedTag,
             startDateFilter,
             endDateFilter,
             searchTerm
@@ -228,7 +216,6 @@ const TripList = () => {
 
     const handleResetFilters = () => {
         setSelectedArea('');
-        setSelectedTag('');
         setStartDate('');
         setEndDate('');
         setSearchTerm('');
@@ -239,7 +226,7 @@ const TripList = () => {
             current_page: 1
         });
 
-        fetchTrips(1, pagination.limit, sortField, sortOrder, '', '', '', '', '');
+        fetchTrips(1, pagination.limit, sortField, sortOrder, '', '', '', '');
     };
 
     const handleTripClick = async (tripId) => {
@@ -377,24 +364,6 @@ const TripList = () => {
                         {filterLoading && <small style={{ color: '#666' }}>載入地區中...</small>}
                         {!filterLoading && areas.length === 0 && <small style={{ color: '#999' }}>無可用地區</small>}
                     </div>
-
-                    <div className={styles.filterGroup}>
-                        <label htmlFor="tag">標籤</label>
-                        <select
-                            id="tag"
-                            name="tag"
-                            value={selectedTag}
-                            onChange={handleFilterChange}
-                            disabled={filterLoading}
-                        >
-                            <option value="">所有標籤</option>
-                            {tags.map((tag, index) => (
-                                <option key={`tag-${index}`} value={tag}>{tag}</option>
-                            ))}
-                        </select>
-                        {filterLoading && <small style={{ color: '#666' }}>載入標籤中...</small>}
-                        {!filterLoading && tags.length === 0 && <small style={{ color: '#999' }}>無可用標籤</small>}
-                    </div>
                 </div>
 
                 <div className={styles.filterActions}>
@@ -498,7 +467,6 @@ const TripList = () => {
                             <th onClick={() => handleSort('budget')}>
                                 預算 {renderSortIcon('budget')}
                             </th>
-                            <th>標籤</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -521,15 +489,6 @@ const TripList = () => {
                                     <td>{trip.area}</td>
                                     <td>
                                         {trip.budget ? `${trip.budget.toLocaleString()}` : '未設定'}
-                                    </td>
-                                    <td>
-                                        {trip.tags && (
-                                            <div className={styles.tripTags}>
-                                                {trip.tags.split(',').map((tag, i) => (
-                                                    <span key={i} className={styles.tripTag}>{tag.trim()}</span>
-                                                ))}
-                                            </div>
-                                        )}
                                     </td>
                                 </tr>
                             );
@@ -576,13 +535,6 @@ const TripList = () => {
                                         {trip.description.length > 80
                                             ? trip.description.substring(0, 80) + '...'
                                             : trip.description}
-                                    </div>
-                                )}
-                                {trip.tags && (
-                                    <div className={styles.tripCardTags}>
-                                        {trip.tags.split(',').map((tag, i) => (
-                                            <span key={i} className={styles.tripTag}>{tag.trim()}</span>
-                                        ))}
                                     </div>
                                 )}
                             </div>
