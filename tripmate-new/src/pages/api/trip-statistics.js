@@ -21,26 +21,27 @@ export default async function handler(req, res) {
             WHERE start_date IS NOT NULL AND end_date IS NOT NULL
         `);
 
-        // 獲取最熱門地區 (前3名)
+        // 獲取最熱門地區 (前5名)
         const popularAreasResult = await query(`
             SELECT area, COUNT(*) as count 
             FROM line_trips 
             WHERE area IS NOT NULL AND area != ''
             GROUP BY area 
             ORDER BY count DESC 
-            LIMIT 3
+            LIMIT 5
         `);
 
         // 獲取行程長度分布
         const durationDistributionResult = await query(`
             SELECT 
                 CASE 
-                    WHEN DATEDIFF(end_date, start_date) + 1 <= 2 THEN '週末遊 (1-2天)'
-                    WHEN DATEDIFF(end_date, start_date) + 1 <= 5 THEN '短期旅行 (3-5天)'
-                    WHEN DATEDIFF(end_date, start_date) + 1 <= 10 THEN '長假期 (6-10天)'
-                    ELSE '深度旅行 (10天以上)'
+                    WHEN DATEDIFF(end_date, start_date) + 1 <= 2 THEN '週末遊'
+                    WHEN DATEDIFF(end_date, start_date) + 1 <= 5 THEN '短期旅行'
+                    WHEN DATEDIFF(end_date, start_date) + 1 <= 10 THEN '長假期'
+                    ELSE '深度旅行'
                 END as duration_type,
-                COUNT(*) as count
+                COUNT(*) as count,
+                AVG(DATEDIFF(end_date, start_date) + 1) as avg_days
             FROM line_trips 
             WHERE start_date IS NOT NULL AND end_date IS NOT NULL
             GROUP BY duration_type
@@ -75,18 +76,37 @@ export default async function handler(req, res) {
                 END
         `);
 
-        // 獲取即將出發的行程數
+        // 獲取即將出發的行程數 (30天內)
         const upcomingTripsResult = await query(`
             SELECT COUNT(*) as upcoming_trips 
             FROM line_trips 
             WHERE start_date >= CURDATE() AND start_date <= DATE_ADD(CURDATE(), INTERVAL 30 DAY)
         `);
 
-        // 獲取最近新增的行程數
+        // 獲取最近新增的行程數 (7天內)
         const recentTripsResult = await query(`
             SELECT COUNT(*) as recent_trips 
             FROM line_trips 
             WHERE start_date >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)
+        `);
+
+        // 獲取進行中的行程數
+        const ongoingTripsResult = await query(`
+            SELECT COUNT(*) as ongoing_trips 
+            FROM line_trips 
+            WHERE start_date <= CURDATE() AND end_date >= CURDATE()
+        `);
+
+        // 獲取月份分布統計
+        const monthlyDistributionResult = await query(`
+            SELECT 
+                MONTH(start_date) as month,
+                MONTHNAME(start_date) as month_name,
+                COUNT(*) as count
+            FROM line_trips 
+            WHERE start_date IS NOT NULL
+            GROUP BY MONTH(start_date), MONTHNAME(start_date)
+            ORDER BY MONTH(start_date)
         `);
 
         // 組織回應資料
@@ -95,11 +115,13 @@ export default async function handler(req, res) {
                 totalTrips: totalTripsResult[0]?.total_trips || 0,
                 avgDuration: Math.round(avgDurationResult[0]?.avg_duration || 0),
                 upcomingTrips: upcomingTripsResult[0]?.upcoming_trips || 0,
-                recentTrips: recentTripsResult[0]?.recent_trips || 0
+                recentTrips: recentTripsResult[0]?.recent_trips || 0,
+                ongoingTrips: ongoingTripsResult[0]?.ongoing_trips || 0
             },
             popularAreas: popularAreasResult,
             durationDistribution: durationDistributionResult,
             seasonDistribution: seasonDistributionResult,
+            monthlyDistribution: monthlyDistributionResult,
             timestamp: new Date().toISOString()
         };
 
@@ -111,7 +133,19 @@ export default async function handler(req, res) {
         res.status(500).json({
             success: false,
             message: '伺服器錯誤',
-            error: error.message
+            error: error.message,
+            // 返回預設值以防錯誤
+            overview: {
+                totalTrips: 0,
+                avgDuration: 0,
+                upcomingTrips: 0,
+                recentTrips: 0,
+                ongoingTrips: 0
+            },
+            popularAreas: [],
+            durationDistribution: [],
+            seasonDistribution: [],
+            monthlyDistribution: []
         });
     }
 }

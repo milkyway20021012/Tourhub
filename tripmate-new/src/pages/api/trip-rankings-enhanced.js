@@ -6,7 +6,14 @@ export default async function handler(req, res) {
     }
 
     try {
-        const { type = 'date', budget_min = '', budget_max = '', duration_type = '', season = '' } = req.query;
+        const {
+            type = 'date',
+            budget_min = '',
+            budget_max = '',
+            duration_type = '',
+            season = '',
+            area = ''
+        } = req.query;
 
         console.log('trip-rankings-enhanced API 被呼叫，類型:', type);
 
@@ -35,11 +42,20 @@ export default async function handler(req, res) {
                     WHEN DATEDIFF(t.end_date, t.start_date) + 1 <= 5 THEN '短期旅行'
                     WHEN DATEDIFF(t.end_date, t.start_date) + 1 <= 10 THEN '長假期'
                     ELSE '深度旅行'
-                END as duration_type
+                END as duration_type,
+                CASE 
+                    WHEN t.start_date > CURDATE() THEN '即將出發'
+                    WHEN t.start_date <= CURDATE() AND t.end_date >= CURDATE() THEN '進行中'
+                    ELSE '已結束'
+                END as status
             FROM line_trips t
         `;
 
         // 添加篩選條件
+        if (area && area.trim()) {
+            whereConditions.push(`t.area = '${area.trim().replace(/'/g, "''")}'`);
+        }
+
         if (duration_type) {
             switch (duration_type) {
                 case '週末遊':
@@ -105,10 +121,10 @@ export default async function handler(req, res) {
                 break;
 
             case 'trending':
-                // 趨勢分析 - 最近30天的行程，按出發日期排序
+                // 趨勢分析 - 最近30天的行程
                 sql = `
                     ${baseSelect}
-                    WHERE t.start_date >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
+                    WHERE t.start_date >= DATE_SUB(CURDATE(), INTERVAL 90 DAY)
                     ${whereConditions.length > 0 ? 'AND ' + whereConditions.join(' AND ') : ''}
                     ORDER BY t.start_date DESC
                     LIMIT 50
@@ -116,7 +132,7 @@ export default async function handler(req, res) {
                 break;
 
             case 'area':
-                // 按地區分組
+                // 按地區分組，每個地區最新的行程
                 sql = `
                     ${baseSelect}
                     WHERE t.trip_id IN (
@@ -131,6 +147,18 @@ export default async function handler(req, res) {
                     )
                     ${whereConditions.length > 0 ? 'AND ' + whereConditions.join(' AND ') : ''}
                     ORDER BY t.area ASC, t.start_date DESC
+                    LIMIT 50
+                `;
+                break;
+
+            case 'popular':
+                // 熱門行程 (基於假設的熱度計算)
+                sql = `
+                    ${baseSelect}
+                    ${whereClause}
+                    ORDER BY 
+                        (CASE WHEN t.start_date >= CURDATE() THEN 2 ELSE 1 END) DESC,
+                        t.start_date ASC
                     LIMIT 50
                 `;
                 break;
@@ -158,8 +186,10 @@ export default async function handler(req, res) {
             count: trips.length,
             filters: {
                 duration_type,
-                season
-            }
+                season,
+                area
+            },
+            timestamp: new Date().toISOString()
         });
 
     } catch (error) {
