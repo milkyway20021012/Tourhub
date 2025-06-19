@@ -40,14 +40,6 @@ const TripDetail = ({ trip, details, participants, onClose }) => {
                   <label>結束日期</label>
                   <span>{formatDate(trip.end_date)}</span>
                 </div>
-                <div className={styles.infoItem}>
-                  <label>預算</label>
-                  <span>{trip.budget ? `${trip.budget}` : '未設定'}</span>
-                </div>
-                <div className={styles.infoItem}>
-                  <label>建立時間</label>
-                  <span>{formatDate(trip.created_at)}</span>
-                </div>
                 {trip.updated_at !== trip.created_at && (
                   <div className={styles.infoItem}>
                     <label>更新時間</label>
@@ -103,16 +95,6 @@ const TripDetail = ({ trip, details, participants, onClose }) => {
               <div className={styles.infoItem}>
                 <label>參與人數</label>
                 <span>{participants.length} 人</span>
-              </div>
-              <div className={styles.infoItem}>
-                <label>行程狀態</label>
-                <span>
-                  {new Date(trip.start_date) > new Date()
-                    ? '尚未開始'
-                    : new Date(trip.end_date) < new Date()
-                      ? '已結束'
-                      : '進行中'}
-                </span>
               </div>
             </div>
           </div>

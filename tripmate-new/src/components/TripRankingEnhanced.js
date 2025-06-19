@@ -447,7 +447,7 @@ const TripRankingEnhanced = () => {
 
     return (
         <div className={styles.tripRankingContainer}>
-            <h2>🏆 行程排行榜</h2>
+            <h2>行程排行榜</h2>
 
             {/* 統計面板 */}
             {renderStatisticsPanel()}

@@ -105,7 +105,7 @@ const HomePage = () => {
             </div>
             <div className={styles.statItem}>
               <div className={styles.statNumber}>{statistics.popularAreas[0]?.area || '無'}</div>
-              <div className={styles.statLabel}>熱門地區</div>
+              <div className={styles.statLabel}>預設排行</div>
             </div>
             <div className={styles.statItem}>
               <div className={styles.statNumber}>{statistics.overview.avgDuration}</div>
