@@ -142,11 +142,11 @@ const HomePage = () => {
               onChange={(e) => setFilters({ ...filters, duration_type: e.target.value })}
               className={styles.filterSelect}
             >
-              <option value="">全部長度</option>
-              <option value="週末遊">週末遊 (1-2天)</option>
-              <option value="短期旅行">短期旅行 (3-5天)</option>
-              <option value="長假期">長假期 (6-10天)</option>
-              <option value="深度旅行">深度旅行 (10天以上)</option>
+              <option value="">旅途天數</option>
+              <option value="週末遊">1-2天</option>
+              <option value="短期旅行">3-5天</option>
+              <option value="長假期">6-10天</option>
+              <option value="深度旅行">10天以上</option>
             </select>
           </div>
 
