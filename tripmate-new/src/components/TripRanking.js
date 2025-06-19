@@ -1,4 +1,4 @@
-// components/TripRanking.js - 修改版：顯示所有行程
+// components/TripRanking.js - 修改版：所有排行都支援分頁，移除狀態和用戶ID
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import TripDetail from './TripDetail';
@@ -8,7 +8,7 @@ const TripRanking = () => {
   const [trips, setTrips] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [activeTab, setActiveTab] = useState('all'); // 改為預設顯示全部
+  const [activeTab, setActiveTab] = useState('all'); // 預設顯示全部
   const [selectedTrip, setSelectedTrip] = useState(null);
   const [tripDetails, setTripDetails] = useState({
     trip: null,
@@ -22,10 +22,10 @@ const TripRanking = () => {
     search: ''
   });
 
-  // 分頁狀態
+  // 分頁狀態 - 統一管理所有排行方式的分頁
   const [pagination, setPagination] = useState({
     current_page: 1,
-    limit: 20,
+    limit: 10, // 每頁顯示10筆
     total: 0,
     total_pages: 0
   });
@@ -53,7 +53,7 @@ const TripRanking = () => {
     }
   };
 
-  // 新增：獲取所有行程的函數
+  // 獲取所有行程 - 使用 trips-paged API
   const fetchAllTrips = async () => {
     setLoading(true);
     try {
@@ -76,7 +76,7 @@ const TripRanking = () => {
           total_pages: response.data.pagination.total_pages
         });
         setError(null);
-        console.log('所有行程載入成功:', response.data.data.length, '筆');
+        console.log('所有行程載入成功:', response.data.data.length, '筆，總共', response.data.pagination.total, '筆');
       } else {
         throw new Error('API 返回失敗狀態');
       }
@@ -88,19 +88,65 @@ const TripRanking = () => {
     }
   };
 
+  // 修改：為排行榜也添加分頁功能
   const fetchTripRankings = async (rankingType) => {
     setLoading(true);
     try {
-      const params = {
-        type: rankingType,
-        ...filters
+      // 使用 trips-paged API 來獲取排行榜數據，確保有分頁
+      let params = {
+        page: pagination.current_page,
+        limit: pagination.limit,
+        area: filters.area,
+        search: filters.search
       };
 
-      const response = await axios.get('/api/trip-rankings-enhanced', { params });
-      const data = response.data.success ? response.data.data : response.data;
-      setTrips(data);
-      setError(null);
-      console.log('排行榜資料載入成功:', data.length, '筆');
+      // 根據排行類型調整排序方式
+      switch (rankingType) {
+        case 'date':
+          params.sort = 'start_date';
+          params.order = 'ASC'; // 即將出發，最近的在前
+          // 只顯示未來的行程
+          params.startDate = new Date().toISOString().split('T')[0];
+          break;
+        case 'area':
+          params.sort = 'area';
+          params.order = 'ASC';
+          break;
+        case 'duration':
+          params.sort = 'start_date';
+          params.order = 'DESC';
+          break;
+        case 'season':
+          params.sort = 'start_date';
+          params.order = 'ASC';
+          break;
+        case 'trending':
+          params.sort = 'start_date';
+          params.order = 'DESC';
+          // 最近90天的行程
+          const last90Days = new Date();
+          last90Days.setDate(last90Days.getDate() - 90);
+          params.startDate = last90Days.toISOString().split('T')[0];
+          break;
+        default:
+          params.sort = 'start_date';
+          params.order = 'DESC';
+      }
+
+      const response = await axios.get('/api/trips-paged', { params });
+
+      if (response.data.success) {
+        setTrips(response.data.data);
+        setPagination({
+          ...pagination,
+          total: response.data.pagination.total,
+          total_pages: response.data.pagination.total_pages
+        });
+        setError(null);
+        console.log(`${rankingType} 排行榜載入成功:`, response.data.data.length, '筆');
+      } else {
+        throw new Error('API 返回失敗狀態');
+      }
     } catch (err) {
       console.error('獲取排行榜失敗:', err);
       setError('載入排行榜失敗，請稍後再試。');
@@ -150,18 +196,19 @@ const TripRanking = () => {
     return diffDays;
   };
 
-  const getStatusInfo = (startDate, endDate) => {
-    const now = new Date();
-    const start = new Date(startDate);
-    const end = new Date(endDate);
+  const getDurationCategory = (days) => {
+    if (days <= 2) return '週末遊';
+    if (days <= 5) return '短期旅行';
+    if (days <= 10) return '長假期';
+    return '深度旅行';
+  };
 
-    if (start > now) {
-      return { status: '即將出發', icon: '🎯', color: '#3182ce' };
-    } else if (start <= now && end >= now) {
-      return { status: '進行中', icon: '🔥', color: '#e53e3e' };
-    } else {
-      return { status: '已結束', icon: '✅', color: '#38a169' };
-    }
+  const getSeason = (dateString) => {
+    const month = new Date(dateString).getMonth() + 1;
+    if (month >= 3 && month <= 5) return '春季';
+    if (month >= 6 && month <= 8) return '夏季';
+    if (month >= 9 && month <= 11) return '秋季';
+    return '冬季';
   };
 
   const renderFilterPanel = () => {
@@ -239,7 +286,7 @@ const TripRanking = () => {
   };
 
   const renderPagination = () => {
-    if (activeTab !== 'all' || pagination.total_pages <= 1) return null;
+    if (pagination.total_pages <= 1) return null;
 
     const { current_page, total_pages } = pagination;
     const pageNumbers = [];
@@ -391,7 +438,7 @@ const TripRanking = () => {
         <div className={styles.empty}>
           <div className={styles.emptyIcon}>🔍</div>
           <div className={styles.emptyText}>
-            {activeTab === 'all' ? '暫無行程資料' : '沒有找到符合條件的行程'}
+            沒有找到符合條件的行程
           </div>
           <div className={styles.emptySubtext}>
             {filters.area || filters.search ? '嘗試調整篩選條件' : '目前沒有可顯示的行程'}
@@ -404,12 +451,11 @@ const TripRanking = () => {
       <div className={styles.tripList}>
         {trips.map((trip, index) => {
           const duration = calculateDuration(trip.start_date, trip.end_date);
-          const statusInfo = getStatusInfo(trip.start_date, trip.end_date);
+          const durationCategory = getDurationCategory(duration);
+          const season = getSeason(trip.start_date);
 
           // 計算實際排名（考慮分頁）
-          const rank = activeTab === 'all'
-            ? (pagination.current_page - 1) * pagination.limit + index + 1
-            : index + 1;
+          const rank = (pagination.current_page - 1) * pagination.limit + index + 1;
 
           return (
             <div
@@ -434,14 +480,16 @@ const TripRanking = () => {
                   <span className={styles.tag}>
                     ⏰ {duration}天
                   </span>
-                  <span className={`${styles.tag} ${styles.tagStatus}`} style={{ color: statusInfo.color }}>
-                    {statusInfo.icon} {statusInfo.status}
+                  <span className={styles.tag}>
+                    {durationCategory === '週末遊' ? '🏖️' :
+                      durationCategory === '短期旅行' ? '🎒' :
+                        durationCategory === '長假期' ? '🌴' : '✈️'} {durationCategory}
                   </span>
-                  {trip.line_user_id && (
-                    <span className={styles.tag}>
-                      👤 用戶: {trip.line_user_id.substring(0, 8)}...
-                    </span>
-                  )}
+                  <span className={styles.tag}>
+                    {season === '春季' ? '🌸' :
+                      season === '夏季' ? '☀️' :
+                        season === '秋季' ? '🍂' : '❄️'} {season}
+                  </span>
                 </div>
 
                 {trip.description && (
@@ -465,16 +513,12 @@ const TripRanking = () => {
         <h1 className={styles.title}>🎯 行程排行榜</h1>
         <div className={styles.statsGrid}>
           <div className={styles.statItem}>
-            <div className={styles.statNumber}>{pagination.total || trips.length}</div>
-            <div className={styles.statLabel}>
-              {activeTab === 'all' ? '總行程數' : '排行榜行程'}
-            </div>
+            <div className={styles.statNumber}>{pagination.total || 0}</div>
+            <div className={styles.statLabel}>總行程數</div>
           </div>
           <div className={styles.statItem}>
-            <div className={styles.statNumber}>{activeTab === 'all' ? pagination.current_page : '排行'}</div>
-            <div className={styles.statLabel}>
-              {activeTab === 'all' ? '當前頁面' : '模式'}
-            </div>
+            <div className={styles.statNumber}>{pagination.current_page}</div>
+            <div className={styles.statLabel}>當前頁面</div>
           </div>
           <div className={styles.statItem}>
             <div className={styles.statNumber}>{areas.length}</div>
