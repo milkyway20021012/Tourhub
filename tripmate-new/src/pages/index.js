@@ -8,7 +8,8 @@ const HomePage = () => {
   const [statistics, setStatistics] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [activeTab, setActiveTab] = useState('date');
+  // 預設選擇地區排行榜
+  const [activeTab, setActiveTab] = useState('area');
   const [favorites, setFavorites] = useState(new Set());
   const [selectedTrip, setSelectedTrip] = useState(null);
   const [areas, setAreas] = useState([]);
@@ -219,19 +220,12 @@ const HomePage = () => {
         boxShadow: '0 8px 32px rgba(102, 126, 234, 0.3)'
       }}>
         <h1 style={{
-          margin: '0 0 16px 0',
+          margin: '0 0 24px 0',
           fontSize: '28px',
           fontWeight: '700'
         }}>
-          🌟 旅遊行程精選
+          Tourhub 行程排行榜
         </h1>
-        <p style={{
-          margin: '0 0 24px 0',
-          fontSize: '16px',
-          opacity: '0.9'
-        }}>
-          發現最受歡迎的旅行目的地和即將出發的精彩行程
-        </p>
 
         {/* 快速統計 */}
         {statistics && (
@@ -246,12 +240,6 @@ const HomePage = () => {
                 {statistics.overview.totalTrips}
               </div>
               <div style={{ fontSize: '12px', opacity: 0.8 }}>總行程</div>
-            </div>
-            <div style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: '20px', fontWeight: 'bold' }}>
-                {statistics.overview.upcomingTrips}
-              </div>
-              <div style={{ fontSize: '12px', opacity: 0.8 }}>即將出發</div>
             </div>
             <div style={{ textAlign: 'center' }}>
               <div style={{ fontSize: '20px', fontWeight: 'bold' }}>
@@ -396,11 +384,9 @@ const HomePage = () => {
 
   const renderRankingTabs = () => {
     const tabs = [
-      { key: 'date', label: '🚀 即將出發', description: '最新出發行程' },
       { key: 'area', label: '🗺️ 熱門地區', description: '各地區精選' },
       { key: 'duration', label: '⏰ 行程長度', description: '按天數分類' },
-      { key: 'season', label: '🌸 季節精選', description: '四季主題行程' },
-      { key: 'trending', label: '🔥 趨勢分析', description: '最新熱門行程' }
+      { key: 'season', label: '🌸 季節精選', description: '四季主題行程' }
     ];
 
     return (
@@ -483,18 +469,6 @@ const HomePage = () => {
           title={isFavorited ? '取消收藏' : '加入收藏'}
         >
           {isFavorited ? '❤️' : '🤍'}
-        </button>
-
-        {/* 分享按鈕 */}
-        <button
-          className={styles.shareButton}
-          onClick={(e) => {
-            e.stopPropagation();
-            handleShare(trip);
-          }}
-          title="分享行程"
-        >
-          📤 分享
         </button>
       </div>
     );
