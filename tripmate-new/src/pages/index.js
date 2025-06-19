@@ -1,3 +1,6 @@
+// ===================================================
+// 1. pages/index.js - 新的首頁（整合排行榜功能）
+// ===================================================
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import TripDetail from '../components/TripDetail';
@@ -326,10 +329,10 @@ const HomePage = () => {
               }}
             >
               <option value="">全部長度</option>
-              <option value="週末遊">🏖️ 週末遊 (1-2天)</option>
-              <option value="短期旅行">🎒 短期旅行 (3-5天)</option>
-              <option value="長假期">🌴 長假期 (6-10天)</option>
-              <option value="深度旅行">✈️ 深度旅行 (10天以上)</option>
+              <option value="週末遊">週末遊 (1-2天)</option>
+              <option value="短期旅行">短期旅行 (3-5天)</option>
+              <option value="長假期">長假期 (6-10天)</option>
+              <option value="深度旅行">深度旅行 (10天以上)</option>
             </select>
           </div>
           <div>
@@ -355,10 +358,10 @@ const HomePage = () => {
               }}
             >
               <option value="">全部季節</option>
-              <option value="春季">🌸 春季 (3-5月)</option>
-              <option value="夏季">☀️ 夏季 (6-8月)</option>
-              <option value="秋季">🍂 秋季 (9-11月)</option>
-              <option value="冬季">❄️ 冬季 (12-2月)</option>
+              <option value="春季">春季 (3-5月)</option>
+              <option value="夏季">夏季 (6-8月)</option>
+              <option value="秋季">秋季 (9-11月)</option>
+              <option value="冬季">冬季 (12-2月)</option>
             </select>
           </div>
           <div style={{ display: 'flex', alignItems: 'end' }}>
@@ -374,7 +377,7 @@ const HomePage = () => {
                 height: 'fit-content'
               }}
             >
-              🔄 重置篩選
+              重置篩選
             </button>
           </div>
         </div>
@@ -384,9 +387,9 @@ const HomePage = () => {
 
   const renderRankingTabs = () => {
     const tabs = [
-      { key: 'area', label: '🗺️ 熱門地區', description: '各地區精選' },
-      { key: 'duration', label: '⏰ 行程長度', description: '按天數分類' },
-      { key: 'season', label: '🌸 季節精選', description: '四季主題行程' }
+      { key: 'area', label: '熱門地區', description: '各地區精選' },
+      { key: 'duration', label: '行程長度', description: '按天數分類' },
+      { key: 'season', label: '季節精選', description: '四季主題行程' }
     ];
 
     return (
@@ -426,27 +429,22 @@ const HomePage = () => {
             </span>
             {trip.duration_days && (
               <span className={styles.durationTag}>
-                ⏰ {trip.duration_days}天
+                {trip.duration_days}天
               </span>
             )}
             {trip.season && (
               <span className={styles.seasonTag}>
-                {trip.season === '春季' ? '🌸' :
-                  trip.season === '夏季' ? '☀️' :
-                    trip.season === '秋季' ? '🍂' : '❄️'} {trip.season}
+                {trip.season}
               </span>
             )}
             {trip.duration_type && (
               <span className={styles.durationTag}>
-                {trip.duration_type === '週末遊' ? '🏖️' :
-                  trip.duration_type === '短期旅行' ? '🎒' :
-                    trip.duration_type === '長假期' ? '🌴' : '✈️'} {trip.duration_type}
+                {trip.duration_type}
               </span>
             )}
-            {trip.status && (
+            {trip.status && trip.status !== '即將出發' && (
               <span className={`${styles.statusTag} ${styles[trip.status.replace(/\s+/g, '').toLowerCase()]}`}>
-                {trip.status === '即將出發' ? '🎯' :
-                  trip.status === '進行中' ? '🔥' : '✅'} {trip.status}
+                {trip.status === '進行中' ? '進行中' : '已結束'}
               </span>
             )}
           </div>
@@ -503,7 +501,7 @@ const HomePage = () => {
                 fontSize: '14px'
               }}
             >
-              🔄 重新載入
+              重新載入
             </button>
           </div>
         )}
