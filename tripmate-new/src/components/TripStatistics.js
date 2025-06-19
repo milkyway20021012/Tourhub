@@ -102,7 +102,7 @@ const TripStatistics = () => {
                 border: '1px solid #e2e8f0',
                 marginBottom: '24px'
             }}>
-                <h3 style={{ margin: '0 0 20px 0', color: '#2d3748' }}>🗺️ 熱門地區分布</h3>
+                <h3 style={{ margin: '0 0 20px 0', color: '#2d3748' }}>熱門地區分布</h3>
                 <div style={{
                     display: 'grid',
                     gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',

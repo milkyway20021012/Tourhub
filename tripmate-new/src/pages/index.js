@@ -180,7 +180,7 @@ const HomePage = () => {
 
   const renderRankingTabs = () => {
     const tabs = [
-      { key: 'area', label: '熱門地區' },
+      { key: 'area', label: '預設排行' },
       { key: 'duration', label: '行程長度' },
       { key: 'season', label: '季節精選' }
     ];
