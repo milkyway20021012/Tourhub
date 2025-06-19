@@ -1,19 +1,13 @@
-import NavigationMenu from '../components/NavigationMenu';
 import { useRouter } from 'next/router';
 
 function MyApp({ Component, pageProps }) {
   const router = useRouter();
 
-  // 不顯示導航選單的頁面
-  const hideNavigation = ['/admin', '/login'].includes(router.pathname);
-
   return (
     <>
       <Component {...pageProps} />
-      {!hideNavigation && <NavigationMenu />}
-
-      {/* 為底部導航留出空間 */}
-      <div style={{ height: '80px' }}></div>
+      {/* 移除了 NavigationMenu 組件 */}
+      {/* 移除了底部空間預留 */}
     </>
   );
 }
