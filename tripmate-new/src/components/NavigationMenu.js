@@ -1,12 +1,15 @@
+// ===================================================
+// components/NavigationMenu.js - 簡化版導航選單
+// ===================================================
 import React from 'react';
 import { useRouter } from 'next/router';
+import styles from '../styles/Navigation.module.css';
 
 const NavigationMenu = () => {
     const router = useRouter();
 
     const menuItems = [
-        { path: '/', label: '首頁', description: '精選行程排行榜' },
-        { path: '/favorites', label: '我的收藏', description: '收藏的行程' }
+        { path: '/', label: '首頁', icon: '🏠' }
     ];
 
     const handleNavigation = (path) => {
@@ -14,45 +17,17 @@ const NavigationMenu = () => {
     };
 
     return (
-        <nav style={{
-            position: 'fixed',
-            bottom: 0,
-            left: 0,
-            right: 0,
-            background: 'white',
-            borderTop: '1px solid #e2e8f0',
-            boxShadow: '0 -2px 8px rgba(0,0,0,0.1)',
-            zIndex: 1000
-        }}>
-            <div style={{
-                display: 'flex',
-                maxWidth: '500px',
-                margin: '0 auto',
-                padding: '12px'
-            }}>
+        <nav className={styles.nav}>
+            <div className={styles.navContainer}>
                 {menuItems.map((item) => (
                     <button
                         key={item.path}
                         onClick={() => handleNavigation(item.path)}
-                        style={{
-                            flex: 1,
-                            background: router.pathname === item.path ? '#3182ce' : 'transparent',
-                            color: router.pathname === item.path ? 'white' : '#718096',
-                            border: 'none',
-                            padding: '12px 8px',
-                            borderRadius: '8px',
-                            cursor: 'pointer',
-                            fontSize: '14px',
-                            textAlign: 'center',
-                            margin: '0 4px',
-                            transition: 'all 0.2s ease',
-                            fontWeight: router.pathname === item.path ? '600' : '500'
-                        }}
-                        title={item.description}
+                        className={`${styles.navButton} ${router.pathname === item.path ? styles.navButtonActive : ''
+                            }`}
                     >
-                        <div style={{ lineHeight: 1.2 }}>
-                            {item.label}
-                        </div>
+                        <span className={styles.navIcon}>{item.icon}</span>
+                        <span className={styles.navLabel}>{item.label}</span>
                     </button>
                 ))}
             </div>

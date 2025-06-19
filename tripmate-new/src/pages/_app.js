@@ -1,10 +1,11 @@
 import NavigationMenu from '../components/NavigationMenu';
 import { useRouter } from 'next/router';
+import '../styles/globals.css';
 
 function MyApp({ Component, pageProps }) {
   const router = useRouter();
 
-  // 不顯示導航選單的頁面（如果有需要）
+  // 不顯示導航選單的頁面（如果有特殊頁面需要隱藏）
   const hideNavigation = ['/admin', '/login'].includes(router.pathname);
 
   return (

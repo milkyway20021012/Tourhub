@@ -1,0 +1,100 @@
+/* ===================================================
+   Navigation.module.css - 統一的導航樣式
+   ================================================= */
+
+/* 使用與主要樣式相同的色彩變數 */
+.nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: white;
+    border-top: 1px solid #e4e4e7;
+    box-shadow: 0 -4px 6px -1px rgba(0, 0, 0, 0.1), 0 -2px 4px -1px rgba(0, 0, 0, 0.06);
+    z-index: 1000;
+}
+
+.navContainer {
+    display: flex;
+    justify-content: center;
+    max-width: 500px;
+    margin: 0 auto;
+    padding: 12px 24px;
+}
+
+.navButton {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    color: #71717a;
+    font-weight: 500;
+    min-width: 80px;
+}
+
+.navButton:hover {
+    background: #f4f4f5;
+    color: #3f3f46;
+    transform: translateY(-1px);
+}
+
+.navButtonActive {
+    background: #0ea5e9;
+    color: white;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+.navButtonActive:hover {
+    background: #0284c7;
+    color: white;
+}
+
+.navIcon {
+    font-size: 20px;
+    margin-bottom: 4px;
+    display: block;
+}
+
+.navLabel {
+    font-size: 12px;
+    line-height: 1;
+}
+
+/* 響應式設計 */
+@media (max-width: 480px) {
+    .navContainer {
+        padding: 8px 16px;
+    }
+
+    .navButton {
+        padding: 10px 20px;
+        min-width: 70px;
+    }
+
+    .navIcon {
+        font-size: 18px;
+    }
+
+    .navLabel {
+        font-size: 11px;
+    }
+}
+
+/* 無障礙設計 */
+.navButton:focus {
+    outline: 2px solid #0ea5e9;
+    outline-offset: 2px;
+}
+
+/* 減動畫偏好 */
+@media (prefers-reduced-motion: reduce) {
+    .navButton {
+        transition: none;
+    }
+}
