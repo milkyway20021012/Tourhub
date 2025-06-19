@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import TripDetail from '../components/TripDetail';
-import styles from '../styles/TripRanking.module.css';
+import styles from '../components/TripRanking.module.css';
 
 const HomePage = () => {
   const [trips, setTrips] = useState([]);
