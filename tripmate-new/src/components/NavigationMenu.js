@@ -5,11 +5,8 @@ const NavigationMenu = () => {
     const router = useRouter();
 
     const menuItems = [
-        { path: '/', label: '🏠 首頁', description: '回到首頁' },
-        { path: '/ranking', label: '🏆 排行榜', description: '熱門行程排行' },
-        { path: '/favorites', label: '💖 我的收藏', description: '收藏的行程' },
-        { path: '/statistics', label: '📊 統計面板', description: '數據分析' },
-        { path: '/trips', label: '📋 行程列表', description: '所有行程' }
+        { path: '/', label: '🏠 首頁', description: '精選行程排行榜' },
+        { path: '/favorites', label: '💖 我的收藏', description: '收藏的行程' }
     ];
 
     const handleNavigation = (path) => {
@@ -31,7 +28,7 @@ const NavigationMenu = () => {
                 display: 'flex',
                 maxWidth: '500px',
                 margin: '0 auto',
-                padding: '8px'
+                padding: '12px'
             }}>
                 {menuItems.map((item) => (
                     <button
@@ -42,13 +39,14 @@ const NavigationMenu = () => {
                             background: router.pathname === item.path ? '#3182ce' : 'transparent',
                             color: router.pathname === item.path ? 'white' : '#718096',
                             border: 'none',
-                            padding: '8px 4px',
-                            borderRadius: '6px',
+                            padding: '12px 8px',
+                            borderRadius: '8px',
                             cursor: 'pointer',
-                            fontSize: '12px',
+                            fontSize: '14px',
                             textAlign: 'center',
-                            margin: '0 2px',
-                            transition: 'all 0.2s ease'
+                            margin: '0 4px',
+                            transition: 'all 0.2s ease',
+                            fontWeight: router.pathname === item.path ? '600' : '500'
                         }}
                         title={item.description}
                     >
