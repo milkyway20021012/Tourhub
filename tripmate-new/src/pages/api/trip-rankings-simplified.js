@@ -1,4 +1,3 @@
-// pages/api/trip-rankings-simplified.js - 繁體中文簡化版排行榜 API，移除標籤
 import { query } from '../../lib/db';
 
 export default async function handler(req, res) {
@@ -24,20 +23,19 @@ export default async function handler(req, res) {
                         t.start_date,
                         t.end_date,
                         t.area,
-                        t.budget,
-                        t.created_at
-                    FROM trip t 
+                        t.line_user_id
+                    FROM line_trips t 
                     WHERE t.trip_id IN (
                         SELECT trip_id 
                         FROM (
-                            SELECT trip_id, area, created_at,
-                                   ROW_NUMBER() OVER (PARTITION BY area ORDER BY created_at DESC) as rn
-                            FROM trip
+                            SELECT trip_id, area, start_date,
+                                   ROW_NUMBER() OVER (PARTITION BY area ORDER BY start_date DESC) as rn
+                            FROM line_trips
                             WHERE area IS NOT NULL AND area != ''
                         ) ranked
                         WHERE rn = 1
                     )
-                    ORDER BY t.area ASC, t.created_at DESC
+                    ORDER BY t.area ASC, t.start_date DESC
                     LIMIT 20
                 `;
                 break;
@@ -52,11 +50,10 @@ export default async function handler(req, res) {
                         t.start_date,
                         t.end_date,
                         t.area,
-                        t.budget,
-                        t.created_at
-                    FROM trip t 
+                        t.line_user_id
+                    FROM line_trips t 
                     WHERE t.start_date >= CURDATE()
-                    ORDER BY t.start_date ASC, t.created_at DESC
+                    ORDER BY t.start_date ASC
                     LIMIT 20
                 `;
                 break;
@@ -73,7 +70,8 @@ export default async function handler(req, res) {
             success: true,
             data: trips,
             ranking_type: type,
-            count: trips.length
+            count: trips.length,
+            table_source: 'line_trips'
         });
 
     } catch (error) {

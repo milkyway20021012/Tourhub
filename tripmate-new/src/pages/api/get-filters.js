@@ -1,4 +1,3 @@
-// pages/api/get-filters.js - 確保從資料庫獲取地區，移除標籤功能
 import { query } from '../../lib/db';
 
 export default async function handler(req, res) {
@@ -9,10 +8,10 @@ export default async function handler(req, res) {
     try {
         console.log('get-filters API 被呼叫');
 
-        // 獲取所有地區 - 直接從資料庫查詢
+        // 獲取所有地區 - 從 line_trips 表格查詢
         const areasResult = await query(`
             SELECT DISTINCT area 
-            FROM trip 
+            FROM line_trips 
             WHERE area IS NOT NULL AND area != '' AND TRIM(area) != ''
             ORDER BY area
         `);
@@ -30,7 +29,7 @@ export default async function handler(req, res) {
             areas: areas,
             metadata: {
                 areas_count: areas.length,
-                source: 'database',
+                source: 'line_trips table',
                 timestamp: new Date().toISOString()
             }
         });

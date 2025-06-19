@@ -1,4 +1,3 @@
-// pages/api/trip-detail.js - 繁體中文簡化版行程詳情 API
 import { query } from '../../lib/db';
 
 export default async function handler(req, res) {
@@ -15,21 +14,17 @@ export default async function handler(req, res) {
       return res.status(400).json({ message: '缺少行程 ID' });
     }
 
-    // 獲取行程資訊 - 簡化版本，不包含建立者資訊
+    // 獲取行程資訊 - 從 line_trips 表格
     const tripSql = `
             SELECT 
                 t.trip_id,
-                t.user_id,
+                t.line_user_id,
                 t.title,
                 t.description,
                 t.start_date,
                 t.end_date,
-                t.area,
-                t.tags,
-                t.budget,
-                t.created_at,
-                t.updated_at
-            FROM trip t 
+                t.area
+            FROM line_trips t 
             WHERE t.trip_id = ?
         `;
 
@@ -42,7 +37,7 @@ export default async function handler(req, res) {
 
     console.log('找到行程:', tripResult[0].title);
 
-    // 獲取行程細節
+    // 獲取行程細節 - 從 line_trip_details 表格
     const detailsSql = `
             SELECT 
                 detail_id,
@@ -51,7 +46,7 @@ export default async function handler(req, res) {
                 date,
                 start_time,
                 end_time
-            FROM trip_detail 
+            FROM line_trip_details 
             WHERE trip_id = ? 
             ORDER BY date ASC, start_time ASC
         `;
@@ -60,31 +55,15 @@ export default async function handler(req, res) {
     const details = await query(detailsSql, [parseInt(id)]);
     console.log('找到細節:', details.length, '筆');
 
-    // 獲取參與者 - 簡化版本，不包含使用者名稱
-    const participantsSql = `
-            SELECT 
-                tp.participant_id,
-                tp.trip_id,
-                tp.user_id,
-                tp.status,
-                tp.created_at
-            FROM trip_participants tp 
-            WHERE tp.trip_id = ?
-            ORDER BY tp.created_at ASC
-        `;
-
-    console.log('獲取參與者...');
-    const participants = await query(participantsSql, [parseInt(id)]);
-    console.log('找到參與者:', participants.length, '位');
-
     res.status(200).json({
       success: true,
       trip: tripResult[0],
       details: details,
-      participants: participants,
+      participants: [], // line_trips 表格沒有參與者資料，暫時返回空陣列
       metadata: {
         details_count: details.length,
-        participants_count: participants.length
+        participants_count: 0,
+        table_source: 'line_trips & line_trip_details'
       }
     });
 

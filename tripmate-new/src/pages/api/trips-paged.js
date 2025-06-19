@@ -1,4 +1,3 @@
-// pages/api/trips-paged.js - 繁體中文版本，支援預算排序，移除標籤功能
 import { query } from '../../lib/db';
 
 export default async function handler(req, res) {
@@ -13,7 +12,7 @@ export default async function handler(req, res) {
         const {
             page = 1,
             limit = 10,
-            sort = 'budget',
+            sort = 'start_date',
             order = 'DESC',
             area = '',
             startDate = '',
@@ -21,7 +20,7 @@ export default async function handler(req, res) {
             search = ''
         } = req.query;
 
-        // 基本查詢，只包含行程基本資訊
+        // 基本查詢，從 line_trips 表格獲取資料
         let baseSql = `
             SELECT 
                 t.trip_id,
@@ -30,10 +29,8 @@ export default async function handler(req, res) {
                 t.start_date,
                 t.end_date,
                 t.area,
-                t.budget,
-                t.created_at,
-                t.updated_at
-            FROM trip t
+                t.line_user_id
+            FROM line_trips t
         `;
 
         // 建構篩選條件
@@ -69,7 +66,7 @@ export default async function handler(req, res) {
         // 計算總數
         const countSql = `
             SELECT COUNT(*) as total 
-            FROM trip t
+            FROM line_trips t
             ${whereSql}
         `;
 
@@ -83,28 +80,16 @@ export default async function handler(req, res) {
         const offset = (pageNum - 1) * limitNum;
         const totalPages = Math.ceil(total / limitNum);
 
-        // 處理排序 - 新增預算排序支援
-        const allowedSortFields = ['title', 'area', 'budget', 'created_at'];
-        const sortField = allowedSortFields.includes(sort) ? sort : 'budget';
+        // 處理排序
+        const allowedSortFields = ['title', 'area', 'start_date', 'end_date'];
+        const sortField = allowedSortFields.includes(sort) ? sort : 'start_date';
         const sortOrder = (order && order.toUpperCase() === 'ASC') ? 'ASC' : 'DESC';
-
-        // 特殊處理預算排序 - 將 NULL 值放在最後
-        let orderByClause = '';
-        if (sortField === 'budget') {
-            if (sortOrder === 'DESC') {
-                orderByClause = `ORDER BY t.budget IS NULL ASC, t.budget DESC`;
-            } else {
-                orderByClause = `ORDER BY t.budget IS NULL ASC, t.budget ASC`;
-            }
-        } else {
-            orderByClause = `ORDER BY t.${sortField} ${sortOrder}`;
-        }
 
         // 組建資料查詢
         const dataSql = `
             ${baseSql}
             ${whereSql}
-            ${orderByClause}
+            ORDER BY t.${sortField} ${sortOrder}
             LIMIT ${limitNum} OFFSET ${offset}
         `;
 
@@ -131,7 +116,8 @@ export default async function handler(req, res) {
             sort_info: {
                 field: sortField,
                 order: sortOrder
-            }
+            },
+            table_source: 'line_trips'
         });
 
     } catch (error) {
