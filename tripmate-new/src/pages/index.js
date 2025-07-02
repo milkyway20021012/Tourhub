@@ -254,7 +254,6 @@ const HomePage = () => {
   const renderRankingTabs = () => {
     const tabs = [
       { key: 'all', label: '全部行程' },
-      { key: 'latest', label: '最新行程' },
       { key: 'favorites', label: '我的收藏' }
     ];
 

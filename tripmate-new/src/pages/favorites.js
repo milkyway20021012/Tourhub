@@ -178,12 +178,27 @@ const FavoritesPage = () => {
     const renderHeader = () => {
         return (
             <div className={styles.header}>
-                <h1 className={styles.title}>我的收藏</h1>
+                <h1 className={styles.title}>❤️ 我的收藏</h1>
                 {statistics.total > 0 && (
                     <div className={styles.statsGrid}>
-                        <div className={styles.statItem}>
-                            <div className={styles.statNumber}>{statistics.total}</div>
-                            <div className={styles.statLabel}>總收藏數</div>
+                        <div className={styles.statItem} style={{
+                            minWidth: '200px',
+                            padding: '24px',
+                            textAlign: 'center'
+                        }}>
+                            <div className={styles.statNumber} style={{
+                                fontSize: '48px',
+                                fontWeight: 'bold',
+                                marginBottom: '8px'
+                            }}>
+                                {statistics.total}
+                            </div>
+                            <div className={styles.statLabel} style={{
+                                fontSize: '16px',
+                                fontWeight: '500'
+                            }}>
+                                總收藏數
+                            </div>
                         </div>
                     </div>
                 )}
@@ -297,6 +312,7 @@ const FavoritesPage = () => {
 
             {favorites.length === 0 ? (
                 <div className={styles.empty}>
+                    <div className={styles.emptyIcon}>💔</div>
                     <div className={styles.emptyText}>還沒有收藏任何行程</div>
                     <div className={styles.emptySubtext}>
                         去發現一些精彩的旅程吧！
