@@ -75,8 +75,6 @@ const FavoritesContent = ({
     const renderHeader = () => {
         return (
             <div className={styles.header}>
-                <h1 className={styles.title}>我的收藏</h1>
-
                 {/* 除錯資訊 */}
                 {renderDebugInfo()}
 
@@ -121,30 +119,6 @@ const FavoritesContent = ({
                                 </button>
                             </div>
                         )}
-                    </div>
-                )}
-
-                {statistics.total > 0 && (
-                    <div className={styles.statsGrid}>
-                        <div className={styles.statItem} style={{
-                            minWidth: '200px',
-                            padding: '24px',
-                            textAlign: 'center'
-                        }}>
-                            <div className={styles.statNumber} style={{
-                                fontSize: '48px',
-                                fontWeight: 'bold',
-                                marginBottom: '8px'
-                            }}>
-                                {statistics.total}
-                            </div>
-                            <div className={styles.statLabel} style={{
-                                fontSize: '16px',
-                                fontWeight: '500'
-                            }}>
-                                總收藏數
-                            </div>
-                        </div>
                     </div>
                 )}
             </div>
