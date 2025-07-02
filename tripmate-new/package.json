@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@line/liff": "^2.27.0",
     "axios": "^1.9.0",
     "mysql2": "^3.14.1",
     "next": "^14.2.29",
