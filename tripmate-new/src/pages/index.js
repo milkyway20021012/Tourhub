@@ -182,9 +182,7 @@ const HomePage = () => {
     // 新的自定義標籤選項
     const tabs = [
       { key: 'all', label: '全部行程' },
-      { key: 'popular', label: '熱門推薦' },
-      { key: 'latest', label: '最新行程' },
-      { key: 'upcoming', label: '即將出發' }
+      { key: 'latest', label: '最新行程' }
     ];
 
     return (
