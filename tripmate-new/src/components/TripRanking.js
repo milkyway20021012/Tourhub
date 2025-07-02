@@ -1,4 +1,4 @@
-// components/TripRanking.js - 修改版：所有排行都支援分頁，移除狀態和用戶ID
+// components/TripRanking.js - 簡化版：只保留行程長度與季節精選排行
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import TripDetail from './TripDetail';
@@ -8,7 +8,7 @@ const TripRanking = () => {
   const [trips, setTrips] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [activeTab, setActiveTab] = useState('all'); // 預設顯示全部
+  const [activeTab, setActiveTab] = useState('duration'); // 預設顯示行程長度
   const [selectedTrip, setSelectedTrip] = useState(null);
   const [tripDetails, setTripDetails] = useState({
     trip: null,
@@ -22,10 +22,10 @@ const TripRanking = () => {
     search: ''
   });
 
-  // 分頁狀態 - 統一管理所有排行方式的分頁
+  // 分頁狀態
   const [pagination, setPagination] = useState({
     current_page: 1,
-    limit: 10, // 每頁顯示10筆
+    limit: 10,
     total: 0,
     total_pages: 0
   });
@@ -37,11 +37,7 @@ const TripRanking = () => {
   }, []);
 
   useEffect(() => {
-    if (activeTab === 'all') {
-      fetchAllTrips();
-    } else {
-      fetchTripRankings(activeTab);
-    }
+    fetchTripRankings(activeTab);
   }, [activeTab, filters, pagination.current_page]);
 
   const fetchAreas = async () => {
@@ -53,47 +49,10 @@ const TripRanking = () => {
     }
   };
 
-  // 獲取所有行程 - 使用 trips-paged API
-  const fetchAllTrips = async () => {
-    setLoading(true);
-    try {
-      const params = {
-        page: pagination.current_page,
-        limit: pagination.limit,
-        sort: 'start_date',
-        order: 'DESC',
-        area: filters.area,
-        search: filters.search
-      };
-
-      const response = await axios.get('/api/trips-paged', { params });
-
-      if (response.data.success) {
-        setTrips(response.data.data);
-        setPagination({
-          ...pagination,
-          total: response.data.pagination.total,
-          total_pages: response.data.pagination.total_pages
-        });
-        setError(null);
-        console.log('所有行程載入成功:', response.data.data.length, '筆，總共', response.data.pagination.total, '筆');
-      } else {
-        throw new Error('API 返回失敗狀態');
-      }
-    } catch (err) {
-      console.error('獲取所有行程失敗:', err);
-      setError('載入行程失敗，請稍後再試。');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // 修改：為排行榜也添加分頁功能
   const fetchTripRankings = async (rankingType) => {
     setLoading(true);
     try {
-      // 使用 trips-paged API 來獲取排行榜數據，確保有分頁
-      let params = {
+      const params = {
         page: pagination.current_page,
         limit: pagination.limit,
         area: filters.area,
@@ -102,31 +61,15 @@ const TripRanking = () => {
 
       // 根據排行類型調整排序方式
       switch (rankingType) {
-        case 'date':
-          params.sort = 'start_date';
-          params.order = 'ASC'; // 即將出發，最近的在前
-          // 只顯示未來的行程
-          params.startDate = new Date().toISOString().split('T')[0];
-          break;
-        case 'area':
-          params.sort = 'area';
-          params.order = 'ASC';
-          break;
         case 'duration':
+          // 按行程長度排序（天數多的在前）
           params.sort = 'start_date';
           params.order = 'DESC';
           break;
         case 'season':
+          // 按季節排序（按月份順序）
           params.sort = 'start_date';
           params.order = 'ASC';
-          break;
-        case 'trending':
-          params.sort = 'start_date';
-          params.order = 'DESC';
-          // 最近90天的行程
-          const last90Days = new Date();
-          last90Days.setDate(last90Days.getDate() - 90);
-          params.startDate = last90Days.toISOString().split('T')[0];
           break;
         default:
           params.sort = 'start_date';
@@ -261,12 +204,8 @@ const TripRanking = () => {
 
   const renderRankingTabs = () => {
     const tabs = [
-      { key: 'all', label: '📋 所有行程', description: '顯示所有行程' },
-      { key: 'date', label: '🚀 即將出發', description: '最新出發行程' },
-      { key: 'area', label: '🗺️ 熱門地區', description: '各地區精選' },
-      { key: 'duration', label: '⏰ 行程長度', description: '按天數分類' },
-      { key: 'season', label: '🌸 季節精選', description: '四季主題行程' },
-      { key: 'trending', label: '🔥 趨勢分析', description: '最新熱門行程' }
+      { key: 'duration', label: '⏰ 行程長度', description: '按天數分類排行' },
+      { key: 'season', label: '🌸 季節精選', description: '四季主題行程排行' }
     ];
 
     return (
@@ -416,7 +355,7 @@ const TripRanking = () => {
           <div style={{ fontSize: '18px', marginBottom: '8px' }}>❌ 載入失敗</div>
           <div style={{ fontSize: '14px' }}>{error}</div>
           <button
-            onClick={() => activeTab === 'all' ? fetchAllTrips() : fetchTripRankings(activeTab)}
+            onClick={() => fetchTripRankings(activeTab)}
             style={{
               marginTop: '16px',
               padding: '8px 16px',
