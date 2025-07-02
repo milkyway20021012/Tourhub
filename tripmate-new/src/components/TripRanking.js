@@ -1,4 +1,3 @@
-// components/TripRanking.js - 最終簡化版：只保留行程長度與季節精選排行
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import TripDetail from './TripDetail';
@@ -8,7 +7,7 @@ const TripRanking = () => {
   const [trips, setTrips] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [activeTab, setActiveTab] = useState('duration'); // 預設顯示行程長度
+  const [activeTab, setActiveTab] = useState('all'); // 修改預設為 'all'
   const [selectedTrip, setSelectedTrip] = useState(null);
   const [tripDetails, setTripDetails] = useState({
     trip: null,
@@ -61,17 +60,24 @@ const TripRanking = () => {
 
       // 根據排行類型調整排序方式
       switch (rankingType) {
-        case 'duration':
-          // 按行程長度排序（天數多的在前）
-          params.sort = 'start_date';
+        case 'popular':
+          // 按人氣排序（可以根據瀏覽量、收藏數等）
+          params.sort = 'created_at';
           params.order = 'DESC';
           break;
-        case 'season':
-          // 按季節排序（按開始日期順序）
-          params.sort = 'start_date';
-          params.order = 'ASC';
+        case 'latest':
+          // 按最新建立時間排序
+          params.sort = 'created_at';
+          params.order = 'DESC';
           break;
+        case 'budget':
+          // 按預算排序
+          params.sort = 'budget';
+          params.order = 'DESC';
+          break;
+        case 'all':
         default:
+          // 預設排序
           params.sort = 'start_date';
           params.order = 'DESC';
       }
@@ -204,9 +210,12 @@ const TripRanking = () => {
   };
 
   const renderRankingTabs = () => {
+    // 自定義標籤選項 - 您可以根據需要修改這個陣列
     const tabs = [
-      { key: 'duration', label: '行程長度', description: '按天數分類排行' },
-      { key: 'season', label: '季節精選', description: '四季主題行程排行' }
+      { key: 'all', label: '全部行程', description: '顯示所有行程' },
+      { key: 'popular', label: '熱門推薦', description: '最受歡迎的行程' },
+      { key: 'latest', label: '最新行程', description: '最近新增的行程' },
+      { key: 'budget', label: '預算排行', description: '按預算高低排序' }
     ];
 
     return (
@@ -430,6 +439,11 @@ const TripRanking = () => {
                       season === '夏季' ? '☀️' :
                         season === '秋季' ? '🍂' : '❄️'} {season}
                   </span>
+                  {trip.budget && (
+                    <span className={styles.tag}>
+                      💰 ${trip.budget.toLocaleString()}
+                    </span>
+                  )}
                 </div>
 
                 {trip.description && (

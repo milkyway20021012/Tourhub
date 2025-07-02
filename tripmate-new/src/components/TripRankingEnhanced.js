@@ -380,30 +380,6 @@ const TripRankingEnhanced = () => {
                         </p>
                     )}
                 </div>
-
-                {/* 收藏按鈕 */}
-                <button
-                    className={`${styles.favoriteButton} ${isFavorited ? styles.favorited : ''}`}
-                    onClick={(e) => {
-                        e.stopPropagation();
-                        handleFavorite(trip.trip_id);
-                    }}
-                    title={isFavorited ? '取消收藏' : '加入收藏'}
-                >
-                    {isFavorited ? '❤️' : '🤍'}
-                </button>
-
-                {/* 分享按鈕 */}
-                <button
-                    className={styles.shareButton}
-                    onClick={(e) => {
-                        e.stopPropagation();
-                        handleShare(trip);
-                    }}
-                    title="分享行程"
-                >
-                    📤 分享
-                </button>
             </div>
         );
     };
