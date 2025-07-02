@@ -18,6 +18,7 @@ const FavoritesContent = ({
     selectedTrip,
     statistics,
     liffHook,
+    userIdDebug,
     onFetchFavorites,
     onRemoveFavorite,
     onTripClick,
@@ -44,10 +45,40 @@ const FavoritesContent = ({
         }
     };
 
+    const renderDebugInfo = () => {
+        if (process.env.NODE_ENV === 'development') {
+            return (
+                <div style={{
+                    background: '#f0f0f0',
+                    padding: '10px',
+                    margin: '10px 0',
+                    borderRadius: '5px',
+                    fontSize: '12px',
+                    fontFamily: 'monospace'
+                }}>
+                    <h4>🐛 除錯資訊</h4>
+                    <p>LIFF 就緒: {isReady ? '✅' : '❌'}</p>
+                    <p>已登入: {isLoggedIn ? '✅' : '❌'}</p>
+                    <p>用戶 ID: {userIdDebug || '無'}</p>
+                    <p>顯示名稱: {getDisplayName()}</p>
+                    <p>LIFF 載入中: {liffLoading ? '✅' : '❌'}</p>
+                    <p>LIFF 錯誤: {liffError || '無'}</p>
+                    <p>收藏數量: {favorites.length}</p>
+                    <p>載入狀態: {loading ? '載入中' : '完成'}</p>
+                    <p>錯誤訊息: {error || '無'}</p>
+                </div>
+            );
+        }
+        return null;
+    };
+
     const renderHeader = () => {
         return (
             <div className={styles.header}>
                 <h1 className={styles.title}>❤️ 我的收藏</h1>
+
+                {/* 除錯資訊 */}
+                {renderDebugInfo()}
 
                 {/* 用戶資訊 */}
                 {isReady && (
@@ -68,6 +99,10 @@ const FavoritesContent = ({
                                         }}
                                     />
                                 )}
+                                <br />
+                                <small style={{ opacity: 0.8 }}>
+                                    用戶 ID: {userIdDebug || '未取得'}
+                                </small>
                             </div>
                         ) : (
                             <div>
@@ -250,6 +285,51 @@ const FavoritesContent = ({
                     <div className={styles.emptySubtext}>
                         去發現一些精彩的旅程吧！
                     </div>
+
+                    {/* 除錯按鈕 */}
+                    {process.env.NODE_ENV === 'development' && (
+                        <div style={{ marginTop: '20px' }}>
+                            <button
+                                onClick={onFetchFavorites}
+                                style={{
+                                    background: '#orange',
+                                    color: 'white',
+                                    border: 'none',
+                                    padding: '8px 16px',
+                                    borderRadius: '4px',
+                                    cursor: 'pointer',
+                                    fontSize: '12px',
+                                    marginRight: '8px'
+                                }}
+                            >
+                                🔍 強制重新查詢
+                            </button>
+                            <button
+                                onClick={() => {
+                                    console.log('🐛 當前狀態:', {
+                                        isReady,
+                                        isLoggedIn,
+                                        userIdDebug,
+                                        favoritesLength: favorites.length,
+                                        loading,
+                                        error
+                                    });
+                                }}
+                                style={{
+                                    background: '#purple',
+                                    color: 'white',
+                                    border: 'none',
+                                    padding: '8px 16px',
+                                    borderRadius: '4px',
+                                    cursor: 'pointer',
+                                    fontSize: '12px'
+                                }}
+                            >
+                                🐛 列印狀態到控制台
+                            </button>
+                        </div>
+                    )}
+
                     <button
                         onClick={() => {
                             if (typeof window !== 'undefined') {
@@ -405,31 +485,64 @@ const FavoritesPage = () => {
     // 整合 LIFF
     const liffHook = useLiff(process.env.NEXT_PUBLIC_LIFF_ID || 'your-liff-id-here');
 
-    // 獲取當前用戶 ID
+    // 獲取當前用戶 ID 並增加除錯
     const getCurrentUserId = () => {
-        if (liffHook.isLoggedIn && liffHook.getUserId()) {
-            return liffHook.getUserId();
+        const userId = liffHook.getUserId();
+        console.log('🆔 getCurrentUserId 被調用:', {
+            isLoggedIn: liffHook.isLoggedIn,
+            userId: userId,
+            userProfile: liffHook.userProfile
+        });
+
+        if (liffHook.isLoggedIn && userId) {
+            return userId;
         }
-        // 開發環境下的備用方案（只在未登入時使用）
-        return process.env.NODE_ENV === 'development' ? null : null;
+
+        return null;
     };
 
+    // 為除錯保存用戶 ID
+    const [userIdDebug, setUserIdDebug] = useState(null);
+
     useEffect(() => {
+        if (liffHook.isLoggedIn) {
+            const userId = getCurrentUserId();
+            setUserIdDebug(userId);
+            console.log('🔄 useEffect: 用戶 ID 更新為:', userId);
+        }
+    }, [liffHook.isLoggedIn, liffHook.userProfile]);
+
+    useEffect(() => {
+        console.log('🔄 useEffect: LIFF 狀態變化:', {
+            isReady: liffHook.isReady,
+            isLoggedIn: liffHook.isLoggedIn,
+            userIdDebug: userIdDebug
+        });
+
         // 等待 LIFF 準備完成且用戶已登入才載入收藏
-        if (liffHook.isReady && liffHook.isLoggedIn) {
+        if (liffHook.isReady && liffHook.isLoggedIn && userIdDebug) {
+            console.log('✅ 條件符合，開始載入收藏');
             fetchFavorites();
         } else if (liffHook.isReady && !liffHook.isLoggedIn) {
             // LIFF 準備完成但用戶未登入，停止載入狀態
+            console.log('⚠️ 用戶未登入，停止載入');
             setLoading(false);
         }
-    }, [liffHook.isReady, liffHook.isLoggedIn]);
+    }, [liffHook.isReady, liffHook.isLoggedIn, userIdDebug]);
 
     const fetchFavorites = async () => {
         const userId = getCurrentUserId();
 
+        console.log('🔍 fetchFavorites 開始:', {
+            userId: userId,
+            isLoggedIn: liffHook.isLoggedIn,
+            isReady: liffHook.isReady
+        });
+
         if (!userId) {
-            console.log('⚠️ 沒有用戶 ID，無法載入收藏');
+            console.log('❌ 沒有用戶 ID，無法載入收藏');
             setLoading(false);
+            setError('無法取得用戶 ID');
             return;
         }
 
@@ -437,7 +550,7 @@ const FavoritesPage = () => {
         setError(null);
 
         try {
-            console.log('🔍 獲取收藏列表，用戶 ID:', userId);
+            console.log('📡 發送 API 請求:', `/api/user-favorites?line_user_id=${userId}`);
 
             const response = await axios.get('/api/user-favorites', {
                 params: {
@@ -446,6 +559,8 @@ const FavoritesPage = () => {
                 },
                 timeout: 10000
             });
+
+            console.log('📡 API 回應:', response.data);
 
             if (response.data && response.data.success) {
                 const favoritesData = response.data.favorites || [];
@@ -464,6 +579,12 @@ const FavoritesPage = () => {
             if (error.response) {
                 const status = error.response.status;
                 const serverMessage = error.response.data?.message || '';
+
+                console.error('📡 API 錯誤詳情:', {
+                    status: status,
+                    data: error.response.data,
+                    headers: error.response.headers
+                });
 
                 switch (status) {
                     case 400:
@@ -581,6 +702,7 @@ const FavoritesPage = () => {
             selectedTrip={selectedTrip}
             statistics={statistics}
             liffHook={liffHook}
+            userIdDebug={userIdDebug}
             onFetchFavorites={fetchFavorites}
             onRemoveFavorite={handleRemoveFavorite}
             onTripClick={handleTripClick}
