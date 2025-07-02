@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import TripDetail from '../components/TripDetail';
-import styles from '../components/TripList.module.css';
+import styles from '../components/TripRanking.module.css';
 
 const FavoritesPage = () => {
     const [favorites, setFavorites] = useState([]);
@@ -53,7 +53,6 @@ const FavoritesPage = () => {
 
             // 詳細錯誤處理
             if (error.response) {
-                // 伺服器回應錯誤
                 const status = error.response.status;
                 const message = error.response.data?.message || '未知錯誤';
 
@@ -65,14 +64,11 @@ const FavoritesPage = () => {
                     setError(`載入收藏失敗: ${message}`);
                 }
             } else if (error.request) {
-                // 網路連接問題
                 setError('網路連接失敗，請檢查網路連接。');
             } else {
-                // 其他錯誤
                 setError('載入收藏失敗，請稍後再試。');
             }
 
-            // 設置空的收藏列表
             setFavorites([]);
             calculateStatistics([]);
         } finally {
@@ -142,55 +138,6 @@ const FavoritesPage = () => {
         }
     };
 
-    const handleShare = async (favorite) => {
-        const shareText = `我的收藏行程：${favorite.title}\n地區：${favorite.area}\n日期：${formatDate(favorite.start_date)} - ${formatDate(favorite.end_date)}\n天數：${favorite.duration_days}天\n\n快來一起規劃精彩旅程吧！`;
-
-        // 記錄分享行為
-        try {
-            await axios.post('/api/user-shares', {
-                line_user_id: lineUserId,
-                trip_id: favorite.trip_id,
-                share_type: 'favorite'
-            });
-        } catch (err) {
-            console.error('記錄分享失敗:', err);
-        }
-
-        // 分享邏輯
-        if (typeof window !== 'undefined' && window.liff) {
-            try {
-                await window.liff.shareTargetPicker([{
-                    type: 'text',
-                    text: shareText
-                }]);
-            } catch (err) {
-                console.error('LINE 分享失敗:', err);
-                fallbackShare(shareText);
-            }
-        } else {
-            fallbackShare(shareText);
-        }
-    };
-
-    const fallbackShare = (shareText) => {
-        if (navigator.share) {
-            navigator.share({
-                title: '我的收藏行程',
-                text: shareText
-            }).catch(() => copyToClipboard(shareText));
-        } else {
-            copyToClipboard(shareText);
-        }
-    };
-
-    const copyToClipboard = (text) => {
-        if (navigator.clipboard) {
-            navigator.clipboard.writeText(text).then(() => {
-                alert('行程資訊已複製到剪貼板！');
-            });
-        }
-    };
-
     const formatDate = (dateString) => {
         try {
             const options = { year: 'numeric', month: 'short', day: 'numeric' };
@@ -200,7 +147,37 @@ const FavoritesPage = () => {
         }
     };
 
+    const renderHeader = () => {
+        return (
+            <div className={styles.header}>
+                <h1 className={styles.title}>❤️ 我的收藏</h1>
+                {statistics.total > 0 && (
+                    <div className={styles.statsGrid}>
+                        <div className={styles.statItem}>
+                            <div className={styles.statNumber}>{statistics.total}</div>
+                            <div className={styles.statLabel}>總收藏數</div>
+                        </div>
+                        <div className={styles.statItem}>
+                            <div className={styles.statNumber}>
+                                {Object.keys(statistics.byArea).length}
+                            </div>
+                            <div className={styles.statLabel}>涵蓋地區</div>
+                        </div>
+                        <div className={styles.statItem}>
+                            <div className={styles.statNumber}>
+                                {Math.round(favorites.reduce((sum, f) => sum + f.duration_days, 0) / favorites.length) || 0}
+                            </div>
+                            <div className={styles.statLabel}>平均天數</div>
+                        </div>
+                    </div>
+                )}
+            </div>
+        );
+    };
+
     const renderStatistics = () => {
+        if (favorites.length === 0) return null;
+
         return (
             <div style={{
                 background: 'white',
@@ -210,33 +187,87 @@ const FavoritesPage = () => {
                 border: '1px solid #e2e8f0',
                 boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
             }}>
-                <h3 style={{ margin: '0 0 16px 0', color: '#2d3748' }}>收藏統計</h3>
+                <h3 style={{ margin: '0 0 16px 0', color: '#2d3748' }}>收藏分析</h3>
                 <div style={{
                     display: 'grid',
-                    gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
+                    gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
                     gap: '16px'
                 }}>
-                    <div style={{ textAlign: 'center' }}>
-                        <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#e53e3e' }}>
-                            {statistics.total}
-                        </div>
-                        <div style={{ fontSize: '14px', color: '#718096' }}>總收藏數</div>
+                    {/* 地區分布 */}
+                    <div>
+                        <h4 style={{ margin: '0 0 8px 0', fontSize: '14px', color: '#718096' }}>熱門地區</h4>
+                        {Object.entries(statistics.byArea).slice(0, 3).map(([area, count]) => (
+                            <div key={area} style={{
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                padding: '4px 0',
+                                fontSize: '14px'
+                            }}>
+                                <span>{area}</span>
+                                <span style={{ fontWeight: 'bold', color: '#3182ce' }}>{count}</span>
+                            </div>
+                        ))}
                     </div>
 
-                    {Object.entries(statistics.byStatus).map(([status, count]) => (
-                        <div key={status} style={{ textAlign: 'center' }}>
-                            <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#3182ce' }}>
-                                {count}
+                    {/* 行程長度分布 */}
+                    <div>
+                        <h4 style={{ margin: '0 0 8px 0', fontSize: '14px', color: '#718096' }}>行程長度</h4>
+                        {Object.entries(statistics.byDuration).map(([duration, count]) => (
+                            <div key={duration} style={{
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                padding: '4px 0',
+                                fontSize: '14px'
+                            }}>
+                                <span>{duration}</span>
+                                <span style={{ fontWeight: 'bold', color: '#3182ce' }}>{count}</span>
                             </div>
-                            <div style={{ fontSize: '14px', color: '#718096' }}>{status}</div>
-                        </div>
-                    ))}
+                        ))}
+                    </div>
+
+                    {/* 狀態分布 */}
+                    <div>
+                        <h4 style={{ margin: '0 0 8px 0', fontSize: '14px', color: '#718096' }}>行程狀態</h4>
+                        {Object.entries(statistics.byStatus).map(([status, count]) => (
+                            <div key={status} style={{
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                padding: '4px 0',
+                                fontSize: '14px'
+                            }}>
+                                <span>{status}</span>
+                                <span style={{ fontWeight: 'bold', color: '#3182ce' }}>{count}</span>
+                            </div>
+                        ))}
+                    </div>
                 </div>
             </div>
         );
     };
 
-    // 重試按鈕
+    const renderBackButton = () => {
+        return (
+            <div style={{ marginBottom: '20px' }}>
+                <button
+                    onClick={() => window.history.back()}
+                    style={{
+                        background: '#f7fafc',
+                        border: '1px solid #e2e8f0',
+                        borderRadius: '8px',
+                        padding: '8px 16px',
+                        cursor: 'pointer',
+                        fontSize: '14px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px'
+                    }}
+                >
+                    ← 返回
+                </button>
+            </div>
+        );
+    };
+
     const renderRetryButton = () => {
         return (
             <button
@@ -252,40 +283,43 @@ const FavoritesPage = () => {
                     marginTop: '16px'
                 }}
             >
-                重新載入
+                🔄 重新載入
             </button>
         );
     };
 
     if (loading) return (
-        <div className={styles.tripListContainer}>
-            <h2>我的收藏</h2>
-            <div className={styles.loading}>載入中...</div>
+        <div className={styles.container}>
+            {renderBackButton()}
+            <div className={styles.loading}>
+                <div style={{ fontSize: '18px', marginBottom: '8px' }}>⏳ 載入中...</div>
+                <div style={{ fontSize: '14px', color: '#71717a' }}>正在獲取收藏資料</div>
+            </div>
         </div>
     );
 
     if (error) return (
-        <div className={styles.tripListContainer}>
-            <h2>我的收藏</h2>
+        <div className={styles.container}>
+            {renderBackButton()}
             <div className={styles.error}>
-                {error}
+                <div style={{ fontSize: '18px', marginBottom: '8px' }}>❌ 載入失敗</div>
+                <div style={{ fontSize: '14px' }}>{error}</div>
                 {renderRetryButton()}
             </div>
         </div>
     );
 
     return (
-        <div className={styles.tripListContainer}>
-            <h2>我的收藏</h2>
-
-            {/* 統計面板 */}
-            {favorites.length > 0 && renderStatistics()}
+        <div className={styles.container}>
+            {renderBackButton()}
+            {renderHeader()}
+            {renderStatistics()}
 
             {favorites.length === 0 ? (
-                <div className={styles.noTrips}>
-                    <div style={{ fontSize: '48px', marginBottom: '16px' }}>💔</div>
-                    <div>還沒有收藏任何行程</div>
-                    <div style={{ fontSize: '14px', color: '#999', marginTop: '8px' }}>
+                <div className={styles.empty}>
+                    <div className={styles.emptyIcon}>💔</div>
+                    <div className={styles.emptyText}>還沒有收藏任何行程</div>
+                    <div className={styles.emptySubtext}>
                         去發現一些精彩的旅程吧！
                     </div>
                     <button
@@ -301,68 +335,115 @@ const FavoritesPage = () => {
                             marginTop: '16px'
                         }}
                     >
-                        探索行程
+                        🎯 探索行程
                     </button>
                 </div>
             ) : (
-                <div className={styles.tripCardView}>
-                    {favorites.map((favorite) => (
-                        <div key={favorite.trip_id} className={styles.tripCard}>
-                            <div className={styles.tripCardHeader}>
-                                <div className={styles.tripCardTitle}>{favorite.title}</div>
-                                <button
-                                    onClick={() => handleRemoveFavorite(favorite.trip_id)}
-                                    style={{
-                                        position: 'absolute',
-                                        top: '10px',
-                                        right: '10px',
-                                        background: 'none',
-                                        border: 'none',
-                                        fontSize: '18px',
-                                        cursor: 'pointer',
-                                        color: '#e53e3e',
-                                        padding: '4px'
-                                    }}
-                                    title="移除收藏"
-                                >
-                                    💔
-                                </button>
+                <div className={styles.tripList}>
+                    {favorites.map((favorite, index) => (
+                        <div key={favorite.trip_id} className={styles.tripCard} style={{ position: 'relative' }}>
+                            {/* 移除收藏按鈕 */}
+                            <button
+                                onClick={() => handleRemoveFavorite(favorite.trip_id)}
+                                style={{
+                                    position: 'absolute',
+                                    top: '12px',
+                                    right: '12px',
+                                    background: 'rgba(239, 68, 68, 0.1)',
+                                    border: '1px solid #f87171',
+                                    borderRadius: '50%',
+                                    width: '32px',
+                                    height: '32px',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    cursor: 'pointer',
+                                    fontSize: '14px',
+                                    color: '#ef4444'
+                                }}
+                                title="移除收藏"
+                            >
+                                ❌
+                            </button>
+
+                            <div className={styles.tripRank}>
+                                {index + 1}
                             </div>
+
                             <div
-                                className={styles.tripCardContent}
+                                className={styles.tripContent}
                                 onClick={() => handleTripClick(favorite.trip_id)}
                                 style={{ cursor: 'pointer' }}
                             >
-                                <div className={styles.tripCardInfo}>
-                                    <span className={styles.tripCardArea}>{favorite.area}</span>
-                                    {favorite.status && (
-                                        <span style={{
-                                            background: favorite.status === '進行中' ? '#fff5f5' : '#f7fafc',
-                                            color: favorite.status === '進行中' ? '#742a2a' : '#718096',
-                                            padding: '2px 6px',
-                                            borderRadius: '4px',
-                                            fontSize: '12px'
-                                        }}>
-                                            {favorite.status}
-                                        </span>
-                                    )}
-                                </div>
-                                <div className={styles.tripCardInfo}>
-                                    <span className={styles.tripCardDate}>
+                                <h3 className={styles.tripTitle}>{favorite.title}</h3>
+
+                                <div className={styles.tripMeta}>
+                                    <span className={styles.tripArea}>{favorite.area}</span>
+                                    <span className={styles.tripDate}>
                                         {formatDate(favorite.start_date)} - {formatDate(favorite.end_date)}
                                     </span>
-                                    <span style={{ fontSize: '12px', color: '#999' }}>
-                                        ({favorite.duration_days}天)
+                                </div>
+
+                                <div className={styles.tripTags}>
+                                    {favorite.duration_days && (
+                                        <span className={styles.tag}>
+                                            ⏰ {favorite.duration_days}天
+                                        </span>
+                                    )}
+                                    {favorite.status && (
+                                        <span className={`${styles.tag} ${favorite.status === '進行中' ? styles.tagActive :
+                                            favorite.status === '即將出發' ? styles.tagUpcoming : ''
+                                            }`}>
+                                            {favorite.status === '進行中' ? '🔥' :
+                                                favorite.status === '即將出發' ? '🎯' : '✅'} {favorite.status}
+                                        </span>
+                                    )}
+                                    <span className={styles.tag} style={{ background: '#fef3c7', color: '#92400e' }}>
+                                        ❤️ 已收藏
                                     </span>
                                 </div>
+
+                                {favorite.description && (
+                                    <p className={styles.tripDescription}>
+                                        {favorite.description.length > 100
+                                            ? favorite.description.substring(0, 100) + '...'
+                                            : favorite.description}
+                                    </p>
+                                )}
+
                                 {favorite.favorited_at && (
-                                    <div style={{ fontSize: '12px', color: '#999', marginTop: '10px' }}>
+                                    <div style={{
+                                        fontSize: '12px',
+                                        color: '#999',
+                                        marginTop: '10px',
+                                        borderTop: '1px solid #f0f0f0',
+                                        paddingTop: '8px'
+                                    }}>
                                         收藏於: {formatDate(favorite.favorited_at)}
                                     </div>
                                 )}
                             </div>
                         </div>
                     ))}
+                </div>
+            )}
+
+            {/* 重新整理按鈕 */}
+            {favorites.length > 0 && (
+                <div style={{ textAlign: 'center', marginTop: '24px' }}>
+                    <button
+                        onClick={fetchFavorites}
+                        style={{
+                            background: '#f7fafc',
+                            border: '1px solid #e2e8f0',
+                            borderRadius: '8px',
+                            padding: '8px 16px',
+                            cursor: 'pointer',
+                            fontSize: '14px'
+                        }}
+                    >
+                        🔄 重新整理
+                    </button>
                 </div>
             )}
 
