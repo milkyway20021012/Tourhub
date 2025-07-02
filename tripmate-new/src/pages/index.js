@@ -8,9 +8,14 @@ const HomePage = () => {
   const [statistics, setStatistics] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [activeTab, setActiveTab] = useState('all'); // 修改預設標籤
+  const [activeTab, setActiveTab] = useState('all');
   const [selectedTrip, setSelectedTrip] = useState(null);
   const [areas, setAreas] = useState([]);
+
+  // 收藏功能相關狀態
+  const [favorites, setFavorites] = useState(new Set());
+  const [favoriteLoading, setFavoriteLoading] = useState({});
+  const [lineUserId, setLineUserId] = useState('demo_user_123'); // 實際項目中應該從 LINE SDK 獲取
 
   // 篩選狀態
   const [filters, setFilters] = useState({
@@ -31,8 +36,76 @@ const HomePage = () => {
     await Promise.all([
       fetchStatistics(),
       fetchAreas(),
+      fetchUserFavorites(),
       fetchTripRankings(activeTab)
     ]);
+  };
+
+  // 獲取用戶收藏列表
+  const fetchUserFavorites = async () => {
+    try {
+      const response = await axios.get('/api/user-favorites', {
+        params: { line_user_id: lineUserId }
+      });
+
+      if (response.data.success) {
+        const favIds = new Set(response.data.favorites.map(f => f.trip_id));
+        setFavorites(favIds);
+        console.log('收藏列表載入成功:', favIds.size, '筆');
+      }
+    } catch (err) {
+      console.error('獲取收藏列表失敗:', err);
+      // 不影響主要功能，收藏功能降級
+    }
+  };
+
+  // 切換收藏狀態
+  const toggleFavorite = async (tripId, event) => {
+    // 阻止事件冒泡，避免觸發行程點擊
+    event.stopPropagation();
+
+    setFavoriteLoading(prev => ({ ...prev, [tripId]: true }));
+
+    try {
+      const isFavorited = favorites.has(tripId);
+
+      if (isFavorited) {
+        // 取消收藏
+        await axios.delete('/api/user-favorites', {
+          data: { line_user_id: lineUserId, trip_id: tripId }
+        });
+
+        setFavorites(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(tripId);
+          return newSet;
+        });
+
+        console.log('取消收藏成功:', tripId);
+      } else {
+        // 添加收藏
+        await axios.post('/api/user-favorites', {
+          line_user_id: lineUserId,
+          trip_id: tripId
+        });
+
+        setFavorites(prev => new Set([...prev, tripId]));
+        console.log('添加收藏成功:', tripId);
+      }
+    } catch (err) {
+      console.error('收藏操作失敗:', err);
+
+      // 根據錯誤類型顯示不同提示
+      if (err.response?.status === 409) {
+        alert('此行程已在收藏列表中');
+      } else if (err.response?.status === 404) {
+        alert('行程不存在');
+      } else {
+        alert('操作失敗，請稍後再試');
+      }
+    } finally {
+      setFavoriteLoading(prev => ({ ...prev, [tripId]: false }));
+    }
   };
 
   const fetchStatistics = async () => {
@@ -96,7 +169,7 @@ const HomePage = () => {
       <div className={styles.header}>
         <h1 className={styles.title}>Tourhub 行程排行榜</h1>
 
-        {/* 簡化的統計面板 */}
+        {/* 統計面板 */}
         {statistics && (
           <div className={styles.statsGrid}>
             <div className={styles.statItem}>
@@ -104,8 +177,8 @@ const HomePage = () => {
               <div className={styles.statLabel}>總行程</div>
             </div>
             <div className={styles.statItem}>
-              <div className={styles.statNumber}>{areas.length}</div>
-              <div className={styles.statLabel}>地區數</div>
+              <div className={styles.statNumber}>{favorites.size}</div>
+              <div className={styles.statLabel}>我的收藏</div>
             </div>
             <div className={styles.statItem}>
               <div className={styles.statNumber}>{statistics.overview.avgDuration}</div>
@@ -179,10 +252,10 @@ const HomePage = () => {
   };
 
   const renderRankingTabs = () => {
-    // 新的自定義標籤選項
     const tabs = [
       { key: 'all', label: '全部行程' },
-      { key: 'latest', label: '最新行程' }
+      { key: 'latest', label: '最新行程' },
+      { key: 'favorites', label: '我的收藏' }
     ];
 
     return (
@@ -191,12 +264,76 @@ const HomePage = () => {
           <button
             key={tab.key}
             className={`${styles.tab} ${activeTab === tab.key ? styles.tabActive : ''}`}
-            onClick={() => setActiveTab(tab.key)}
+            onClick={() => {
+              if (tab.key === 'favorites') {
+                // 切換到收藏頁面
+                window.location.href = '/favorites';
+              } else {
+                setActiveTab(tab.key);
+              }
+            }}
           >
             {tab.label}
+            {tab.key === 'favorites' && favorites.size > 0 && (
+              <span style={{
+                marginLeft: '8px',
+                background: '#ef4444',
+                color: 'white',
+                borderRadius: '10px',
+                padding: '2px 6px',
+                fontSize: '12px'
+              }}>
+                {favorites.size}
+              </span>
+            )}
           </button>
         ))}
       </div>
+    );
+  };
+
+  const renderFavoriteButton = (tripId) => {
+    const isFavorited = favorites.has(tripId);
+    const isLoading = favoriteLoading[tripId];
+
+    return (
+      <button
+        onClick={(e) => toggleFavorite(tripId, e)}
+        disabled={isLoading}
+        style={{
+          position: 'absolute',
+          top: '12px',
+          right: '12px',
+          background: 'rgba(255, 255, 255, 0.9)',
+          border: 'none',
+          borderRadius: '50%',
+          width: '36px',
+          height: '36px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          cursor: isLoading ? 'not-allowed' : 'pointer',
+          fontSize: '16px',
+          transition: 'all 0.2s ease',
+          boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+          opacity: isLoading ? 0.7 : 1
+        }}
+        onMouseEnter={(e) => {
+          if (!isLoading) {
+            e.target.style.transform = 'scale(1.1)';
+            e.target.style.background = 'white';
+          }
+        }}
+        onMouseLeave={(e) => {
+          if (!isLoading) {
+            e.target.style.transform = 'scale(1)';
+            e.target.style.background = 'rgba(255, 255, 255, 0.9)';
+          }
+        }}
+        title={isLoading ? '處理中...' : (isFavorited ? '取消收藏' : '加入收藏')}
+      >
+        {isLoading ? '⏳' : (isFavorited ? '❤️' : '🤍')}
+      </button>
     );
   };
 
@@ -206,10 +343,14 @@ const HomePage = () => {
         key={trip.trip_id}
         className={styles.tripCard}
         onClick={() => handleTripClick(trip.trip_id)}
+        style={{ position: 'relative' }}
       >
         <div className={styles.tripRank}>
           {index + 1}
         </div>
+
+        {/* 收藏按鈕 */}
+        {renderFavoriteButton(trip.trip_id)}
 
         <div className={styles.tripContent}>
           <h3 className={styles.tripTitle}>{trip.title}</h3>
