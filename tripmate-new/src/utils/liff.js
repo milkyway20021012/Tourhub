@@ -1,11 +1,29 @@
 // utils/liff.js - LIFF 工具函數
-import liff from '@line/liff';
-
 class LiffManager {
     constructor() {
         this.isInitialized = false;
         this.userProfile = null;
         this.accessToken = null;
+        this.liff = null;
+    }
+
+    // 動態載入 LIFF
+    async loadLiff() {
+        if (typeof window === 'undefined') {
+            return null;
+        }
+
+        if (!this.liff) {
+            try {
+                const liffModule = await import('@line/liff');
+                this.liff = liffModule.default;
+            } catch (error) {
+                console.error('💥 載入 LIFF 模組失敗:', error);
+                return null;
+            }
+        }
+
+        return this.liff;
     }
 
     // 初始化 LIFF
@@ -15,6 +33,12 @@ class LiffManager {
 
             if (typeof window === 'undefined') {
                 console.log('⚠️ 服務器端，跳過 LIFF 初始化');
+                return false;
+            }
+
+            const liff = await this.loadLiff();
+            if (!liff) {
+                console.error('💥 無法載入 LIFF 模組');
                 return false;
             }
 
@@ -41,8 +65,13 @@ class LiffManager {
     // 登入
     async login() {
         try {
-            if (!this.isInitialized) {
-                throw new Error('LIFF 尚未初始化');
+            if (!this.isInitialized || typeof window === 'undefined') {
+                throw new Error('LIFF 尚未初始化或不在瀏覽器環境中');
+            }
+
+            const liff = await this.loadLiff();
+            if (!liff) {
+                throw new Error('無法載入 LIFF 模組');
             }
 
             console.log('🔐 開始登入...');
@@ -54,8 +83,17 @@ class LiffManager {
     }
 
     // 登出
-    logout() {
+    async logout() {
         try {
+            if (typeof window === 'undefined') {
+                return;
+            }
+
+            const liff = await this.loadLiff();
+            if (!liff) {
+                return;
+            }
+
             if (liff.isLoggedIn()) {
                 liff.logout();
                 this.userProfile = null;
@@ -70,7 +108,12 @@ class LiffManager {
     // 獲取用戶資料
     async getUserProfile() {
         try {
-            if (!liff.isLoggedIn()) {
+            if (typeof window === 'undefined') {
+                return null;
+            }
+
+            const liff = await this.loadLiff();
+            if (!liff || !liff.isLoggedIn()) {
                 throw new Error('用戶未登入');
             }
 
@@ -110,18 +153,33 @@ class LiffManager {
     }
 
     // 檢查是否在 LINE 環境中
-    isInClient() {
-        return liff.isInClient();
+    async isInClient() {
+        if (typeof window === 'undefined') {
+            return false;
+        }
+
+        const liff = await this.loadLiff();
+        return liff ? liff.isInClient() : false;
     }
 
     // 檢查是否已登入
-    isLoggedIn() {
-        return this.isInitialized && liff.isLoggedIn();
+    async isLoggedIn() {
+        if (typeof window === 'undefined' || !this.isInitialized) {
+            return false;
+        }
+
+        const liff = await this.loadLiff();
+        return liff ? liff.isLoggedIn() : false;
     }
 
     // 關閉 LIFF 應用
-    closeWindow() {
-        if (liff.isInClient()) {
+    async closeWindow() {
+        if (typeof window === 'undefined') {
+            return;
+        }
+
+        const liff = await this.loadLiff();
+        if (liff && await this.isInClient()) {
             liff.closeWindow();
         }
     }
@@ -129,7 +187,18 @@ class LiffManager {
     // 發送訊息到聊天室（如果在 LINE 內）
     async sendMessage(message) {
         try {
-            if (!liff.isInClient()) {
+            if (typeof window === 'undefined') {
+                console.log('⚠️ 服務器端環境，無法發送訊息');
+                return false;
+            }
+
+            const liff = await this.loadLiff();
+            if (!liff) {
+                console.log('⚠️ LIFF 模組未載入，無法發送訊息');
+                return false;
+            }
+
+            if (!(await this.isInClient())) {
                 console.log('⚠️ 不在 LINE 客戶端內，無法發送訊息');
                 return false;
             }

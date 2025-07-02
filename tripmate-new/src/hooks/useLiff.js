@@ -8,9 +8,15 @@ export const useLiff = (liffId) => {
     const [userProfile, setUserProfile] = useState(null);
     const [error, setError] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [isInClientState, setIsInClientState] = useState(false);
 
     useEffect(() => {
-        initializeLiff();
+        // 只在客戶端執行
+        if (typeof window !== 'undefined') {
+            initializeLiff();
+        } else {
+            setLoading(false);
+        }
     }, [liffId]);
 
     const initializeLiff = async () => {
@@ -32,6 +38,10 @@ export const useLiff = (liffId) => {
                 console.log('⚠️ LIFF 初始化完成，用戶未登入');
             }
 
+            // 檢查是否在 LINE 客戶端內
+            const inClient = await liffManager.isInClient();
+            setIsInClientState(inClient);
+
         } catch (err) {
             console.error('💥 LIFF 初始化錯誤:', err);
             setError(err.message);
@@ -49,9 +59,9 @@ export const useLiff = (liffId) => {
         }
     };
 
-    const logout = () => {
+    const logout = async () => {
         try {
-            liffManager.logout();
+            await liffManager.logout();
             setIsLoggedIn(false);
             setUserProfile(null);
         } catch (err) {
@@ -71,6 +81,10 @@ export const useLiff = (liffId) => {
         return await liffManager.sendMessage(message);
     };
 
+    const isInClient = () => {
+        return isInClientState;
+    };
+
     return {
         // 狀態
         isReady,
@@ -87,7 +101,7 @@ export const useLiff = (liffId) => {
         sendMessage,
 
         // LIFF 資訊
-        isInClient: liffManager.isInClient(),
+        isInClient,
 
         // 重新初始化
         reinitialize: initializeLiff
