@@ -15,7 +15,7 @@ const FavoritesPage = () => {
         byDuration: {}
     });
 
-    // 假設的 LINE 用戶 ID (實際應該從 LINE SDK 或登入系統獲取)
+    // LINE 用戶 ID
     const [lineUserId, setLineUserId] = useState('demo_user_123');
 
     useEffect(() => {
@@ -27,48 +27,67 @@ const FavoritesPage = () => {
         setError(null);
 
         try {
-            console.log('開始獲取收藏列表，用戶 ID:', lineUserId);
+            console.log('🔍 開始獲取收藏列表，用戶 ID:', lineUserId);
 
-            const response = await axios.get(`/api/user-favorites`, {
+            const response = await axios.get('/api/user-favorites', {
                 params: {
                     line_user_id: lineUserId,
                     limit: 100
-                }
+                },
+                timeout: 10000 // 10秒超時
             });
 
-            console.log('收藏 API 回應:', response.data);
+            console.log('📡 收藏 API 回應:', response.data);
 
-            if (response.data.success) {
-                setFavorites(response.data.favorites || []);
-                calculateStatistics(response.data.favorites || []);
-                console.log('收藏資料載入成功:', response.data.favorites?.length || 0, '筆');
+            if (response.data && response.data.success) {
+                const favoritesData = response.data.favorites || [];
+                setFavorites(favoritesData);
+                calculateStatistics(favoritesData);
+                console.log('✅ 收藏資料載入成功:', favoritesData.length, '筆');
             } else {
-                console.warn('收藏 API 回應格式異常:', response.data);
-                setFavorites([]);
-                calculateStatistics([]);
+                console.warn('⚠️ API 回應格式異常:', response.data);
+                throw new Error(response.data?.message || 'API 回應格式錯誤');
             }
 
         } catch (error) {
-            console.error('獲取收藏失敗:', error);
+            console.error('💥 獲取收藏失敗:', error);
 
-            // 詳細錯誤處理
+            let errorMessage = '載入收藏失敗，請稍後再試。';
+
             if (error.response) {
+                // 伺服器回應錯誤
                 const status = error.response.status;
-                const message = error.response.data?.message || '未知錯誤';
+                const serverMessage = error.response.data?.message || '';
 
-                if (status === 404) {
-                    setError('收藏功能暫時無法使用，請稍後再試。');
-                } else if (status === 500) {
-                    setError('伺服器錯誤，請稍後再試。');
-                } else {
-                    setError(`載入收藏失敗: ${message}`);
+                console.error('📡 伺服器錯誤 - 狀態:', status, '訊息:', serverMessage);
+
+                switch (status) {
+                    case 400:
+                        errorMessage = '請求參數錯誤';
+                        break;
+                    case 404:
+                        errorMessage = '收藏功能尚未啟用，請先初始化數據庫';
+                        break;
+                    case 500:
+                        errorMessage = `伺服器錯誤：${serverMessage}`;
+                        break;
+                    default:
+                        errorMessage = `載入失敗 (${status})：${serverMessage}`;
                 }
             } else if (error.request) {
-                setError('網路連接失敗，請檢查網路連接。');
+                // 網路連接問題
+                console.error('🌐 網路錯誤:', error.request);
+                errorMessage = '網路連接失敗，請檢查網路連接';
+            } else if (error.code === 'ECONNABORTED') {
+                // 請求超時
+                errorMessage = '請求超時，請稍後再試';
             } else {
-                setError('載入收藏失敗，請稍後再試。');
+                // 其他錯誤
+                console.error('❓ 未知錯誤:', error.message);
+                errorMessage = error.message || '發生未知錯誤';
             }
 
+            setError(errorMessage);
             setFavorites([]);
             calculateStatistics([]);
         } finally {
@@ -106,10 +125,11 @@ const FavoritesPage = () => {
         if (!confirm('確定要移除這個收藏嗎？')) return;
 
         try {
-            console.log('嘗試移除收藏:', tripId);
+            console.log('🗑️ 嘗試移除收藏:', tripId);
 
             await axios.delete('/api/user-favorites', {
-                data: { line_user_id: lineUserId, trip_id: tripId }
+                data: { line_user_id: lineUserId, trip_id: tripId },
+                timeout: 5000
             });
 
             // 更新本地狀態
@@ -117,33 +137,41 @@ const FavoritesPage = () => {
             setFavorites(newFavorites);
             calculateStatistics(newFavorites);
 
-            console.log('移除收藏成功:', tripId);
+            console.log('✅ 移除收藏成功:', tripId);
         } catch (error) {
-            console.error('移除收藏失敗:', error);
+            console.error('💥 移除收藏失敗:', error);
             alert('移除收藏失敗，請稍後再試。');
         }
     };
 
     const handleTripClick = async (tripId) => {
         try {
-            console.log('獲取行程詳情:', tripId);
-            const response = await axios.get(`/api/trip-detail`, {
-                params: { id: tripId }
+            console.log('🔍 獲取行程詳情:', tripId);
+            const response = await axios.get('/api/trip-detail', {
+                params: { id: tripId },
+                timeout: 5000
             });
-            setSelectedTrip(response.data);
-            console.log('行程詳情載入成功:', tripId);
+
+            if (response.data && response.data.success) {
+                setSelectedTrip(response.data);
+                console.log('✅ 行程詳情載入成功:', tripId);
+            } else {
+                throw new Error('行程詳情格式錯誤');
+            }
         } catch (error) {
-            console.error('獲取行程詳情失敗:', error);
+            console.error('💥 獲取行程詳情失敗:', error);
             alert('載入行程詳情失敗');
         }
     };
 
     const formatDate = (dateString) => {
         try {
+            if (!dateString) return '未知日期';
             const options = { year: 'numeric', month: 'short', day: 'numeric' };
             return new Date(dateString).toLocaleDateString('zh-TW', options);
         } catch (error) {
-            return dateString;
+            console.error('日期格式化錯誤:', error);
+            return '日期錯誤';
         }
     };
 
@@ -165,7 +193,9 @@ const FavoritesPage = () => {
                         </div>
                         <div className={styles.statItem}>
                             <div className={styles.statNumber}>
-                                {Math.round(favorites.reduce((sum, f) => sum + f.duration_days, 0) / favorites.length) || 0}
+                                {favorites.length > 0 ?
+                                    Math.round(favorites.reduce((sum, f) => sum + (f.duration_days || 0), 0) / favorites.length) : 0
+                                }
                             </div>
                             <div className={styles.statLabel}>平均天數</div>
                         </div>
@@ -175,81 +205,11 @@ const FavoritesPage = () => {
         );
     };
 
-    const renderStatistics = () => {
-        if (favorites.length === 0) return null;
-
-        return (
-            <div style={{
-                background: 'white',
-                borderRadius: '12px',
-                padding: '20px',
-                marginBottom: '24px',
-                border: '1px solid #e2e8f0',
-                boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
-            }}>
-                <h3 style={{ margin: '0 0 16px 0', color: '#2d3748' }}>收藏分析</h3>
-                <div style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-                    gap: '16px'
-                }}>
-                    {/* 地區分布 */}
-                    <div>
-                        <h4 style={{ margin: '0 0 8px 0', fontSize: '14px', color: '#718096' }}>熱門地區</h4>
-                        {Object.entries(statistics.byArea).slice(0, 3).map(([area, count]) => (
-                            <div key={area} style={{
-                                display: 'flex',
-                                justifyContent: 'space-between',
-                                padding: '4px 0',
-                                fontSize: '14px'
-                            }}>
-                                <span>{area}</span>
-                                <span style={{ fontWeight: 'bold', color: '#3182ce' }}>{count}</span>
-                            </div>
-                        ))}
-                    </div>
-
-                    {/* 行程長度分布 */}
-                    <div>
-                        <h4 style={{ margin: '0 0 8px 0', fontSize: '14px', color: '#718096' }}>行程長度</h4>
-                        {Object.entries(statistics.byDuration).map(([duration, count]) => (
-                            <div key={duration} style={{
-                                display: 'flex',
-                                justifyContent: 'space-between',
-                                padding: '4px 0',
-                                fontSize: '14px'
-                            }}>
-                                <span>{duration}</span>
-                                <span style={{ fontWeight: 'bold', color: '#3182ce' }}>{count}</span>
-                            </div>
-                        ))}
-                    </div>
-
-                    {/* 狀態分布 */}
-                    <div>
-                        <h4 style={{ margin: '0 0 8px 0', fontSize: '14px', color: '#718096' }}>行程狀態</h4>
-                        {Object.entries(statistics.byStatus).map(([status, count]) => (
-                            <div key={status} style={{
-                                display: 'flex',
-                                justifyContent: 'space-between',
-                                padding: '4px 0',
-                                fontSize: '14px'
-                            }}>
-                                <span>{status}</span>
-                                <span style={{ fontWeight: 'bold', color: '#3182ce' }}>{count}</span>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-            </div>
-        );
-    };
-
     const renderBackButton = () => {
         return (
             <div style={{ marginBottom: '20px' }}>
                 <button
-                    onClick={() => window.history.back()}
+                    onClick={() => window.location.href = '/'}
                     style={{
                         background: '#f7fafc',
                         border: '1px solid #e2e8f0',
@@ -262,7 +222,7 @@ const FavoritesPage = () => {
                         gap: '8px'
                     }}
                 >
-                    ← 返回
+                    ← 返回首頁
                 </button>
             </div>
         );
@@ -288,6 +248,27 @@ const FavoritesPage = () => {
         );
     };
 
+    const renderDatabaseSetupButton = () => {
+        return (
+            <button
+                onClick={() => window.location.href = '/database-setup'}
+                style={{
+                    background: '#10b981',
+                    color: 'white',
+                    border: 'none',
+                    padding: '12px 24px',
+                    borderRadius: '8px',
+                    cursor: 'pointer',
+                    fontSize: '14px',
+                    marginTop: '16px',
+                    marginLeft: '10px'
+                }}
+            >
+                🔧 初始化數據庫
+            </button>
+        );
+    };
+
     if (loading) return (
         <div className={styles.container}>
             {renderBackButton()}
@@ -303,8 +284,22 @@ const FavoritesPage = () => {
             {renderBackButton()}
             <div className={styles.error}>
                 <div style={{ fontSize: '18px', marginBottom: '8px' }}>❌ 載入失敗</div>
-                <div style={{ fontSize: '14px' }}>{error}</div>
-                {renderRetryButton()}
+                <div style={{ fontSize: '14px', marginBottom: '16px' }}>{error}</div>
+
+                <div style={{ marginTop: '20px' }}>
+                    <strong>💡 解決建議：</strong>
+                    <ul style={{ textAlign: 'left', marginTop: '10px' }}>
+                        <li>檢查網路連接是否正常</li>
+                        <li>確認收藏功能已初始化</li>
+                        <li>嘗試重新載入頁面</li>
+                        <li>如果問題持續，請初始化數據庫</li>
+                    </ul>
+                </div>
+
+                <div>
+                    {renderRetryButton()}
+                    {renderDatabaseSetupButton()}
+                </div>
             </div>
         </div>
     );
@@ -313,7 +308,6 @@ const FavoritesPage = () => {
         <div className={styles.container}>
             {renderBackButton()}
             {renderHeader()}
-            {renderStatistics()}
 
             {favorites.length === 0 ? (
                 <div className={styles.empty}>
@@ -375,12 +369,15 @@ const FavoritesPage = () => {
                                 onClick={() => handleTripClick(favorite.trip_id)}
                                 style={{ cursor: 'pointer' }}
                             >
-                                <h3 className={styles.tripTitle}>{favorite.title}</h3>
+                                <h3 className={styles.tripTitle}>{favorite.title || '未知行程'}</h3>
 
                                 <div className={styles.tripMeta}>
-                                    <span className={styles.tripArea}>{favorite.area}</span>
+                                    <span className={styles.tripArea}>{favorite.area || '未知地區'}</span>
                                     <span className={styles.tripDate}>
-                                        {formatDate(favorite.start_date)} - {formatDate(favorite.end_date)}
+                                        {favorite.start_date && favorite.end_date ?
+                                            `${formatDate(favorite.start_date)} - ${formatDate(favorite.end_date)}` :
+                                            '日期未知'
+                                        }
                                     </span>
                                 </div>
 
@@ -391,9 +388,7 @@ const FavoritesPage = () => {
                                         </span>
                                     )}
                                     {favorite.status && (
-                                        <span className={`${styles.tag} ${favorite.status === '進行中' ? styles.tagActive :
-                                            favorite.status === '即將出發' ? styles.tagUpcoming : ''
-                                            }`}>
+                                        <span className={styles.tag}>
                                             {favorite.status === '進行中' ? '🔥' :
                                                 favorite.status === '即將出發' ? '🎯' : '✅'} {favorite.status}
                                         </span>
@@ -451,8 +446,8 @@ const FavoritesPage = () => {
             {selectedTrip && (
                 <TripDetail
                     trip={selectedTrip.trip}
-                    details={selectedTrip.details}
-                    participants={selectedTrip.participants}
+                    details={selectedTrip.details || []}
+                    participants={selectedTrip.participants || []}
                     onClose={() => setSelectedTrip(null)}
                 />
             )}
