@@ -7,7 +7,7 @@ export default async function handler(req, res) {
 
     try {
         const {
-            type = 'date',
+            type = 'all',
             budget_min = '',
             budget_max = '',
             duration_type = '',
@@ -93,6 +93,50 @@ export default async function handler(req, res) {
         const whereClause = whereConditions.length > 0 ? 'WHERE ' + whereConditions.join(' AND ') : '';
 
         switch (type) {
+            case 'all':
+                // 全部行程 - 按開始日期排序
+                sql = `
+                    ${baseSelect}
+                    ${whereClause}
+                    ORDER BY t.start_date DESC
+                    LIMIT 50
+                `;
+                break;
+
+            case 'popular':
+                // 熱門推薦 - 基於多種因素的綜合排序
+                sql = `
+                    ${baseSelect}
+                    ${whereClause}
+                    ORDER BY 
+                        (CASE WHEN t.start_date >= CURDATE() THEN 3 ELSE 1 END) DESC,
+                        DATEDIFF(t.end_date, t.start_date) DESC,
+                        t.start_date ASC
+                    LIMIT 50
+                `;
+                break;
+
+            case 'latest':
+                // 最新行程 - 按建立時間排序（這裡用 trip_id 代替，因為通常 ID 越大越新）
+                sql = `
+                    ${baseSelect}
+                    ${whereClause}
+                    ORDER BY t.trip_id DESC
+                    LIMIT 50
+                `;
+                break;
+
+            case 'upcoming':
+                // 即將出發 - 只顯示未來的行程
+                sql = `
+                    ${baseSelect}
+                    WHERE t.start_date >= CURDATE()
+                    ${whereConditions.length > 0 ? 'AND ' + whereConditions.join(' AND ') : ''}
+                    ORDER BY t.start_date ASC
+                    LIMIT 50
+                `;
+                break;
+
             case 'duration':
                 // 按行程長度排行
                 sql = `
@@ -120,17 +164,6 @@ export default async function handler(req, res) {
                 `;
                 break;
 
-            case 'trending':
-                // 趨勢分析 - 最近30天的行程
-                sql = `
-                    ${baseSelect}
-                    WHERE t.start_date >= DATE_SUB(CURDATE(), INTERVAL 90 DAY)
-                    ${whereConditions.length > 0 ? 'AND ' + whereConditions.join(' AND ') : ''}
-                    ORDER BY t.start_date DESC
-                    LIMIT 50
-                `;
-                break;
-
             case 'area':
                 // 按地區分組，每個地區最新的行程
                 sql = `
@@ -151,25 +184,12 @@ export default async function handler(req, res) {
                 `;
                 break;
 
-            case 'popular':
-                // 熱門行程 (基於假設的熱度計算)
+            default:
+                // 預設情況，顯示所有行程
                 sql = `
                     ${baseSelect}
                     ${whereClause}
-                    ORDER BY 
-                        (CASE WHEN t.start_date >= CURDATE() THEN 2 ELSE 1 END) DESC,
-                        t.start_date ASC
-                    LIMIT 50
-                `;
-                break;
-
-            default: // 'date'
-                // 即將出發的行程
-                sql = `
-                    ${baseSelect}
-                    WHERE t.start_date >= CURDATE()
-                    ${whereConditions.length > 0 ? 'AND ' + whereConditions.join(' AND ') : ''}
-                    ORDER BY t.start_date ASC
+                    ORDER BY t.start_date DESC
                     LIMIT 50
                 `;
                 break;

@@ -8,7 +8,7 @@ const HomePage = () => {
   const [statistics, setStatistics] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [activeTab, setActiveTab] = useState('area');
+  const [activeTab, setActiveTab] = useState('all'); // 修改預設標籤
   const [selectedTrip, setSelectedTrip] = useState(null);
   const [areas, setAreas] = useState([]);
 
@@ -104,8 +104,8 @@ const HomePage = () => {
               <div className={styles.statLabel}>總行程</div>
             </div>
             <div className={styles.statItem}>
-              <div className={styles.statNumber}>{statistics.popularAreas[0]?.area || '無'}</div>
-              <div className={styles.statLabel}>預設排行</div>
+              <div className={styles.statNumber}>{areas.length}</div>
+              <div className={styles.statLabel}>地區數</div>
             </div>
             <div className={styles.statItem}>
               <div className={styles.statNumber}>{statistics.overview.avgDuration}</div>
@@ -179,10 +179,12 @@ const HomePage = () => {
   };
 
   const renderRankingTabs = () => {
+    // 新的自定義標籤選項
     const tabs = [
-      { key: 'area', label: '預設排行' },
-      { key: 'duration', label: '行程長度' },
-      { key: 'season', label: '季節精選' }
+      { key: 'all', label: '全部行程' },
+      { key: 'popular', label: '熱門推薦' },
+      { key: 'latest', label: '最新行程' },
+      { key: 'upcoming', label: '即將出發' }
     ];
 
     return (
