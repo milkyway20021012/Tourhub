@@ -204,8 +204,8 @@ const TripRanking = () => {
 
   const renderRankingTabs = () => {
     const tabs = [
-      { key: 'duration', label: '⏰ 行程長度', description: '按天數分類排行' },
-      { key: 'season', label: '🌸 季節精選', description: '四季主題行程排行' }
+      { key: 'duration', label: '行程長度', description: '按天數分類排行' },
+      { key: 'season', label: '季節精選', description: '四季主題行程排行' }
     ];
 
     return (
