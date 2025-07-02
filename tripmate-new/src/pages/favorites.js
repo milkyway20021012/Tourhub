@@ -83,7 +83,7 @@ const FavoritesContent = ({
                     <div style={{ marginBottom: '16px', color: 'white', textAlign: 'center' }}>
                         {isLoggedIn ? (
                             <div>
-                                <span>{getDisplayName()} 的收藏</span>
+                                <span>{getDisplayName()}的收藏</span>
                                 {userProfile?.pictureUrl && (
                                     <img
                                         src={userProfile.pictureUrl}
@@ -251,7 +251,6 @@ const FavoritesContent = ({
 
             {favorites.length === 0 ? (
                 <div className={styles.empty}>
-                    <div className={styles.emptyIcon}>💔</div>
                     <div className={styles.emptyText}>還沒有收藏任何行程</div>
                     <div className={styles.emptySubtext}>
                         去發現一些精彩的旅程吧！
