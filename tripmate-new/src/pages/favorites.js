@@ -75,7 +75,7 @@ const FavoritesContent = ({
     const renderHeader = () => {
         return (
             <div className={styles.header}>
-                <h1 className={styles.title}>❤️ 我的收藏</h1>
+                <h1 className={styles.title}>我的收藏</h1>
 
                 {/* 除錯資訊 */}
                 {renderDebugInfo()}
@@ -85,7 +85,7 @@ const FavoritesContent = ({
                     <div style={{ marginBottom: '16px', color: 'white', textAlign: 'center' }}>
                         {isLoggedIn ? (
                             <div>
-                                <span>👋 {getDisplayName()} 的收藏</span>
+                                <span>{getDisplayName()} 的收藏</span>
                                 {userProfile?.pictureUrl && (
                                     <img
                                         src={userProfile.pictureUrl}
@@ -100,13 +100,10 @@ const FavoritesContent = ({
                                     />
                                 )}
                                 <br />
-                                <small style={{ opacity: 0.8 }}>
-                                    用戶 ID: {userIdDebug || '未取得'}
-                                </small>
                             </div>
                         ) : (
                             <div>
-                                <span>👤 請先登入 LINE 帳號查看收藏</span>
+                                <span>請先登入 LINE 帳號查看收藏</span>
                                 <button
                                     onClick={login}
                                     style={{
