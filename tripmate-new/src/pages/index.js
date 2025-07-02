@@ -237,11 +237,6 @@ const HomePage = () => {
                 {trip.duration_type}
               </span>
             )}
-            {trip.status && trip.status !== '即將出發' && (
-              <span className={`${styles.tag} ${styles.tagStatus}`}>
-                {trip.status}
-              </span>
-            )}
           </div>
 
           {trip.description && (
