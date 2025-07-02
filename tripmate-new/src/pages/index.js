@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import TripDetail from '../components/TripDetail';
 import styles from '../components/TripRanking.module.css';
+import { useLiff } from '../hooks/useLiff';
 
 const HomePage = () => {
   const [trips, setTrips] = useState([]);
@@ -15,7 +16,18 @@ const HomePage = () => {
   // 收藏功能相關狀態
   const [favorites, setFavorites] = useState(new Set());
   const [favoriteLoading, setFavoriteLoading] = useState({});
-  const [lineUserId, setLineUserId] = useState('demo_user_123'); // 實際項目中應該從 LINE SDK 獲取
+
+  // LIFF 整合
+  const {
+    isReady,
+    isLoggedIn,
+    userProfile,
+    loading: liffLoading,
+    error: liffError,
+    getUserId,
+    getDisplayName,
+    login
+  } = useLiff(process.env.NEXT_PUBLIC_LIFF_ID || 'your-liff-id-here');
 
   // 篩選狀態
   const [filters, setFilters] = useState({
@@ -24,13 +36,26 @@ const HomePage = () => {
     area: ''
   });
 
-  useEffect(() => {
-    initializeData();
-  }, []);
+  // 獲取當前用戶 ID
+  const getCurrentUserId = () => {
+    if (isLoggedIn && getUserId()) {
+      return getUserId();
+    }
+    // 開發環境下的備用方案
+    return process.env.NODE_ENV === 'development' ? 'demo_user_123' : null;
+  };
 
   useEffect(() => {
-    fetchTripRankings(activeTab);
-  }, [activeTab, filters]);
+    if (isReady) {
+      initializeData();
+    }
+  }, [isReady, isLoggedIn]);
+
+  useEffect(() => {
+    if (isReady) {
+      fetchTripRankings(activeTab);
+    }
+  }, [activeTab, filters, isReady]);
 
   const initializeData = async () => {
     await Promise.all([
@@ -43,26 +68,45 @@ const HomePage = () => {
 
   // 獲取用戶收藏列表
   const fetchUserFavorites = async () => {
+    const userId = getCurrentUserId();
+    if (!userId) {
+      console.log('⚠️ 沒有用戶 ID，跳過收藏查詢');
+      return;
+    }
+
     try {
+      console.log('🔍 獲取用戶收藏，用戶 ID:', userId);
+
       const response = await axios.get('/api/user-favorites', {
-        params: { line_user_id: lineUserId }
+        params: { line_user_id: userId }
       });
 
       if (response.data.success) {
         const favIds = new Set(response.data.favorites.map(f => f.trip_id));
         setFavorites(favIds);
-        console.log('收藏列表載入成功:', favIds.size, '筆');
+        console.log('✅ 收藏列表載入成功:', favIds.size, '筆');
       }
     } catch (err) {
-      console.error('獲取收藏列表失敗:', err);
-      // 不影響主要功能，收藏功能降級
+      console.error('💥 獲取收藏列表失敗:', err);
     }
   };
 
   // 切換收藏狀態
   const toggleFavorite = async (tripId, event) => {
-    // 阻止事件冒泡，避免觸發行程點擊
     event.stopPropagation();
+
+    const userId = getCurrentUserId();
+    if (!userId) {
+      if (!isLoggedIn) {
+        alert('請先登入 LINE 帳號才能使用收藏功能');
+        try {
+          await login();
+        } catch (error) {
+          console.error('登入失敗:', error);
+        }
+      }
+      return;
+    }
 
     setFavoriteLoading(prev => ({ ...prev, [tripId]: true }));
 
@@ -72,7 +116,7 @@ const HomePage = () => {
       if (isFavorited) {
         // 取消收藏
         await axios.delete('/api/user-favorites', {
-          data: { line_user_id: lineUserId, trip_id: tripId }
+          data: { line_user_id: userId, trip_id: tripId }
         });
 
         setFavorites(prev => {
@@ -81,21 +125,20 @@ const HomePage = () => {
           return newSet;
         });
 
-        console.log('取消收藏成功:', tripId);
+        console.log('✅ 取消收藏成功:', tripId);
       } else {
         // 添加收藏
         await axios.post('/api/user-favorites', {
-          line_user_id: lineUserId,
+          line_user_id: userId,
           trip_id: tripId
         });
 
         setFavorites(prev => new Set([...prev, tripId]));
-        console.log('添加收藏成功:', tripId);
+        console.log('✅ 添加收藏成功:', tripId);
       }
     } catch (err) {
-      console.error('收藏操作失敗:', err);
+      console.error('💥 收藏操作失敗:', err);
 
-      // 根據錯誤類型顯示不同提示
       if (err.response?.status === 409) {
         alert('此行程已在收藏列表中');
       } else if (err.response?.status === 404) {
@@ -112,7 +155,6 @@ const HomePage = () => {
     try {
       const response = await axios.get('/api/trip-statistics');
       setStatistics(response.data);
-      console.log('統計資料載入成功:', response.data);
     } catch (err) {
       console.error('獲取統計資料失敗:', err);
     }
@@ -139,7 +181,6 @@ const HomePage = () => {
       const data = response.data.success ? response.data.data : response.data;
       setTrips(data);
       setError(null);
-      console.log('排行榜資料載入成功:', data.length, '筆');
     } catch (err) {
       console.error('獲取排行榜失敗:', err);
       setError('載入排行榜失敗，請稍後再試。');
@@ -152,7 +193,6 @@ const HomePage = () => {
     try {
       const response = await axios.get(`/api/trip-detail?id=${tripId}`);
       setSelectedTrip(response.data);
-      console.log('行程詳情載入成功:', tripId);
     } catch (err) {
       console.error('獲取行程詳情失敗:', err);
       alert('載入行程詳情失敗');
@@ -168,6 +208,48 @@ const HomePage = () => {
     return (
       <div className={styles.header}>
         <h1 className={styles.title}>Tourhub 行程排行榜</h1>
+
+        {/* 用戶資訊 */}
+        {isReady && (
+          <div style={{ marginBottom: '16px', color: 'white', textAlign: 'center' }}>
+            {isLoggedIn ? (
+              <div>
+                <span>👋 歡迎，{getDisplayName()}</span>
+                {userProfile?.pictureUrl && (
+                  <img
+                    src={userProfile.pictureUrl}
+                    alt="頭像"
+                    style={{
+                      width: '32px',
+                      height: '32px',
+                      borderRadius: '50%',
+                      marginLeft: '8px',
+                      verticalAlign: 'middle'
+                    }}
+                  />
+                )}
+              </div>
+            ) : (
+              <div>
+                <span>👤 訪客模式</span>
+                <button
+                  onClick={login}
+                  style={{
+                    marginLeft: '8px',
+                    padding: '4px 8px',
+                    background: 'rgba(255,255,255,0.2)',
+                    border: '1px solid rgba(255,255,255,0.3)',
+                    borderRadius: '4px',
+                    color: 'white',
+                    cursor: 'pointer'
+                  }}
+                >
+                  登入
+                </button>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* 統計面板 */}
         {statistics && (
@@ -265,7 +347,11 @@ const HomePage = () => {
             className={`${styles.tab} ${activeTab === tab.key ? styles.tabActive : ''}`}
             onClick={() => {
               if (tab.key === 'favorites') {
-                // 切換到收藏頁面
+                const userId = getCurrentUserId();
+                if (!userId) {
+                  alert('請先登入 LINE 帳號才能查看收藏');
+                  return;
+                }
                 window.location.href = '/favorites';
               } else {
                 setActiveTab(tab.key);
@@ -316,18 +402,6 @@ const HomePage = () => {
           transition: 'all 0.2s ease',
           boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
           opacity: isLoading ? 0.7 : 1
-        }}
-        onMouseEnter={(e) => {
-          if (!isLoading) {
-            e.target.style.transform = 'scale(1.1)';
-            e.target.style.background = 'white';
-          }
-        }}
-        onMouseLeave={(e) => {
-          if (!isLoading) {
-            e.target.style.transform = 'scale(1)';
-            e.target.style.background = 'rgba(255, 255, 255, 0.9)';
-          }
         }}
         title={isLoading ? '處理中...' : (isFavorited ? '取消收藏' : '加入收藏')}
       >
@@ -392,6 +466,7 @@ const HomePage = () => {
   };
 
   const renderTripList = () => {
+    if (liffLoading) return <div className={styles.loading}>初始化中...</div>;
     if (loading) return <div className={styles.loading}>載入中...</div>;
     if (error) return <div className={styles.error}>{error}</div>;
     if (trips.length === 0) return (
