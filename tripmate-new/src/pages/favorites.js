@@ -185,20 +185,6 @@ const FavoritesPage = () => {
                             <div className={styles.statNumber}>{statistics.total}</div>
                             <div className={styles.statLabel}>總收藏數</div>
                         </div>
-                        <div className={styles.statItem}>
-                            <div className={styles.statNumber}>
-                                {Object.keys(statistics.byArea).length}
-                            </div>
-                            <div className={styles.statLabel}>涵蓋地區</div>
-                        </div>
-                        <div className={styles.statItem}>
-                            <div className={styles.statNumber}>
-                                {favorites.length > 0 ?
-                                    Math.round(favorites.reduce((sum, f) => sum + (f.duration_days || 0), 0) / favorites.length) : 0
-                                }
-                            </div>
-                            <div className={styles.statLabel}>平均天數</div>
-                        </div>
                     </div>
                 )}
             </div>
