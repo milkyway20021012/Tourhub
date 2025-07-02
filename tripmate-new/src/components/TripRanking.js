@@ -1,4 +1,4 @@
-// components/TripRanking.js - 簡化版：只保留行程長度與季節精選排行
+// components/TripRanking.js - 最終簡化版：只保留行程長度與季節精選排行
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import TripDetail from './TripDetail';
@@ -67,7 +67,7 @@ const TripRanking = () => {
           params.order = 'DESC';
           break;
         case 'season':
-          // 按季節排序（按月份順序）
+          // 按季節排序（按開始日期順序）
           params.sort = 'start_date';
           params.order = 'ASC';
           break;
@@ -169,7 +169,8 @@ const TripRanking = () => {
                 padding: '12px 16px',
                 border: '1px solid #d4d4d8',
                 borderRadius: '8px',
-                fontSize: '14px'
+                fontSize: '14px',
+                width: '100%'
               }}
             />
           </div>
