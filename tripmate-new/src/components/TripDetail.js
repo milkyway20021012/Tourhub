@@ -32,14 +32,6 @@ const TripDetail = ({ trip, details, participants, onClose }) => {
                   <label>地區</label>
                   <span>{trip.area}</span>
                 </div>
-                <div className={styles.infoItem}>
-                  <label>開始日期</label>
-                  <span>{formatDate(trip.start_date)}</span>
-                </div>
-                <div className={styles.infoItem}>
-                  <label>結束日期</label>
-                  <span>{formatDate(trip.end_date)}</span>
-                </div>
                 {trip.updated_at !== trip.created_at && (
                   <div className={styles.infoItem}>
                     <label>更新時間</label>
