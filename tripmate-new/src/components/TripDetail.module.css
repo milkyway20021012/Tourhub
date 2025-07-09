@@ -1,228 +1,462 @@
+/* TripDetail.module.css - 行程詳情樣式（包含分享功能） */
+
 .tripDetailOverlay {
     position: fixed;
     top: 0;
     left: 0;
     right: 0;
     bottom: 0;
-    background-color: rgba(0, 0, 0, 0.7);
+    background: rgba(0, 0, 0, 0.75);
     display: flex;
-    justify-content: center;
     align-items: center;
+    justify-content: center;
     z-index: 1000;
     padding: 20px;
-    overflow-y: auto;
 }
 
 .tripDetailContainer {
-    position: relative;
-    background-color: #fff;
-    border-radius: 8px;
-    max-width: 900px;
+    background: white;
+    border-radius: 16px;
     width: 100%;
+    max-width: 900px;
     max-height: 90vh;
-    overflow-y: auto;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    animation: slideIn 0.3s ease-out;
 }
 
-.closeButton {
-    position: absolute;
-    top: 10px;
-    right: 10px;
-    background: none;
-    border: none;
-    font-size: 28px;
-    cursor: pointer;
-    color: #777;
-    z-index: 10;
-}
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-20px) scale(0.95);
+    }
 
-.closeButton:hover {
-    color: #333;
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
 }
 
 .tripDetailHeader {
-    padding: 25px 30px;
-    border-bottom: 1px solid #eee;
-    background-color: #f9f9f9;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 24px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: 16px 16px 0 0;
 }
 
 .tripDetailHeader h2 {
-    margin: 0 0 10px 0;
-    color: #2c3e50;
+    margin: 0;
     font-size: 24px;
+    font-weight: 600;
+    flex: 1;
+    margin-right: 16px;
 }
 
-.tripMeta {
-    display: flex;
-    gap: 15px;
-    color: #777;
-    font-size: 14px;
-}
-
-.tripCreator,
-.tripViews {
+.headerActions {
     display: flex;
     align-items: center;
+    gap: 12px;
+}
+
+.shareButton {
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.shareButton:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: translateY(-1px);
+}
+
+.closeButton {
+    background: rgba(255, 255, 255, 0.2);
+    border: none;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+    color: white;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.closeButton:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: scale(1.1);
 }
 
 .tripDetailContent {
-    padding: 30px;
+    flex: 1;
+    overflow-y: auto;
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
 }
 
 .tripInfoPanel {
-    margin-bottom: 30px;
+    background: #f8fafc;
+    border-radius: 12px;
+    padding: 20px;
+    border: 1px solid #e2e8f0;
 }
 
 .tripInfoSection {
-    margin-bottom: 25px;
+    margin-bottom: 20px;
+}
+
+.tripInfoSection:last-child {
+    margin-bottom: 0;
 }
 
 .tripInfoSection h3 {
-    margin: 0 0 15px 0;
-    color: #333;
+    margin: 0 0 16px 0;
     font-size: 18px;
-    border-left: 3px solid #3498db;
-    padding-left: 10px;
+    font-weight: 600;
+    color: #1e293b;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.tripInfoSection h3::before {
+    content: "📋";
+    font-size: 16px;
 }
 
 .tripInfoGrid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-    gap: 15px;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
 }
 
 .infoItem {
     display: flex;
     flex-direction: column;
+    gap: 4px;
 }
 
 .infoItem label {
-    font-size: 13px;
-    color: #777;
-    margin-bottom: 5px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
 }
 
 .infoItem span {
-    font-size: 16px;
-    color: #333;
+    font-size: 14px;
+    color: #1e293b;
+    font-weight: 500;
 }
 
 .tripDescription {
+    margin: 0;
     line-height: 1.6;
-    color: #444;
-    white-space: pre-line;
-}
-
-/* 行程安排時間線 */
-.scheduleTimeline {
-    position: relative;
-    margin-left: 20px;
-    padding-left: 30px;
-}
-
-.scheduleTimeline::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    bottom: 0;
-    left: 0;
-    width: 2px;
-    background-color: #3498db;
-}
-
-.scheduleItem {
-    position: relative;
-    margin-bottom: 30px;
-    display: flex;
-}
-
-.scheduleDot {
-    position: absolute;
-    width: 14px;
-    height: 14px;
-    background-color: #3498db;
-    border-radius: 50%;
-    left: -37px;
-    top: 5px;
-}
-
-.scheduleTime {
-    width: 180px;
-    padding-right: 15px;
-}
-
-.scheduleDate {
+    color: #475569;
     font-size: 14px;
-    color: #777;
 }
 
-.scheduleHours {
-    font-weight: bold;
-    color: #333;
+.tripSchedule {
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    border: 1px solid #e2e8f0;
 }
 
-.scheduleContent {
-    flex: 1;
-}
-
-.scheduleContent h4 {
-    margin: 0 0 10px 0;
-    color: #2c3e50;
-}
-
-/* 參與者列表 */
-.participantsList {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-    gap: 15px;
-}
-
-.participantItem {
-    padding: 10px 15px;
-    border-radius: 6px;
+.scheduleHeader {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    margin-bottom: 20px;
 }
 
-.accepted {
-    background-color: #e8f5e9;
+.scheduleHeader h3 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 600;
+    color: #1e293b;
+    display: flex;
+    align-items: center;
+    gap: 8px;
 }
 
-.invited {
-    background-color: #fff8e1;
+.scheduleHeader h3::before {
+    content: "🗓️";
+    font-size: 16px;
 }
 
-.rejected {
-    background-color: #ffebee;
-}
-
-.participantStatus {
+.shareScheduleButton {
+    background: #10b981;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 6px;
     font-size: 13px;
-    color: #777;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 6px;
 }
 
-.noDetails,
-.noParticipants {
-    color: #777;
-    font-style: italic;
+.shareScheduleButton:hover {
+    background: #059669;
+    transform: translateY(-1px);
 }
 
+.scheduleTimeline {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.scheduleItem {
+    display: grid;
+    grid-template-columns: 200px 20px 1fr;
+    gap: 16px;
+    align-items: flex-start;
+    padding: 16px 0;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.scheduleItem:last-child {
+    border-bottom: none;
+}
+
+.scheduleTime {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    text-align: right;
+}
+
+.scheduleDate {
+    font-size: 13px;
+    font-weight: 600;
+    color: #3b82f6;
+}
+
+.scheduleHours {
+    font-size: 14px;
+    font-weight: 500;
+    color: #059669;
+}
+
+.scheduleDot {
+    width: 12px;
+    height: 12px;
+    background: #3b82f6;
+    border-radius: 50%;
+    margin-top: 4px;
+    position: relative;
+}
+
+.scheduleDot::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 6px;
+    height: 6px;
+    background: white;
+    border-radius: 50%;
+}
+
+.scheduleContent h4 {
+    margin: 0 0 8px 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: #1e293b;
+}
+
+.scheduleDescription {
+    margin: 0;
+    font-size: 14px;
+    color: #64748b;
+    line-height: 1.5;
+}
+
+.noDetails {
+    text-align: center;
+    padding: 40px 20px;
+    color: #64748b;
+}
+
+.noDetailsIcon {
+    font-size: 48px;
+    margin-bottom: 16px;
+}
+
+.noDetails p {
+    margin: 0 0 8px 0;
+    font-size: 16px;
+    font-weight: 500;
+}
+
+.noDetails small {
+    font-size: 14px;
+    color: #94a3b8;
+}
+
+.tripStats {
+    background: #f8fafc;
+    border-radius: 12px;
+    padding: 20px;
+    border: 1px solid #e2e8f0;
+}
+
+.tripStats h3 {
+    margin: 0 0 16px 0;
+    font-size: 18px;
+    font-weight: 600;
+    color: #1e293b;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.tripStats h3::before {
+    content: "📊";
+    font-size: 16px;
+}
+
+.quickActions {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 12px;
+    padding: 20px;
+    background: #f1f5f9;
+    border-radius: 12px;
+    border: 1px solid #e2e8f0;
+}
+
+.actionButton {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 16px 12px;
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 14px;
+    font-weight: 500;
+    color: #374151;
+}
+
+.actionButton:hover {
+    background: #f9fafb;
+    border-color: #3b82f6;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.actionIcon {
+    font-size: 20px;
+}
+
+/* 響應式設計 */
 @media (max-width: 768px) {
+    .tripDetailOverlay {
+        padding: 12px;
+    }
+
+    .tripDetailContainer {
+        max-height: 95vh;
+    }
+
+    .tripDetailHeader {
+        padding: 20px;
+        flex-direction: column;
+        gap: 16px;
+        align-items: flex-start;
+    }
+
+    .tripDetailHeader h2 {
+        font-size: 20px;
+        margin-right: 0;
+    }
+
+    .headerActions {
+        width: 100%;
+        justify-content: space-between;
+    }
+
+    .tripDetailContent {
+        padding: 20px;
+        gap: 20px;
+    }
+
+    .scheduleHeader {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+    }
+
+    .scheduleItem {
+        grid-template-columns: 1fr;
+        gap: 12px;
+        text-align: left;
+    }
+
+    .scheduleTime {
+        text-align: left;
+    }
+
+    .scheduleDot {
+        display: none;
+    }
+
     .tripInfoGrid {
         grid-template-columns: 1fr;
     }
 
-    .participantsList {
+    .quickActions {
         grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 480px) {
+    .tripDetailHeader {
+        padding: 16px;
+    }
+
+    .tripDetailContent {
+        padding: 16px;
     }
 
     .scheduleItem {
-        flex-direction: column;
+        padding: 12px 0;
     }
 
-    .scheduleTime {
-        width: auto;
-        margin-bottom: 10px;
+    .actionButton {
+        padding: 12px;
+        font-size: 13px;
+    }
+
+    .actionIcon {
+        font-size: 18px;
     }
 }

@@ -1,7 +1,8 @@
-// components/TripList.js - 繁體中文版本，移除標籤功能
+// components/TripList.js - 繁體中文版本，包含分享功能
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import TripDetail from './TripDetail';
+import ShareTrip from './ShareTrip';
 import styles from './TripList.module.css';
 
 const TripList = () => {
@@ -20,6 +21,11 @@ const TripList = () => {
         details: [],
         participants: []
     });
+
+    // 分享功能相關狀態
+    const [shareModalData, setShareModalData] = useState(null);
+    const [shareLoading, setShareLoading] = useState({});
+    const [quickShareLoading, setQuickShareLoading] = useState({});
 
     // 排序狀態 - 預設按預算排序
     const [sortField, setSortField] = useState('budget');
@@ -252,6 +258,114 @@ const TripList = () => {
         setSelectedTrip(null);
     };
 
+    // === 分享功能相關函數 ===
+
+    // 詳細分享（開啟分享彈窗）
+    const handleDetailedShare = async (trip, e) => {
+        e.stopPropagation();
+
+        setShareLoading(prev => ({ ...prev, [trip.trip_id]: true }));
+
+        try {
+            // 獲取完整的行程詳情
+            const response = await axios.get(`/api/trip-detail?id=${trip.trip_id}`);
+
+            if (response.data.success) {
+                setShareModalData({
+                    trip: response.data.trip,
+                    details: response.data.details || []
+                });
+            } else {
+                // 即使 API 失敗，也使用基本資訊進行分享
+                setShareModalData({
+                    trip: trip,
+                    details: []
+                });
+            }
+        } catch (error) {
+            console.error('獲取行程詳情失敗:', error);
+            setShareModalData({
+                trip: trip,
+                details: []
+            });
+        } finally {
+            setShareLoading(prev => ({ ...prev, [trip.trip_id]: false }));
+        }
+    };
+
+    // 快速分享（不開啟彈窗）
+    const handleQuickShare = async (trip, e) => {
+        e.stopPropagation();
+
+        setQuickShareLoading(prev => ({ ...prev, [trip.trip_id]: true }));
+
+        const shareText = `🎯 推薦行程：${trip.title}\n📍 ${trip.area}\n📅 ${formatDate(trip.start_date)} - ${formatDate(trip.end_date)}\n\n✨ 透過 Tourhub 分享`;
+
+        try {
+            // 優先使用 LINE 分享
+            if (typeof window !== 'undefined' && window.liff) {
+                try {
+                    await window.liff.shareTargetPicker([{
+                        type: 'text',
+                        text: shareText
+                    }]);
+                    console.log('✅ LINE 快速分享成功');
+                    return;
+                } catch (error) {
+                    console.error('LINE 分享失敗:', error);
+                }
+            }
+
+            // 備用：瀏覽器原生分享
+            if (navigator.share) {
+                await navigator.share({
+                    title: trip.title,
+                    text: shareText
+                });
+                console.log('✅ 瀏覽器快速分享成功');
+            } else {
+                // 最後備用：複製到剪貼簿
+                await navigator.clipboard.writeText(shareText);
+                alert('行程資訊已複製到剪貼簿！');
+            }
+
+            // 記錄快速分享
+            const userId = getCurrentUserId();
+            if (userId) {
+                await axios.post('/api/user-shares', {
+                    line_user_id: userId,
+                    trip_id: trip.trip_id,
+                    share_type: 'quick',
+                    share_content: { type: 'quick', format: 'text' }
+                });
+            }
+        } catch (error) {
+            console.error('快速分享失敗:', error);
+            alert('分享失敗，請稍後再試');
+        } finally {
+            setQuickShareLoading(prev => ({ ...prev, [trip.trip_id]: false }));
+        }
+    };
+
+    // 獲取當前用戶 ID
+    const getCurrentUserId = () => {
+        if (typeof window !== 'undefined' && window.liff && window.liff.getProfile) {
+            try {
+                return window.liff.getProfile().then(profile => profile.userId);
+            } catch (error) {
+                console.error('獲取用戶 ID 失敗:', error);
+            }
+        }
+        return 'demo_user_123'; // 開發環境備用
+    };
+
+    // 關閉分享彈窗
+    const closeShareModal = () => {
+        setShareModalData(null);
+    };
+
+    // === 輔助函數 ===
+
     const formatDate = (dateString) => {
         const options = { year: 'numeric', month: 'short', day: 'numeric' };
         return new Date(dateString).toLocaleDateString('zh-TW', options);
@@ -467,6 +581,7 @@ const TripList = () => {
                             <th onClick={() => handleSort('budget')}>
                                 預算 {renderSortIcon('budget')}
                             </th>
+                            <th>操作</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -489,6 +604,26 @@ const TripList = () => {
                                     <td>{trip.area}</td>
                                     <td>
                                         {trip.budget ? `${trip.budget.toLocaleString()}` : '未設定'}
+                                    </td>
+                                    <td>
+                                        <div className={styles.actionButtons}>
+                                            <button
+                                                className={styles.quickShareButton}
+                                                onClick={(e) => handleQuickShare(trip, e)}
+                                                disabled={quickShareLoading[trip.trip_id]}
+                                                title="快速分享"
+                                            >
+                                                {quickShareLoading[trip.trip_id] ? '⏳' : '🚀'}
+                                            </button>
+                                            <button
+                                                className={styles.detailedShareButton}
+                                                onClick={(e) => handleDetailedShare(trip, e)}
+                                                disabled={shareLoading[trip.trip_id]}
+                                                title="詳細分享"
+                                            >
+                                                {shareLoading[trip.trip_id] ? '⏳' : '📤'}
+                                            </button>
+                                        </div>
                                     </td>
                                 </tr>
                             );
@@ -538,6 +673,24 @@ const TripList = () => {
                                     </div>
                                 )}
                             </div>
+                            <div className={styles.tripCardActions}>
+                                <button
+                                    className={styles.quickShareCardButton}
+                                    onClick={(e) => handleQuickShare(trip, e)}
+                                    disabled={quickShareLoading[trip.trip_id]}
+                                    title="快速分享"
+                                >
+                                    {quickShareLoading[trip.trip_id] ? '⏳' : '🚀'}
+                                </button>
+                                <button
+                                    className={styles.detailedShareCardButton}
+                                    onClick={(e) => handleDetailedShare(trip, e)}
+                                    disabled={shareLoading[trip.trip_id]}
+                                    title="詳細分享"
+                                >
+                                    {shareLoading[trip.trip_id] ? '⏳' : '📤'}
+                                </button>
+                            </div>
                         </div>
                     );
                 })}
@@ -564,6 +717,15 @@ const TripList = () => {
                     details={tripDetails.details}
                     participants={tripDetails.participants}
                     onClose={handleCloseDetail}
+                />
+            )}
+
+            {/* 分享彈窗 */}
+            {shareModalData && (
+                <ShareTrip
+                    trip={shareModalData.trip}
+                    details={shareModalData.details}
+                    onClose={closeShareModal}
                 />
             )}
         </div>

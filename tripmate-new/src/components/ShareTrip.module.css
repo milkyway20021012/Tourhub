@@ -1,0 +1,400 @@
+/* ShareTrip.module.css - 行程分享功能樣式 */
+
+.shareOverlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.75);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: 20px;
+}
+
+.shareContainer {
+    background: white;
+    border-radius: 16px;
+    width: 100%;
+    max-width: 600px;
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    animation: modalSlideIn 0.3s ease-out;
+}
+
+@keyframes modalSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-20px) scale(0.95);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+.shareHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 24px;
+    border-bottom: 1px solid #e5e7eb;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: 16px 16px 0 0;
+}
+
+.shareHeader h2 {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 600;
+}
+
+.closeButton {
+    background: rgba(255, 255, 255, 0.2);
+    border: none;
+    border-radius: 50%;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    color: white;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.closeButton:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: scale(1.1);
+}
+
+.shareContent {
+    flex: 1;
+    overflow-y: auto;
+    padding: 24px;
+}
+
+.tripInfo {
+    background: #f8fafc;
+    padding: 16px;
+    border-radius: 12px;
+    margin-bottom: 24px;
+    border: 1px solid #e2e8f0;
+}
+
+.tripInfo h3 {
+    margin: 0 0 8px 0;
+    font-size: 18px;
+    font-weight: 600;
+    color: #1e293b;
+}
+
+.tripInfo p {
+    margin: 0;
+    color: #64748b;
+    font-size: 14px;
+}
+
+.formatSelection {
+    margin-bottom: 24px;
+}
+
+.formatSelection h4 {
+    margin: 0 0 16px 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: #374151;
+}
+
+.formatOptions {
+    display: grid;
+    gap: 12px;
+}
+
+.formatOption {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 16px;
+    border: 2px solid #e5e7eb;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    background: #fafafa;
+}
+
+.formatOption:hover {
+    border-color: #3b82f6;
+    background: #f0f9ff;
+}
+
+.formatOption input[type="radio"] {
+    margin: 0;
+    transform: scale(1.2);
+}
+
+.formatOption span {
+    font-weight: 500;
+    color: #374151;
+    margin-bottom: 4px;
+    display: block;
+}
+
+.formatOption small {
+    color: #6b7280;
+    font-size: 13px;
+    display: block;
+}
+
+.formatOption input[type="radio"]:checked+span {
+    color: #1d4ed8;
+}
+
+.contentSelection {
+    margin-bottom: 24px;
+}
+
+.checkboxOption {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    background: #f8fafc;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.checkboxOption:hover {
+    background: #f1f5f9;
+}
+
+.checkboxOption input[type="checkbox"] {
+    transform: scale(1.2);
+}
+
+.checkboxOption span {
+    font-weight: 500;
+    color: #374151;
+}
+
+.detailsSelection {
+    margin-bottom: 24px;
+}
+
+.selectionHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+}
+
+.selectionHeader h4 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: #374151;
+}
+
+.selectAllButton {
+    background: #3b82f6;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-weight: 500;
+}
+
+.selectAllButton:hover {
+    background: #2563eb;
+    transform: translateY(-1px);
+}
+
+.detailsList {
+    max-height: 300px;
+    overflow-y: auto;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    background: white;
+}
+
+.detailItem {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 16px;
+    border-bottom: 1px solid #f3f4f6;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.detailItem:last-child {
+    border-bottom: none;
+}
+
+.detailItem:hover {
+    background: #f9fafb;
+}
+
+.detailItem input[type="checkbox"] {
+    margin-top: 4px;
+    transform: scale(1.2);
+}
+
+.detailInfo {
+    flex: 1;
+}
+
+.detailDate {
+    font-size: 14px;
+    font-weight: 600;
+    color: #1f2937;
+    margin-bottom: 4px;
+}
+
+.detailTime {
+    font-size: 13px;
+    color: #059669;
+    font-weight: 500;
+    margin-bottom: 4px;
+}
+
+.detailLocation {
+    font-size: 14px;
+    color: #4b5563;
+}
+
+.previewSection {
+    margin-bottom: 24px;
+}
+
+.previewSection h4 {
+    margin: 0 0 12px 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: #374151;
+}
+
+.previewContent {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 16px;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.previewContent pre {
+    margin: 0;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-size: 13px;
+    line-height: 1.5;
+    color: #374151;
+}
+
+.shareActions {
+    display: flex;
+    gap: 12px;
+    padding-top: 16px;
+    border-top: 1px solid #e5e7eb;
+}
+
+.cancelButton {
+    flex: 1;
+    background: #f3f4f6;
+    color: #374151;
+    border: 1px solid #d1d5db;
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.cancelButton:hover {
+    background: #e5e7eb;
+    transform: translateY(-1px);
+}
+
+.shareButton {
+    flex: 2;
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.shareButton:hover:not(:disabled) {
+    background: linear-gradient(135deg, #059669 0%, #047857 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 10px 20px rgba(16, 185, 129, 0.3);
+}
+
+.shareButton:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* 響應式設計 */
+@media (max-width: 640px) {
+    .shareOverlay {
+        padding: 12px;
+    }
+
+    .shareContainer {
+        max-height: 95vh;
+    }
+
+    .shareHeader {
+        padding: 20px;
+    }
+
+    .shareContent {
+        padding: 20px;
+    }
+
+    .formatOptions {
+        gap: 8px;
+    }
+
+    .formatOption {
+        padding: 12px;
+    }
+
+    .selectionHeader {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+    }
+
+    .shareActions {
+        flex-direction: column;
+    }
+
+    .detailsList {
+        max-height: 200px;
+    }
+}

@@ -1,369 +1,194 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import dynamic from 'next/dynamic';
-import TripDetail from '../components/TripDetail';
-import styles from '../components/TripRanking.module.css';
-import { useLiff } from '../hooks/useLiff';
 
-// 動態載入組件以避免 SSR 問題
-const DynamicContent = dynamic(() => Promise.resolve(MainContent), {
+// 完全禁用 SSR 的動態組件載入
+const TripDetail = dynamic(() => import('../components/TripDetail'), {
   ssr: false,
-  loading: () => <div style={{ padding: '20px', textAlign: 'center' }}>載入中...</div>
+  loading: () => null
 });
 
-const MainContent = ({
-  trips,
-  statistics,
-  loading,
-  error,
-  activeTab,
-  selectedTrip,
-  areas,
-  favorites,
-  favoriteLoading,
-  filters,
-  liffHook,
-  onTripClick,
-  onToggleFavorite,
-  onSetActiveTab,
-  onSetFilters,
-  onSetSelectedTrip,
-  onFetchTripRankings
-}) => {
-  const {
-    isReady,
-    isLoggedIn,
-    userProfile,
-    loading: liffLoading,
-    error: liffError,
-    getUserId,
-    getDisplayName,
-    login
-  } = liffHook;
+const ShareTrip = dynamic(() => import('../components/ShareTrip'), {
+  ssr: false,
+  loading: () => null
+});
 
-  // 獲取當前用戶 ID
-  const getCurrentUserId = () => {
-    if (isLoggedIn && getUserId()) {
-      return getUserId();
-    }
-    // 開發環境下的備用方案
-    return process.env.NODE_ENV === 'development' ? 'demo_user_123' : null;
-  };
+// 客戶端專用包裝器
+const ClientOnly = ({ children, fallback = null }) => {
+  const [hasMounted, setHasMounted] = useState(false);
 
-  const formatDate = (dateString) => {
-    const options = { year: 'numeric', month: 'short', day: 'numeric' };
-    return new Date(dateString).toLocaleDateString('zh-TW', options);
-  };
+  useEffect(() => {
+    setHasMounted(true);
+  }, []);
 
-  const renderHeader = () => {
-    return (
-      <div className={styles.header}>
-        <h1 className={styles.title}>Tourhub 行程排行榜</h1>
+  if (!hasMounted) {
+    return fallback;
+  }
 
-        {/* 用戶資訊 */}
-        {isReady && (
-          <div style={{ marginBottom: '16px', color: 'white', textAlign: 'center' }}>
-            {isLoggedIn ? (
-              <div>
-                <span>👋 歡迎，{getDisplayName()}</span>
-                {userProfile?.pictureUrl && (
-                  <img
-                    src={userProfile.pictureUrl}
-                    alt="頭像"
-                    style={{
-                      width: '32px',
-                      height: '32px',
-                      borderRadius: '50%',
-                      marginLeft: '8px',
-                      verticalAlign: 'middle'
-                    }}
-                  />
-                )}
-              </div>
-            ) : (
-              <div>
-                <span>👤 訪客模式</span>
-                <button
-                  onClick={login}
-                  style={{
-                    marginLeft: '8px',
-                    padding: '4px 8px',
-                    background: 'rgba(255,255,255,0.2)',
-                    border: '1px solid rgba(255,255,255,0.3)',
-                    borderRadius: '4px',
-                    color: 'white',
-                    cursor: 'pointer'
-                  }}
-                >
-                  登入
-                </button>
-              </div>
-            )}
-          </div>
-        )}
+  return children;
+};
 
-        {/* 統計面板 */}
-        {statistics && (
-          <div className={styles.statsGrid}>
-            <div className={styles.statItem}>
-              <div className={styles.statNumber}>{statistics.overview.totalTrips}</div>
-              <div className={styles.statLabel}>總行程</div>
-            </div>
-            <div className={styles.statItem}>
-              <div className={styles.statNumber}>{favorites.size}</div>
-              <div className={styles.statLabel}>我的收藏</div>
-            </div>
-            <div className={styles.statItem}>
-              <div className={styles.statNumber}>{statistics.overview.avgDuration}</div>
-              <div className={styles.statLabel}>平均天數</div>
-            </div>
-          </div>
-        )}
+// 統一的載入畫面組件
+const LoadingScreen = ({ message = "載入中...", subMessage = "正在初始化應用" }) => (
+  <div style={{
+    minHeight: '100vh',
+    display: 'flex',
+    flexDirection: 'column',
+    justifyContent: 'center',
+    alignItems: 'center',
+    background: '#f8fafc',
+    padding: '20px'
+  }}>
+    <div style={{
+      background: 'white',
+      borderRadius: '12px',
+      padding: '40px',
+      textAlign: 'center',
+      boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+      maxWidth: '400px',
+      width: '100%'
+    }}>
+      <div style={{
+        fontSize: '32px',
+        marginBottom: '16px',
+        animation: 'spin 2s linear infinite'
+      }}>
+        ⏳
       </div>
-    );
-  };
-
-  const renderFilterPanel = () => {
-    return (
-      <div className={styles.filterPanel}>
-        <div className={styles.filterGrid}>
-          <div className={styles.filterGroup}>
-            <label className={styles.filterLabel}>地區</label>
-            <select
-              value={filters.area}
-              onChange={(e) => onSetFilters({ ...filters, area: e.target.value })}
-              className={styles.filterSelect}
-            >
-              <option value="">全部地區</option>
-              {areas.map((area, index) => (
-                <option key={index} value={area}>{area}</option>
-              ))}
-            </select>
-          </div>
-
-          <div className={styles.filterGroup}>
-            <label className={styles.filterLabel}>行程長度</label>
-            <select
-              value={filters.duration_type}
-              onChange={(e) => onSetFilters({ ...filters, duration_type: e.target.value })}
-              className={styles.filterSelect}
-            >
-              <option value="">旅途天數</option>
-              <option value="週末遊">1-2天</option>
-              <option value="短期旅行">3-5天</option>
-              <option value="長假期">6-10天</option>
-              <option value="深度旅行">10天以上</option>
-            </select>
-          </div>
-
-          <div className={styles.filterGroup}>
-            <label className={styles.filterLabel}>季節</label>
-            <select
-              value={filters.season}
-              onChange={(e) => onSetFilters({ ...filters, season: e.target.value })}
-              className={styles.filterSelect}
-            >
-              <option value="">全部季節</option>
-              <option value="春季">春季 (3-5月)</option>
-              <option value="夏季">夏季 (6-8月)</option>
-              <option value="秋季">秋季 (9-11月)</option>
-              <option value="冬季">冬季 (12-2月)</option>
-            </select>
-          </div>
-
-          <div className={styles.filterGroup}>
-            <button
-              onClick={() => onSetFilters({ duration_type: '', season: '', area: '' })}
-              className={styles.resetButton}
-            >
-              重置篩選
-            </button>
-          </div>
-        </div>
+      <div style={{
+        fontSize: '18px',
+        fontWeight: '600',
+        color: '#374151',
+        marginBottom: '8px'
+      }}>
+        {message}
       </div>
-    );
-  };
-
-  const renderRankingTabs = () => {
-    const tabs = [
-      { key: 'all', label: '全部行程' },
-      { key: 'favorites', label: '我的收藏' }
-    ];
-
-    return (
-      <div className={styles.tabsContainer}>
-        {tabs.map(tab => (
-          <button
-            key={tab.key}
-            className={`${styles.tab} ${activeTab === tab.key ? styles.tabActive : ''}`}
-            onClick={() => {
-              if (tab.key === 'favorites') {
-                const userId = getCurrentUserId();
-                if (!userId) {
-                  alert('請先登入 LINE 帳號才能查看收藏');
-                  return;
-                }
-                if (typeof window !== 'undefined') {
-                  window.location.href = '/favorites';
-                }
-              } else {
-                onSetActiveTab(tab.key);
-              }
-            }}
-          >
-            {tab.label}
-            {tab.key === 'favorites' && favorites.size > 0 && (
-              <span style={{
-                marginLeft: '8px',
-                background: '#ef4444',
-                color: 'white',
-                borderRadius: '10px',
-                padding: '2px 6px',
-                fontSize: '12px'
-              }}>
-                {favorites.size}
-              </span>
-            )}
-          </button>
-        ))}
+      <div style={{
+        fontSize: '14px',
+        color: '#71717a'
+      }}>
+        {subMessage}
       </div>
-    );
-  };
+    </div>
+    <style jsx>{`
+      @keyframes spin {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+      }
+    `}</style>
+  </div>
+);
 
-  const renderFavoriteButton = (tripId) => {
-    const isFavorited = favorites.has(tripId);
-    const isLoading = favoriteLoading[tripId];
-
-    return (
-      <button
-        onClick={(e) => onToggleFavorite(tripId, e, getCurrentUserId, isLoggedIn, login)}
-        disabled={isLoading}
-        style={{
-          position: 'absolute',
-          top: '12px',
-          right: '12px',
-          background: 'rgba(255, 255, 255, 0.9)',
-          border: 'none',
-          borderRadius: '50%',
-          width: '36px',
-          height: '36px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          cursor: isLoading ? 'not-allowed' : 'pointer',
-          fontSize: '16px',
-          transition: 'all 0.2s ease',
-          boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-          opacity: isLoading ? 0.7 : 1
-        }}
-        title={isLoading ? '處理中...' : (isFavorited ? '取消收藏' : '加入收藏')}
-      >
-        {isLoading ? '⏳' : (isFavorited ? '❤️' : '🤍')}
-      </button>
-    );
-  };
-
-  const renderTrip = (trip, index) => {
-    return (
-      <div
-        key={trip.trip_id}
-        className={styles.tripCard}
-        onClick={() => onTripClick(trip.trip_id)}
-        style={{ position: 'relative' }}
-      >
-        <div className={styles.tripRank}>
-          {index + 1}
-        </div>
-
-        {/* 收藏按鈕 */}
-        {renderFavoriteButton(trip.trip_id)}
-
-        <div className={styles.tripContent}>
-          <h3 className={styles.tripTitle}>{trip.title}</h3>
-
-          <div className={styles.tripMeta}>
-            <span className={styles.tripArea}>{trip.area}</span>
-            <span className={styles.tripDate}>
-              {formatDate(trip.start_date)} - {formatDate(trip.end_date)}
-            </span>
-          </div>
-
-          <div className={styles.tripTags}>
-            {trip.duration_days && (
-              <span className={styles.tag}>
-                {trip.duration_days}天
-              </span>
-            )}
-            {trip.season && (
-              <span className={styles.tag}>
-                {trip.season}
-              </span>
-            )}
-            {trip.duration_type && (
-              <span className={styles.tag}>
-                {trip.duration_type}
-              </span>
-            )}
-          </div>
-
-          {trip.description && (
-            <p className={styles.tripDescription}>
-              {trip.description.length > 100
-                ? trip.description.substring(0, 100) + '...'
-                : trip.description}
-            </p>
-          )}
-        </div>
-      </div>
-    );
-  };
-
-  const renderTripList = () => {
-    if (liffLoading) return <div className={styles.loading}>初始化中...</div>;
-    if (loading) return <div className={styles.loading}>載入中...</div>;
-    if (error) return <div className={styles.error}>{error}</div>;
-    if (trips.length === 0) return (
-      <div className={styles.empty}>
-        <div className={styles.emptyIcon}>📍</div>
-        <div className={styles.emptyText}>沒有找到符合條件的行程</div>
-        <div className={styles.emptySubtext}>嘗試調整篩選條件或選擇其他分類</div>
-      </div>
-    );
-
-    return (
-      <div className={styles.tripList}>
-        {trips.map((trip, index) => renderTrip(trip, index))}
-
-        {trips.length >= 20 && (
-          <div className={styles.loadMoreContainer}>
-            <button
-              onClick={() => onFetchTripRankings(activeTab)}
-              className={styles.loadMoreButton}
-            >
-              重新載入
-            </button>
-          </div>
-        )}
-      </div>
-    );
-  };
+// LINE 登入提示彈窗
+const LineLoginModal = ({ isOpen, onClose, onLogin, isLoading }) => {
+  if (!isOpen) return null;
 
   return (
-    <div className={styles.container}>
-      {renderHeader()}
-      {renderFilterPanel()}
-      {renderRankingTabs()}
-      {renderTripList()}
+    <div style={{
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      background: 'rgba(0, 0, 0, 0.5)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      zIndex: 1000,
+      padding: '20px'
+    }} onClick={onClose}>
+      <div style={{
+        background: 'white',
+        borderRadius: '16px',
+        padding: '32px',
+        maxWidth: '400px',
+        width: '100%',
+        textAlign: 'center',
+        position: 'relative'
+      }} onClick={e => e.stopPropagation()}>
+        <button
+          onClick={onClose}
+          style={{
+            position: 'absolute',
+            top: '12px',
+            right: '12px',
+            background: 'none',
+            border: 'none',
+            fontSize: '24px',
+            cursor: 'pointer',
+            color: '#9ca3af'
+          }}
+        >
+          ×
+        </button>
 
-      {/* 行程詳情彈窗 */}
-      {selectedTrip && (
-        <TripDetail
-          trip={selectedTrip.trip}
-          details={selectedTrip.details}
-          participants={selectedTrip.participants}
-          onClose={() => onSetSelectedTrip(null)}
-        />
-      )}
+        <div style={{
+          fontSize: '48px',
+          marginBottom: '16px'
+        }}>
+          🔐
+        </div>
+
+        <h3 style={{
+          fontSize: '20px',
+          fontWeight: '700',
+          color: '#1f2937',
+          marginBottom: '12px'
+        }}>
+          需要登入 LINE 才能使用收藏功能
+        </h3>
+
+        <p style={{
+          color: '#6b7280',
+          marginBottom: '24px',
+          lineHeight: '1.5'
+        }}>
+          登入您的 LINE 帳號即可收藏喜愛的行程，並在任何時候查看您的收藏列表
+        </p>
+
+        <div style={{
+          display: 'flex',
+          gap: '12px',
+          justifyContent: 'center'
+        }}>
+          <button
+            onClick={onLogin}
+            disabled={isLoading}
+            style={{
+              background: isLoading ? '#9ca3af' : '#00C300',
+              color: 'white',
+              border: 'none',
+              padding: '12px 24px',
+              borderRadius: '8px',
+              cursor: isLoading ? 'not-allowed' : 'pointer',
+              fontSize: '16px',
+              fontWeight: '600',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              opacity: isLoading ? 0.6 : 1
+            }}
+          >
+            {isLoading ? '⏳ 登入中...' : '📱 登入 LINE'}
+          </button>
+          <button
+            onClick={onClose}
+            disabled={isLoading}
+            style={{
+              background: '#f3f4f6',
+              color: '#374151',
+              border: '1px solid #d1d5db',
+              padding: '12px 24px',
+              borderRadius: '8px',
+              cursor: isLoading ? 'not-allowed' : 'pointer',
+              fontSize: '16px',
+              opacity: isLoading ? 0.6 : 1
+            }}
+          >
+            稍後再說
+          </button>
+        </div>
+      </div>
     </div>
   );
 };
@@ -376,13 +201,27 @@ const HomePage = () => {
   const [activeTab, setActiveTab] = useState('all');
   const [selectedTrip, setSelectedTrip] = useState(null);
   const [areas, setAreas] = useState([]);
+  const [mounted, setMounted] = useState(false);
 
   // 收藏功能相關狀態
   const [favorites, setFavorites] = useState(new Set());
   const [favoriteLoading, setFavoriteLoading] = useState({});
 
-  // LIFF 整合
-  const liffHook = useLiff(process.env.NEXT_PUBLIC_LIFF_ID || 'your-liff-id-here');
+  // 分享功能相關狀態
+  const [shareModalData, setShareModalData] = useState(null);
+  const [shareLoading, setShareLoading] = useState({});
+  const [quickShareLoading, setQuickShareLoading] = useState({});
+
+  // LIFF 相關狀態
+  const [liffReady, setLiffReady] = useState(false);
+  const [liffLoggedIn, setLiffLoggedIn] = useState(false);
+  const [userProfile, setUserProfile] = useState(null);
+  const [liffLoading, setLiffLoading] = useState(true);
+  const [liffError, setLiffError] = useState(null);
+  const [loginLoading, setLoginLoading] = useState(false);
+
+  // LINE 登入彈窗狀態
+  const [showLoginModal, setShowLoginModal] = useState(false);
 
   // 篩選狀態
   const [filters, setFilters] = useState({
@@ -391,121 +230,116 @@ const HomePage = () => {
     area: ''
   });
 
+  // 初始化
   useEffect(() => {
-    if (liffHook.isReady || typeof window === 'undefined') {
+    setMounted(true);
+    initializeLiff();
+  }, []);
+
+  useEffect(() => {
+    if (mounted) {
       initializeData();
     }
-  }, [liffHook.isReady, liffHook.isLoggedIn]);
+  }, [mounted, liffReady]);
 
   useEffect(() => {
-    if (liffHook.isReady || typeof window === 'undefined') {
+    if (mounted) {
       fetchTripRankings(activeTab);
     }
-  }, [activeTab, filters, liffHook.isReady]);
+  }, [mounted, activeTab, filters]);
+
+  // LIFF 初始化
+  const initializeLiff = async () => {
+    if (typeof window === 'undefined') return;
+
+    try {
+      setLiffLoading(true);
+
+      // 檢查 LIFF SDK 是否已載入
+      if (typeof window.liff === 'undefined') {
+        console.log('正在載入 LIFF SDK...');
+
+        // 動態載入 LIFF SDK
+        const script = document.createElement('script');
+        script.src = 'https://static.line-scdn.net/liff/edge/2/sdk.js';
+        script.async = true;
+        document.head.appendChild(script);
+
+        await new Promise((resolve, reject) => {
+          script.onload = () => {
+            console.log('LIFF SDK 載入成功');
+            resolve();
+          };
+          script.onerror = (error) => {
+            console.error('LIFF SDK 載入失敗:', error);
+            reject(new Error('LIFF SDK 載入失敗'));
+          };
+        });
+
+        // 等待 SDK 完全初始化
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+
+      // 檢查環境變數
+      const liffId = process.env.NEXT_PUBLIC_LIFF_ID;
+      if (!liffId) {
+        throw new Error('LIFF ID 未設定，請檢查環境變數 NEXT_PUBLIC_LIFF_ID');
+      }
+
+      console.log('正在初始化 LIFF，ID:', liffId);
+
+      // 初始化 LIFF
+      await window.liff.init({
+        liffId: liffId,
+        withLoginOnExternalBrowser: true // 允許在外部瀏覽器登入
+      });
+
+      console.log('LIFF 初始化成功');
+      setLiffReady(true);
+
+      // 檢查登入狀態
+      const isLoggedIn = window.liff.isLoggedIn();
+      console.log('LIFF 登入狀態:', isLoggedIn);
+
+      if (isLoggedIn) {
+        setLiffLoggedIn(true);
+
+        // 獲取用戶資料
+        try {
+          const profile = await window.liff.getProfile();
+          console.log('用戶資料:', profile);
+          setUserProfile(profile);
+        } catch (profileError) {
+          console.error('獲取用戶資料失敗:', profileError);
+          setLiffError('獲取用戶資料失敗');
+        }
+      } else {
+        console.log('用戶尚未登入 LINE');
+      }
+
+    } catch (error) {
+      console.error('LIFF 初始化失敗:', error);
+      setLiffError(error.message || 'LIFF 初始化失敗');
+    } finally {
+      setLiffLoading(false);
+    }
+  };
 
   const initializeData = async () => {
+    if (!mounted) return;
+
     await Promise.all([
       fetchStatistics(),
       fetchAreas(),
-      fetchUserFavorites(),
+      liffLoggedIn ? fetchUserFavorites() : Promise.resolve(),
       fetchTripRankings(activeTab)
     ]);
   };
 
-  // 獲取用戶收藏列表
-  const fetchUserFavorites = async () => {
-    const userId = getCurrentUserId();
-    if (!userId) {
-      console.log('⚠️ 沒有用戶 ID，跳過收藏查詢');
-      return;
-    }
-
-    try {
-      console.log('🔍 獲取用戶收藏，用戶 ID:', userId);
-
-      const response = await axios.get('/api/user-favorites', {
-        params: { line_user_id: userId }
-      });
-
-      if (response.data.success) {
-        const favIds = new Set(response.data.favorites.map(f => f.trip_id));
-        setFavorites(favIds);
-        console.log('✅ 收藏列表載入成功:', favIds.size, '筆');
-      }
-    } catch (err) {
-      console.error('💥 獲取收藏列表失敗:', err);
-    }
-  };
-
-  const getCurrentUserId = () => {
-    if (liffHook.isLoggedIn && liffHook.getUserId()) {
-      return liffHook.getUserId();
-    }
-    // 開發環境下的備用方案
-    return process.env.NODE_ENV === 'development' ? 'demo_user_123' : null;
-  };
-
-  // 切換收藏狀態
-  const toggleFavorite = async (tripId, event, getCurrentUserId, isLoggedIn, login) => {
-    event.stopPropagation();
-
-    const userId = getCurrentUserId();
-    if (!userId) {
-      if (!isLoggedIn) {
-        alert('請先登入 LINE 帳號才能使用收藏功能');
-        try {
-          await login();
-        } catch (error) {
-          console.error('登入失敗:', error);
-        }
-      }
-      return;
-    }
-
-    setFavoriteLoading(prev => ({ ...prev, [tripId]: true }));
-
-    try {
-      const isFavorited = favorites.has(tripId);
-
-      if (isFavorited) {
-        // 取消收藏
-        await axios.delete('/api/user-favorites', {
-          data: { line_user_id: userId, trip_id: tripId }
-        });
-
-        setFavorites(prev => {
-          const newSet = new Set(prev);
-          newSet.delete(tripId);
-          return newSet;
-        });
-
-        console.log('✅ 取消收藏成功:', tripId);
-      } else {
-        // 添加收藏
-        await axios.post('/api/user-favorites', {
-          line_user_id: userId,
-          trip_id: tripId
-        });
-
-        setFavorites(prev => new Set([...prev, tripId]));
-        console.log('✅ 添加收藏成功:', tripId);
-      }
-    } catch (err) {
-      console.error('💥 收藏操作失敗:', err);
-
-      if (err.response?.status === 409) {
-        alert('此行程已在收藏列表中');
-      } else if (err.response?.status === 404) {
-        alert('行程不存在');
-      } else {
-        alert('操作失敗，請稍後再試');
-      }
-    } finally {
-      setFavoriteLoading(prev => ({ ...prev, [tripId]: false }));
-    }
-  };
-
+  // 獲取統計資料
   const fetchStatistics = async () => {
+    if (!mounted) return;
+
     try {
       const response = await axios.get('/api/trip-statistics');
       setStatistics(response.data);
@@ -514,7 +348,10 @@ const HomePage = () => {
     }
   };
 
+  // 獲取地區選項
   const fetchAreas = async () => {
+    if (!mounted) return;
+
     try {
       const response = await axios.get('/api/get-filters');
       setAreas(response.data.areas || []);
@@ -523,7 +360,10 @@ const HomePage = () => {
     }
   };
 
+  // 獲取行程排行榜
   const fetchTripRankings = async (rankingType) => {
+    if (!mounted) return;
+
     setLoading(true);
     try {
       const params = {
@@ -533,16 +373,222 @@ const HomePage = () => {
 
       const response = await axios.get('/api/trip-rankings-enhanced', { params });
       const data = response.data.success ? response.data.data : response.data;
-      setTrips(data);
+      setTrips(data || []);
       setError(null);
     } catch (err) {
       console.error('獲取排行榜失敗:', err);
       setError('載入排行榜失敗，請稍後再試。');
+      setTrips([]);
     } finally {
       setLoading(false);
     }
   };
 
+  // 獲取用戶收藏 - 只有登入用戶才執行
+  const fetchUserFavorites = async () => {
+    if (!mounted || !liffLoggedIn) return;
+
+    const userId = getCurrentUserId();
+    if (!userId) {
+      console.log('無法獲取用戶 ID，跳過載入收藏');
+      return;
+    }
+
+    try {
+      console.log('正在載入用戶收藏，用戶 ID:', userId);
+      const response = await axios.get('/api/user-favorites', {
+        params: { line_user_id: userId }
+      });
+
+      if (response.data.success) {
+        const favIds = new Set(response.data.favorites.map(f => f.trip_id));
+        setFavorites(favIds);
+        console.log('收藏載入成功，數量:', favIds.size);
+      }
+    } catch (err) {
+      console.error('獲取收藏列表失敗:', err);
+    }
+  };
+
+  // 獲取當前用戶 ID
+  const getCurrentUserId = () => {
+    if (liffLoggedIn && userProfile?.userId) {
+      return userProfile.userId;
+    }
+
+    // 開發環境備用方案（僅在開發模式下使用）
+    if (process.env.NODE_ENV === 'development' && !liffReady) {
+      console.warn('開發環境：使用測試用戶 ID');
+      return 'demo_user_123';
+    }
+
+    return null;
+  };
+
+  // 檢查是否已登入 LINE
+  const isLineLoggedIn = () => {
+    return liffReady && liffLoggedIn && userProfile;
+  };
+
+  // 格式化日期
+  const formatDate = (dateString) => {
+    if (!mounted || !dateString) return '';
+    try {
+      const options = { year: 'numeric', month: 'short', day: 'numeric' };
+      return new Date(dateString).toLocaleDateString('zh-TW', options);
+    } catch (error) {
+      return dateString;
+    }
+  };
+
+  // 切換收藏狀態 - 需要登入驗證
+  const toggleFavorite = async (tripId, event) => {
+    event.stopPropagation();
+
+    // 檢查是否已登入 LINE
+    if (!isLineLoggedIn()) {
+      setShowLoginModal(true);
+      return;
+    }
+
+    const userId = getCurrentUserId();
+    if (!userId) {
+      console.error('無法獲取用戶 ID');
+      alert('無法獲取用戶資訊，請重新登入');
+      return;
+    }
+
+    setFavoriteLoading(prev => ({ ...prev, [tripId]: true }));
+
+    try {
+      const isFavorited = favorites.has(tripId);
+
+      if (isFavorited) {
+        await axios.delete('/api/user-favorites', {
+          data: { line_user_id: userId, trip_id: tripId }
+        });
+
+        setFavorites(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(tripId);
+          return newSet;
+        });
+        console.log('取消收藏成功:', tripId);
+      } else {
+        await axios.post('/api/user-favorites', {
+          line_user_id: userId,
+          trip_id: tripId
+        });
+
+        setFavorites(prev => new Set([...prev, tripId]));
+        console.log('添加收藏成功:', tripId);
+      }
+    } catch (err) {
+      console.error('收藏操作失敗:', err);
+      alert('操作失敗，請稍後再試');
+    } finally {
+      setFavoriteLoading(prev => ({ ...prev, [tripId]: false }));
+    }
+  };
+
+  // 詳細分享
+  const handleDetailedShare = async (trip, e) => {
+    e.stopPropagation();
+
+    setShareLoading(prev => ({ ...prev, [trip.trip_id]: true }));
+
+    try {
+      const response = await axios.get(`/api/trip-detail?id=${trip.trip_id}`);
+
+      if (response.data.success) {
+        setShareModalData({
+          trip: response.data.trip,
+          details: response.data.details || []
+        });
+      } else {
+        setShareModalData({
+          trip: trip,
+          details: []
+        });
+      }
+    } catch (error) {
+      console.error('獲取行程詳情失敗:', error);
+      setShareModalData({
+        trip: trip,
+        details: []
+      });
+    } finally {
+      setShareLoading(prev => ({ ...prev, [trip.trip_id]: false }));
+    }
+  };
+
+  // 快速分享
+  const handleQuickShare = async (trip, e) => {
+    e.stopPropagation();
+
+    setQuickShareLoading(prev => ({ ...prev, [trip.trip_id]: true }));
+
+    const shareText = `🎯 推薦行程：${trip.title}\n📍 ${trip.area}\n📅 ${formatDate(trip.start_date)} - ${formatDate(trip.end_date)}\n\n✨ 透過 Tourhub 分享`;
+
+    try {
+      // 優先使用 LINE 分享
+      if (typeof window !== 'undefined' && window.liff && window.liff.isLoggedIn()) {
+        try {
+          await window.liff.shareTargetPicker([{
+            type: 'text',
+            text: shareText
+          }]);
+          console.log('LINE 分享成功');
+
+          // 記錄分享行為
+          const userId = getCurrentUserId();
+          if (userId) {
+            await axios.post('/api/user-shares', {
+              line_user_id: userId,
+              trip_id: trip.trip_id,
+              share_type: 'quick',
+              share_content: { type: 'quick', format: 'text' }
+            });
+          }
+
+          return;
+        } catch (error) {
+          console.error('LINE 分享失敗:', error);
+        }
+      }
+
+      // 備用分享方式
+      if (navigator.share) {
+        await navigator.share({
+          title: trip.title,
+          text: shareText
+        });
+        console.log('原生分享成功');
+      } else {
+        await navigator.clipboard.writeText(shareText);
+        alert('行程資訊已複製到剪貼簿！');
+        console.log('複製到剪貼簿成功');
+      }
+
+      // 記錄分享行為
+      const userId = getCurrentUserId();
+      if (userId) {
+        await axios.post('/api/user-shares', {
+          line_user_id: userId,
+          trip_id: trip.trip_id,
+          share_type: 'quick',
+          share_content: { type: 'quick', format: 'text' }
+        });
+      }
+    } catch (error) {
+      console.error('快速分享失敗:', error);
+      alert('分享失敗，請稍後再試');
+    } finally {
+      setQuickShareLoading(prev => ({ ...prev, [trip.trip_id]: false }));
+    }
+  };
+
+  // 點擊行程
   const handleTripClick = async (tripId) => {
     try {
       const response = await axios.get(`/api/trip-detail?id=${tripId}`);
@@ -553,36 +599,785 @@ const HomePage = () => {
     }
   };
 
-  // 判斷是否在服務器端
-  if (typeof window === 'undefined') {
-    return (
-      <div style={{ padding: '20px', textAlign: 'center' }}>
-        <h1>Tourhub 行程排行榜</h1>
-        <p>載入中...</p>
-      </div>
-    );
+  // 真正的 LINE 登入
+  const handleLogin = async () => {
+    if (!liffReady) {
+      alert('LINE 服務尚未準備就緒，請稍後再試');
+      return;
+    }
+
+    setLoginLoading(true);
+
+    try {
+      console.log('開始 LINE 登入流程');
+
+      if (typeof window !== 'undefined' && window.liff) {
+        if (!window.liff.isLoggedIn()) {
+          console.log('執行 LINE 登入');
+
+          // 在外部瀏覽器中，LIFF 會開啟 LINE 登入頁面
+          // 登入完成後會回到原頁面
+          window.liff.login({
+            redirectUri: window.location.href
+          });
+
+          // 注意：這裡不會立即返回，因為會跳轉到登入頁面
+          return;
+        } else {
+          console.log('用戶已登入，更新狀態');
+
+          // 用戶已經登入，更新本地狀態
+          setLiffLoggedIn(true);
+
+          try {
+            const profile = await window.liff.getProfile();
+            setUserProfile(profile);
+            console.log('用戶資料更新成功:', profile);
+
+            // 登入成功後載入收藏
+            await fetchUserFavorites();
+
+            setShowLoginModal(false);
+            alert(`歡迎，${profile.displayName}！`);
+          } catch (profileError) {
+            console.error('獲取用戶資料失敗:', profileError);
+            alert('登入成功，但獲取用戶資料失敗');
+          }
+        }
+      } else {
+        throw new Error('LIFF 尚未初始化');
+      }
+    } catch (error) {
+      console.error('LINE 登入失敗:', error);
+      alert(`登入失敗：${error.message}`);
+    } finally {
+      setLoginLoading(false);
+    }
+  };
+
+  // 登出功能
+  const handleLogout = async () => {
+    try {
+      if (typeof window !== 'undefined' && window.liff && window.liff.isLoggedIn()) {
+        window.liff.logout();
+      }
+
+      // 清除本地狀態
+      setLiffLoggedIn(false);
+      setUserProfile(null);
+      setFavorites(new Set());
+
+      console.log('登出成功');
+      alert('已成功登出');
+
+    } catch (error) {
+      console.error('登出失敗:', error);
+    }
+  };
+
+  // 處理收藏頁面導航 - 需要登入驗證
+  const handleFavoritesNavigation = () => {
+    if (!isLineLoggedIn()) {
+      setShowLoginModal(true);
+      return;
+    }
+    window.location.href = '/favorites';
+  };
+
+  // 如果尚未掛載，不渲染任何內容 (避免 hydration 錯誤)
+  if (!mounted) {
+    return null;
   }
 
   return (
-    <DynamicContent
-      trips={trips}
-      statistics={statistics}
-      loading={loading}
-      error={error}
-      activeTab={activeTab}
-      selectedTrip={selectedTrip}
-      areas={areas}
-      favorites={favorites}
-      favoriteLoading={favoriteLoading}
-      filters={filters}
-      liffHook={liffHook}
-      onTripClick={handleTripClick}
-      onToggleFavorite={toggleFavorite}
-      onSetActiveTab={setActiveTab}
-      onSetFilters={setFilters}
-      onSetSelectedTrip={setSelectedTrip}
-      onFetchTripRankings={fetchTripRankings}
-    />
+    <ClientOnly
+      fallback={<LoadingScreen message="載入中..." subMessage="正在初始化 Tourhub 行程排行榜" />}
+    >
+      <div style={{
+        maxWidth: '1200px',
+        margin: '0 auto',
+        padding: '20px',
+        minHeight: '100vh',
+        background: '#f8fafc'
+      }}>
+        {/* 標題區域 */}
+        <div style={{
+          textAlign: 'center',
+          marginBottom: '32px',
+          padding: '32px 24px',
+          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+          borderRadius: '16px',
+          color: 'white'
+        }}>
+          <h1 style={{
+            margin: '0 0 24px 0',
+            fontSize: '32px',
+            fontWeight: '700'
+          }}>
+            Tourhub 行程排行榜
+          </h1>
+
+          {/* 用戶資訊 */}
+          <div style={{ marginBottom: '16px', color: 'white', textAlign: 'center' }}>
+            {liffError ? (
+              <div>
+                <span>⚠️ LINE 服務連接失敗: {liffError}</span>
+                <button
+                  onClick={() => window.location.reload()}
+                  style={{
+                    marginLeft: '8px',
+                    padding: '4px 8px',
+                    background: 'rgba(255,255,255,0.2)',
+                    border: '1px solid rgba(255,255,255,0.3)',
+                    borderRadius: '4px',
+                    color: 'white',
+                    cursor: 'pointer'
+                  }}
+                >
+                  重新載入
+                </button>
+              </div>
+            ) : liffLoading ? (
+              <div>
+                <span>🔄 正在初始化 LINE 服務...</span>
+              </div>
+            ) : isLineLoggedIn() ? (
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                <span>👋 歡迎，{userProfile?.displayName || '用戶'}</span>
+                {userProfile?.pictureUrl && (
+                  <img
+                    src={userProfile.pictureUrl}
+                    alt="頭像"
+                    style={{
+                      width: '32px',
+                      height: '32px',
+                      borderRadius: '50%',
+                      verticalAlign: 'middle'
+                    }}
+                  />
+                )}
+                <button
+                  onClick={handleLogout}
+                  style={{
+                    marginLeft: '8px',
+                    padding: '4px 8px',
+                    background: 'rgba(255,255,255,0.2)',
+                    border: '1px solid rgba(255,255,255,0.3)',
+                    borderRadius: '4px',
+                    color: 'white',
+                    cursor: 'pointer',
+                    fontSize: '12px'
+                  }}
+                >
+                  登出
+                </button>
+              </div>
+            ) : (
+              <div>
+                <span>👤 訪客模式</span>
+                <button
+                  onClick={() => setShowLoginModal(true)}
+                  disabled={!liffReady}
+                  style={{
+                    marginLeft: '8px',
+                    padding: '4px 8px',
+                    background: liffReady ? 'rgba(255,255,255,0.2)' : 'rgba(156,163,175,0.2)',
+                    border: '1px solid rgba(255,255,255,0.3)',
+                    borderRadius: '4px',
+                    color: 'white',
+                    cursor: liffReady ? 'pointer' : 'not-allowed',
+                    opacity: liffReady ? 1 : 0.6
+                  }}
+                >
+                  {liffReady ? '登入 LINE' : '初始化中...'}
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* 統計面板 */}
+          {statistics && (
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))',
+              gap: '24px',
+              marginTop: '24px'
+            }}>
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ fontSize: '28px', fontWeight: '700', marginBottom: '4px' }}>
+                  {statistics.overview?.totalTrips || 0}
+                </div>
+                <div style={{ fontSize: '14px', opacity: '0.9' }}>總行程</div>
+              </div>
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ fontSize: '28px', fontWeight: '700', marginBottom: '4px' }}>
+                  {isLineLoggedIn() ? favorites.size : '--'}
+                </div>
+                <div style={{ fontSize: '14px', opacity: '0.9' }}>
+                  我的收藏 {!isLineLoggedIn() && '(需登入)'}
+                </div>
+              </div>
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ fontSize: '28px', fontWeight: '700', marginBottom: '4px' }}>
+                  {statistics.overview?.avgDuration || 0}
+                </div>
+                <div style={{ fontSize: '14px', opacity: '0.9' }}>平均天數</div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* 篩選面板 */}
+        <div style={{
+          background: 'white',
+          borderRadius: '12px',
+          padding: '24px',
+          marginBottom: '24px',
+          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+          border: '1px solid #e2e8f0'
+        }}>
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: '1fr 1fr 1fr auto',
+            gap: '16px',
+            alignItems: 'end'
+          }}>
+            <div>
+              <label style={{ fontWeight: '600', color: '#374151', fontSize: '14px', display: 'block', marginBottom: '8px' }}>
+                地區
+              </label>
+              <select
+                value={filters.area}
+                onChange={(e) => setFilters({ ...filters, area: e.target.value })}
+                style={{
+                  padding: '12px 16px',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '8px',
+                  fontSize: '14px',
+                  background: 'white',
+                  width: '100%'
+                }}
+              >
+                <option value="">全部地區</option>
+                {areas.map((area, index) => (
+                  <option key={index} value={area}>{area}</option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label style={{ fontWeight: '600', color: '#374151', fontSize: '14px', display: 'block', marginBottom: '8px' }}>
+                行程長度
+              </label>
+              <select
+                value={filters.duration_type}
+                onChange={(e) => setFilters({ ...filters, duration_type: e.target.value })}
+                style={{
+                  padding: '12px 16px',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '8px',
+                  fontSize: '14px',
+                  background: 'white',
+                  width: '100%'
+                }}
+              >
+                <option value="">旅途天數</option>
+                <option value="週末遊">1-2天</option>
+                <option value="短期旅行">3-5天</option>
+                <option value="長假期">6-10天</option>
+                <option value="深度旅行">10天以上</option>
+              </select>
+            </div>
+
+            <div>
+              <label style={{ fontWeight: '600', color: '#374151', fontSize: '14px', display: 'block', marginBottom: '8px' }}>
+                季節
+              </label>
+              <select
+                value={filters.season}
+                onChange={(e) => setFilters({ ...filters, season: e.target.value })}
+                style={{
+                  padding: '12px 16px',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '8px',
+                  fontSize: '14px',
+                  background: 'white',
+                  width: '100%'
+                }}
+              >
+                <option value="">全部季節</option>
+                <option value="春季">春季 (3-5月)</option>
+                <option value="夏季">夏季 (6-8月)</option>
+                <option value="秋季">秋季 (9-11月)</option>
+                <option value="冬季">冬季 (12-2月)</option>
+              </select>
+            </div>
+
+            <button
+              onClick={() => setFilters({ duration_type: '', season: '', area: '' })}
+              style={{
+                background: '#f3f4f6',
+                color: '#374151',
+                border: '1px solid #d1d5db',
+                padding: '12px 20px',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                fontWeight: '500',
+                height: 'fit-content'
+              }}
+            >
+              重置篩選
+            </button>
+          </div>
+        </div>
+
+        {/* 標籤切換 */}
+        <div style={{
+          display: 'flex',
+          gap: '8px',
+          marginBottom: '24px',
+          flexWrap: 'wrap'
+        }}>
+          {[
+            { key: 'all', label: '全部行程' },
+            { key: 'favorites', label: '我的收藏' }
+          ].map(tab => (
+            <button
+              key={tab.key}
+              style={{
+                padding: '12px 24px',
+                border: '1px solid #d1d5db',
+                background: activeTab === tab.key ? '#3b82f6' : 'white',
+                color: activeTab === tab.key ? 'white' : '#374151',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                fontSize: '14px',
+                fontWeight: '500',
+                opacity: tab.key === 'favorites' && !isLineLoggedIn() ? 0.6 : 1
+              }}
+              onClick={() => {
+                if (tab.key === 'favorites') {
+                  handleFavoritesNavigation();
+                } else {
+                  setActiveTab(tab.key);
+                }
+              }}
+            >
+              {tab.label}
+              {tab.key === 'favorites' && (
+                <>
+                  {isLineLoggedIn() && favorites.size > 0 && (
+                    <span style={{
+                      marginLeft: '8px',
+                      background: '#ef4444',
+                      color: 'white',
+                      borderRadius: '10px',
+                      padding: '2px 6px',
+                      fontSize: '12px'
+                    }}>
+                      {favorites.size}
+                    </span>
+                  )}
+                  {!isLineLoggedIn() && (
+                    <span style={{
+                      marginLeft: '8px',
+                      background: '#fbbf24',
+                      color: 'white',
+                      borderRadius: '10px',
+                      padding: '2px 6px',
+                      fontSize: '12px'
+                    }}>
+                      🔒
+                    </span>
+                  )}
+                </>
+              )}
+            </button>
+          ))}
+        </div>
+
+        {/* 行程列表 */}
+        {liffLoading ? (
+          <LoadingScreen message="載入中..." subMessage="正在初始化 LINE 服務" />
+        ) : loading ? (
+          <LoadingScreen message="載入中..." subMessage="正在獲取行程資料" />
+        ) : error ? (
+          <div style={{
+            textAlign: 'center',
+            padding: '60px 20px',
+            background: '#fef2f2',
+            borderRadius: '12px',
+            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+            border: '1px solid #fecaca'
+          }}>
+            <div style={{ fontSize: '18px', marginBottom: '8px' }}>❌ 載入失敗</div>
+            <div style={{ fontSize: '14px', marginBottom: '16px' }}>{error}</div>
+            <button
+              onClick={() => fetchTripRankings(activeTab)}
+              style={{
+                background: '#ef4444',
+                color: 'white',
+                border: 'none',
+                padding: '8px 16px',
+                borderRadius: '6px',
+                cursor: 'pointer'
+              }}
+            >
+              🔄 重試
+            </button>
+          </div>
+        ) : trips.length === 0 ? (
+          <div style={{
+            textAlign: 'center',
+            padding: '60px 20px',
+            background: 'white',
+            borderRadius: '12px',
+            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+          }}>
+            <div style={{ fontSize: '48px', marginBottom: '16px' }}>📍</div>
+            <div style={{ fontSize: '18px', fontWeight: '600', color: '#374151', marginBottom: '8px' }}>
+              沒有找到符合條件的行程
+            </div>
+            <div style={{ color: '#64748b', fontSize: '14px' }}>
+              嘗試調整篩選條件或選擇其他分類
+            </div>
+          </div>
+        ) : (
+          <div style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '16px'
+          }}>
+            {trips.map((trip, index) => (
+              <div
+                key={trip.trip_id}
+                style={{
+                  background: 'white',
+                  borderRadius: '12px',
+                  padding: '20px',
+                  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+                  border: '1px solid #e2e8f0',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  gap: '20px',
+                  position: 'relative'
+                }}
+                onClick={() => handleTripClick(trip.trip_id)}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.boxShadow = '0 10px 15px -3px rgba(0, 0, 0, 0.1)';
+                  e.currentTarget.style.transform = 'translateY(-2px)';
+                  e.currentTarget.style.borderColor = '#3b82f6';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.1)';
+                  e.currentTarget.style.transform = 'translateY(0)';
+                  e.currentTarget.style.borderColor = '#e2e8f0';
+                }}
+              >
+                {/* 排名 */}
+                <div style={{
+                  width: '48px',
+                  height: '48px',
+                  background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
+                  color: 'white',
+                  borderRadius: '50%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontWeight: '700',
+                  fontSize: '18px',
+                  flexShrink: '0'
+                }}>
+                  {index + 1}
+                </div>
+
+                {/* 內容區域 */}
+                <div style={{ flex: '1', minWidth: '0' }}>
+                  <h3 style={{
+                    margin: '0 0 12px 0',
+                    fontSize: '20px',
+                    fontWeight: '600',
+                    color: '#1e293b',
+                    lineHeight: '1.3'
+                  }}>
+                    {trip.title}
+                  </h3>
+
+                  <div style={{
+                    display: 'flex',
+                    gap: '16px',
+                    marginBottom: '12px',
+                    flexWrap: 'wrap'
+                  }}>
+                    <span style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      background: '#e0e7ff',
+                      color: '#3730a3',
+                      padding: '4px 12px',
+                      borderRadius: '20px',
+                      fontSize: '13px',
+                      fontWeight: '500'
+                    }}>
+                      {trip.area}
+                    </span>
+                    <span style={{
+                      color: '#64748b',
+                      fontSize: '14px',
+                      fontWeight: '500'
+                    }}>
+                      {formatDate(trip.start_date)} - {formatDate(trip.end_date)}
+                    </span>
+                  </div>
+
+                  <div style={{
+                    display: 'flex',
+                    gap: '8px',
+                    marginBottom: '12px',
+                    flexWrap: 'wrap'
+                  }}>
+                    {trip.duration_days && (
+                      <span style={{
+                        background: '#f1f5f9',
+                        color: '#475569',
+                        padding: '4px 10px',
+                        borderRadius: '16px',
+                        fontSize: '12px',
+                        fontWeight: '500',
+                        border: '1px solid #e2e8f0'
+                      }}>
+                        {trip.duration_days}天
+                      </span>
+                    )}
+                    {trip.season && (
+                      <span style={{
+                        background: '#f1f5f9',
+                        color: '#475569',
+                        padding: '4px 10px',
+                        borderRadius: '16px',
+                        fontSize: '12px',
+                        fontWeight: '500',
+                        border: '1px solid #e2e8f0'
+                      }}>
+                        {trip.season}
+                      </span>
+                    )}
+                    {trip.duration_type && (
+                      <span style={{
+                        background: '#f1f5f9',
+                        color: '#475569',
+                        padding: '4px 10px',
+                        borderRadius: '16px',
+                        fontSize: '12px',
+                        fontWeight: '500',
+                        border: '1px solid #e2e8f0'
+                      }}>
+                        {trip.duration_type}
+                      </span>
+                    )}
+                  </div>
+
+                  {trip.description && (
+                    <p style={{
+                      margin: '0',
+                      color: '#64748b',
+                      fontSize: '14px',
+                      lineHeight: '1.5'
+                    }}>
+                      {trip.description.length > 100
+                        ? trip.description.substring(0, 100) + '...'
+                        : trip.description}
+                    </p>
+                  )}
+                </div>
+
+                {/* 右側按鈕區域 - 收藏功能需要登入 */}
+                <div style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '8px',
+                  alignItems: 'center',
+                  flexShrink: '0',
+                  minWidth: '60px'
+                }}>
+                  {/* 收藏按鈕 - 需要 LINE 登入 */}
+                  <button
+                    onClick={(e) => toggleFavorite(trip.trip_id, e)}
+                    disabled={favoriteLoading[trip.trip_id]}
+                    style={{
+                      background: isLineLoggedIn() ?
+                        (favorites.has(trip.trip_id) ? 'rgba(239, 68, 68, 0.1)' : 'rgba(156, 163, 175, 0.1)') :
+                        'rgba(156, 163, 175, 0.05)',
+                      border: isLineLoggedIn() ?
+                        `1px solid ${favorites.has(trip.trip_id) ? '#f87171' : '#d1d5db'}` :
+                        '1px solid #e5e7eb',
+                      borderRadius: '50%',
+                      width: '40px',
+                      height: '40px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      cursor: favoriteLoading[trip.trip_id] ? 'not-allowed' : 'pointer',
+                      fontSize: '16px',
+                      transition: 'all 0.2s ease',
+                      opacity: favoriteLoading[trip.trip_id] ? 0.7 : (isLineLoggedIn() ? 1 : 0.5),
+                      position: 'relative'
+                    }}
+                    title={
+                      !isLineLoggedIn() ? '需要登入 LINE 才能使用收藏功能' :
+                        favoriteLoading[trip.trip_id] ? '處理中...' :
+                          (favorites.has(trip.trip_id) ? '取消收藏' : '加入收藏')
+                    }
+                    onMouseEnter={(e) => {
+                      if (!favoriteLoading[trip.trip_id] && isLineLoggedIn()) {
+                        e.currentTarget.style.transform = 'scale(1.1)';
+                        e.currentTarget.style.boxShadow = '0 4px 8px rgba(0, 0, 0, 0.15)';
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (!favoriteLoading[trip.trip_id]) {
+                        e.currentTarget.style.transform = 'scale(1)';
+                        e.currentTarget.style.boxShadow = 'none';
+                      }
+                    }}
+                  >
+                    {favoriteLoading[trip.trip_id] ? '⏳' :
+                      !isLineLoggedIn() ? '🔒' :
+                        (favorites.has(trip.trip_id) ? '❤️' : '🤍')}
+                  </button>
+
+                  {/* 快速分享按鈕 */}
+                  <button
+                    onClick={(e) => handleQuickShare(trip, e)}
+                    disabled={quickShareLoading[trip.trip_id]}
+                    title="快速分享"
+                    style={{
+                      width: '40px',
+                      height: '40px',
+                      border: 'none',
+                      borderRadius: '50%',
+                      cursor: quickShareLoading[trip.trip_id] ? 'not-allowed' : 'pointer',
+                      transition: 'all 0.2s ease',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '16px',
+                      boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
+                      background: 'linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%)',
+                      color: 'white',
+                      opacity: quickShareLoading[trip.trip_id] ? 0.6 : 1
+                    }}
+                    onMouseEnter={(e) => {
+                      if (!quickShareLoading[trip.trip_id]) {
+                        e.currentTarget.style.background = 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)';
+                        e.currentTarget.style.transform = 'translateY(-2px)';
+                        e.currentTarget.style.boxShadow = '0 4px 8px rgba(245, 158, 11, 0.3)';
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (!quickShareLoading[trip.trip_id]) {
+                        e.currentTarget.style.background = 'linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%)';
+                        e.currentTarget.style.transform = 'translateY(0)';
+                        e.currentTarget.style.boxShadow = '0 2px 4px rgba(0, 0, 0, 0.1)';
+                      }
+                    }}
+                  >
+                    {quickShareLoading[trip.trip_id] ? '⏳' : '🚀'}
+                  </button>
+
+                  {/* 詳細分享按鈕 */}
+                  <button
+                    onClick={(e) => handleDetailedShare(trip, e)}
+                    disabled={shareLoading[trip.trip_id]}
+                    title="詳細分享"
+                    style={{
+                      width: '40px',
+                      height: '40px',
+                      border: 'none',
+                      borderRadius: '50%',
+                      cursor: shareLoading[trip.trip_id] ? 'not-allowed' : 'pointer',
+                      transition: 'all 0.2s ease',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '16px',
+                      boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
+                      background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                      color: 'white',
+                      opacity: shareLoading[trip.trip_id] ? 0.6 : 1
+                    }}
+                    onMouseEnter={(e) => {
+                      if (!shareLoading[trip.trip_id]) {
+                        e.currentTarget.style.background = 'linear-gradient(135deg, #059669 0%, #047857 100%)';
+                        e.currentTarget.style.transform = 'translateY(-2px)';
+                        e.currentTarget.style.boxShadow = '0 4px 8px rgba(16, 185, 129, 0.3)';
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (!shareLoading[trip.trip_id]) {
+                        e.currentTarget.style.background = 'linear-gradient(135deg, #10b981 0%, #059669 100%)';
+                        e.currentTarget.style.transform = 'translateY(0)';
+                        e.currentTarget.style.boxShadow = '0 2px 4px rgba(0, 0, 0, 0.1)';
+                      }
+                    }}
+                  >
+                    {shareLoading[trip.trip_id] ? '⏳' : '📤'}
+                  </button>
+                </div>
+              </div>
+            ))}
+
+            {trips.length >= 20 && (
+              <div style={{ textAlign: 'center', marginTop: '24px' }}>
+                <button
+                  onClick={() => fetchTripRankings(activeTab)}
+                  style={{
+                    background: '#3182ce',
+                    color: 'white',
+                    border: 'none',
+                    padding: '12px 24px',
+                    borderRadius: '8px',
+                    cursor: 'pointer',
+                    fontSize: '14px'
+                  }}
+                >
+                  重新載入
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* 行程詳情彈窗 */}
+        {selectedTrip && (
+          <TripDetail
+            trip={selectedTrip.trip}
+            details={selectedTrip.details}
+            participants={selectedTrip.participants}
+            onClose={() => setSelectedTrip(null)}
+          />
+        )}
+
+        {/* 分享彈窗 */}
+        {shareModalData && (
+          <ShareTrip
+            trip={shareModalData.trip}
+            details={shareModalData.details}
+            onClose={() => setShareModalData(null)}
+          />
+        )}
+
+        {/* LINE 登入彈窗 */}
+        <LineLoginModal
+          isOpen={showLoginModal}
+          onClose={() => setShowLoginModal(false)}
+          onLogin={handleLogin}
+          isLoading={loginLoading}
+        />
+      </div>
+    </ClientOnly>
   );
 };
 
