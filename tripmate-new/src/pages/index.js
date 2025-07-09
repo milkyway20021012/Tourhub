@@ -1252,7 +1252,7 @@ const HomePage = () => {
                 onChange={handleSearchInput}
                 placeholder="輸入關鍵字即時搜尋... (如：東京、台北、溫泉、美食)"
                 style={{
-                  width: '94%',
+                  width: '85%',
                   padding: '12px 16px',
                   paddingRight: isTyping ? '50px' : '16px',
                   border: '2px solid #e2e8f0',
