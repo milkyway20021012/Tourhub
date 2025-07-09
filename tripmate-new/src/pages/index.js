@@ -248,7 +248,7 @@ const HomePage = () => {
     }
   }, [mounted, activeTab, filters]);
 
-  // LIFF 初始化
+  // LIFF 初始化（修復版本）
   const initializeLiff = async () => {
     if (typeof window === 'undefined') return;
 
@@ -288,10 +288,10 @@ const HomePage = () => {
 
       console.log('正在初始化 LIFF，ID:', liffId);
 
-      // 初始化 LIFF
+      // 初始化 LIFF - 修復版本
       await window.liff.init({
         liffId: liffId,
-        withLoginOnExternalBrowser: true // 允許在外部瀏覽器登入
+        withLoginOnExternalBrowser: true
       });
 
       console.log('LIFF 初始化成功');
@@ -304,11 +304,16 @@ const HomePage = () => {
       if (isLoggedIn) {
         setLiffLoggedIn(true);
 
-        // 獲取用戶資料
+        // 獲取用戶資料 - 使用 await 確保完成
         try {
           const profile = await window.liff.getProfile();
           console.log('用戶資料:', profile);
           setUserProfile(profile);
+
+          // 等待狀態更新後再載入收藏
+          setTimeout(() => {
+            fetchUserFavorites();
+          }, 100);
         } catch (profileError) {
           console.error('獲取用戶資料失敗:', profileError);
           setLiffError('獲取用戶資料失敗');
@@ -331,7 +336,6 @@ const HomePage = () => {
     await Promise.all([
       fetchStatistics(),
       fetchAreas(),
-      liffLoggedIn ? fetchUserFavorites() : Promise.resolve(),
       fetchTripRankings(activeTab)
     ]);
   };
@@ -384,9 +388,12 @@ const HomePage = () => {
     }
   };
 
-  // 獲取用戶收藏 - 只有登入用戶才執行
+  // 獲取用戶收藏 - 修復版本
   const fetchUserFavorites = async () => {
-    if (!mounted || !liffLoggedIn) return;
+    if (!mounted || !liffLoggedIn || !userProfile) {
+      console.log('條件不滿足，跳過載入收藏:', { mounted, liffLoggedIn, userProfile: !!userProfile });
+      return;
+    }
 
     const userId = getCurrentUserId();
     if (!userId) {
@@ -397,26 +404,29 @@ const HomePage = () => {
     try {
       console.log('正在載入用戶收藏，用戶 ID:', userId);
       const response = await axios.get('/api/user-favorites', {
-        params: { line_user_id: userId }
+        params: { line_user_id: userId },
+        timeout: 10000
       });
 
       if (response.data.success) {
         const favIds = new Set(response.data.favorites.map(f => f.trip_id));
         setFavorites(favIds);
         console.log('收藏載入成功，數量:', favIds.size);
+      } else {
+        console.error('API 返回失敗:', response.data);
       }
     } catch (err) {
       console.error('獲取收藏列表失敗:', err);
     }
   };
 
-  // 獲取當前用戶 ID
+  // 獲取當前用戶 ID - 修復版本
   const getCurrentUserId = () => {
     if (liffLoggedIn && userProfile?.userId) {
       return userProfile.userId;
     }
 
-    // 開發環境備用方案（僅在開發模式下使用）
+    // 開發環境備用方案
     if (process.env.NODE_ENV === 'development' && !liffReady) {
       console.warn('開發環境：使用測試用戶 ID');
       return 'demo_user_123';
@@ -441,7 +451,7 @@ const HomePage = () => {
     }
   };
 
-  // 切換收藏狀態 - 需要登入驗證
+  // 切換收藏狀態 - 修復版本
   const toggleFavorite = async (tripId, event) => {
     event.stopPropagation();
 
@@ -465,7 +475,8 @@ const HomePage = () => {
 
       if (isFavorited) {
         await axios.delete('/api/user-favorites', {
-          data: { line_user_id: userId, trip_id: tripId }
+          data: { line_user_id: userId, trip_id: tripId },
+          timeout: 10000
         });
 
         setFavorites(prev => {
@@ -478,6 +489,8 @@ const HomePage = () => {
         await axios.post('/api/user-favorites', {
           line_user_id: userId,
           trip_id: tripId
+        }, {
+          timeout: 10000
         });
 
         setFavorites(prev => new Set([...prev, tripId]));
@@ -485,7 +498,17 @@ const HomePage = () => {
       }
     } catch (err) {
       console.error('收藏操作失敗:', err);
-      alert('操作失敗，請稍後再試');
+      let errorMessage = '操作失敗，請稍後再試';
+
+      if (err.response?.status === 404) {
+        errorMessage = '行程不存在';
+      } else if (err.code === 'ECONNABORTED') {
+        errorMessage = '請求超時，請檢查網路連接';
+      } else if (err.response?.data?.message) {
+        errorMessage = err.response.data.message;
+      }
+
+      alert(errorMessage);
     } finally {
       setFavoriteLoading(prev => ({ ...prev, [tripId]: false }));
     }
@@ -522,7 +545,7 @@ const HomePage = () => {
     }
   };
 
-  // 快速分享
+  // 快速分享 - 修復版本
   const handleQuickShare = async (trip, e) => {
     e.stopPropagation();
 
@@ -531,55 +554,104 @@ const HomePage = () => {
     const shareText = `🎯 推薦行程：${trip.title}\n📍 ${trip.area}\n📅 ${formatDate(trip.start_date)} - ${formatDate(trip.end_date)}\n\n✨ 透過 Tourhub 分享`;
 
     try {
-      // 優先使用 LINE 分享
-      if (typeof window !== 'undefined' && window.liff && window.liff.isLoggedIn()) {
-        try {
-          await window.liff.shareTargetPicker([{
-            type: 'text',
-            text: shareText
-          }]);
-          console.log('LINE 分享成功');
+      // 檢查 LIFF 是否準備就緒且用戶已登入
+      if (typeof window !== 'undefined' && window.liff && liffReady) {
 
-          // 記錄分享行為
-          const userId = getCurrentUserId();
-          if (userId) {
-            await axios.post('/api/user-shares', {
-              line_user_id: userId,
-              trip_id: trip.trip_id,
-              share_type: 'quick',
-              share_content: { type: 'quick', format: 'text' }
-            });
+        // 檢查是否已登入
+        if (window.liff.isLoggedIn()) {
+          try {
+            console.log('使用 LINE 分享功能');
+
+            // 使用正確的 LINE 分享 API
+            await window.liff.shareTargetPicker([
+              {
+                type: 'text',
+                text: shareText
+              }
+            ]);
+
+            console.log('LINE 分享成功');
+
+            // 記錄分享行為
+            const userId = getCurrentUserId();
+            if (userId) {
+              try {
+                await axios.post('/api/user-shares', {
+                  line_user_id: userId,
+                  trip_id: trip.trip_id,
+                  share_type: 'quick',
+                  share_content: { type: 'quick', format: 'text' }
+                });
+                console.log('分享記錄成功');
+              } catch (recordError) {
+                console.warn('記錄分享失敗:', recordError);
+              }
+            }
+
+            return;
+          } catch (liffShareError) {
+            console.error('LINE 分享失敗:', liffShareError);
+
+            // 檢查是否是用戶取消分享
+            if (liffShareError.message && liffShareError.message.includes('cancel')) {
+              console.log('用戶取消分享');
+              return;
+            }
+
+            // 繼續嘗試其他分享方式
           }
-
-          return;
-        } catch (error) {
-          console.error('LINE 分享失敗:', error);
+        } else {
+          console.log('用戶未登入 LINE，使用備用分享方式');
         }
       }
 
-      // 備用分享方式
+      // 備用分享方式：使用瀏覽器原生分享
       if (navigator.share) {
-        await navigator.share({
-          title: trip.title,
-          text: shareText
-        });
-        console.log('原生分享成功');
-      } else {
-        await navigator.clipboard.writeText(shareText);
-        alert('行程資訊已複製到剪貼簿！');
-        console.log('複製到剪貼簿成功');
+        try {
+          await navigator.share({
+            title: trip.title,
+            text: shareText
+          });
+          console.log('瀏覽器原生分享成功');
+          return;
+        } catch (shareError) {
+          console.error('瀏覽器分享失敗:', shareError);
+
+          // 如果是用戶取消，不需要顯示錯誤
+          if (shareError.name === 'AbortError') {
+            console.log('用戶取消分享');
+            return;
+          }
+        }
       }
 
-      // 記錄分享行為
-      const userId = getCurrentUserId();
-      if (userId) {
-        await axios.post('/api/user-shares', {
-          line_user_id: userId,
-          trip_id: trip.trip_id,
-          share_type: 'quick',
-          share_content: { type: 'quick', format: 'text' }
-        });
+      // 最後備用：複製到剪貼簿
+      try {
+        await navigator.clipboard.writeText(shareText);
+        alert('行程資訊已複製到剪貼簿！您可以貼到任何地方分享');
+        console.log('複製到剪貼簿成功');
+      } catch (clipboardError) {
+        console.error('複製到剪貼簿失敗:', clipboardError);
+
+        // 手動選取文字複製（最後的備用方案）
+        const textArea = document.createElement('textarea');
+        textArea.value = shareText;
+        textArea.style.position = 'fixed';
+        textArea.style.opacity = '0';
+        document.body.appendChild(textArea);
+        textArea.select();
+
+        try {
+          document.execCommand('copy');
+          alert('行程資訊已複製到剪貼簿！您可以貼到任何地方分享');
+        } catch (execError) {
+          console.error('手動複製失敗:', execError);
+          alert('分享失敗，請手動複製以下內容：\n\n' + shareText);
+        }
+
+        document.body.removeChild(textArea);
       }
+
     } catch (error) {
       console.error('快速分享失敗:', error);
       alert('分享失敗，請稍後再試');
@@ -599,7 +671,7 @@ const HomePage = () => {
     }
   };
 
-  // 真正的 LINE 登入
+  // 真正的 LINE 登入 - 修復版本
   const handleLogin = async () => {
     if (!liffReady) {
       alert('LINE 服務尚未準備就緒，請稍後再試');
@@ -615,8 +687,10 @@ const HomePage = () => {
         if (!window.liff.isLoggedIn()) {
           console.log('執行 LINE 登入');
 
+          // 關閉彈窗
+          setShowLoginModal(false);
+
           // 在外部瀏覽器中，LIFF 會開啟 LINE 登入頁面
-          // 登入完成後會回到原頁面
           window.liff.login({
             redirectUri: window.location.href
           });
@@ -635,7 +709,9 @@ const HomePage = () => {
             console.log('用戶資料更新成功:', profile);
 
             // 登入成功後載入收藏
-            await fetchUserFavorites();
+            setTimeout(() => {
+              fetchUserFavorites();
+            }, 100);
 
             setShowLoginModal(false);
             alert(`歡迎，${profile.displayName}！`);

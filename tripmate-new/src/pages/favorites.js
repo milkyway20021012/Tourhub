@@ -682,7 +682,7 @@ const FavoritesPage = () => {
     const [selectedTrip, setSelectedTrip] = useState(null);
     const [mounted, setMounted] = useState(false);
 
-    // 整合 LIFF（簡化版，避免 hydration 問題）
+    // 整合 LIFF（修復版）
     const [liffHook, setLiffHook] = useState({
         isReady: false,
         isLoggedIn: false,
@@ -698,18 +698,74 @@ const FavoritesPage = () => {
     useEffect(() => {
         setMounted(true);
 
-        // 動態載入 LIFF hook
+        // 動態載入 LIFF - 修復版本
         if (typeof window !== 'undefined') {
             const initializeLiff = async () => {
                 try {
-                    const { useLiff } = await import('../hooks/useLiff');
-                    const liffId = process.env.NEXT_PUBLIC_LIFF_ID || 'your-liff-id-here';
-                    const hookResult = useLiff(liffId);
+                    // 檢查 LIFF SDK 是否已載入
+                    if (typeof window.liff === 'undefined') {
+                        console.log('正在載入 LIFF SDK...');
+
+                        const script = document.createElement('script');
+                        script.src = 'https://static.line-scdn.net/liff/edge/2/sdk.js';
+                        script.async = true;
+                        document.head.appendChild(script);
+
+                        await new Promise((resolve, reject) => {
+                            script.onload = resolve;
+                            script.onerror = reject;
+                        });
+
+                        await new Promise(resolve => setTimeout(resolve, 100));
+                    }
+
+                    const liffId = process.env.NEXT_PUBLIC_LIFF_ID;
+                    if (!liffId) {
+                        throw new Error('LIFF ID 未設定');
+                    }
+
+                    // 初始化 LIFF
+                    await window.liff.init({
+                        liffId: liffId,
+                        withLoginOnExternalBrowser: true
+                    });
+
+                    const isLoggedIn = window.liff.isLoggedIn();
+                    let userProfile = null;
+
+                    if (isLoggedIn) {
+                        userProfile = await window.liff.getProfile();
+                    }
+
+                    // 創建 LIFF hook 對象
+                    const hookResult = {
+                        isReady: true,
+                        isLoggedIn: isLoggedIn,
+                        userProfile: userProfile,
+                        loading: false,
+                        error: null,
+                        getUserId: () => userProfile?.userId || null,
+                        getDisplayName: () => userProfile?.displayName || '訪客',
+                        login: async () => {
+                            if (!window.liff.isLoggedIn()) {
+                                window.liff.login({
+                                    redirectUri: window.location.href
+                                });
+                            }
+                        }
+                    };
+
                     setLiffHook(hookResult);
+                    console.log('LIFF 初始化完成:', hookResult);
+
                 } catch (err) {
                     console.error('載入 LIFF hook 失敗:', err);
-                    // 設置默認狀態
-                    setLiffHook(prev => ({ ...prev, loading: false, isReady: true }));
+                    setLiffHook(prev => ({
+                        ...prev,
+                        loading: false,
+                        isReady: true,
+                        error: err.message
+                    }));
                 }
             };
 
@@ -717,7 +773,7 @@ const FavoritesPage = () => {
         }
     }, []);
 
-    // 獲取當前用戶 ID
+    // 獲取當前用戶 ID - 修復版本
     const getCurrentUserId = () => {
         const userId = liffHook.getUserId();
 
@@ -734,19 +790,23 @@ const FavoritesPage = () => {
     };
 
     useEffect(() => {
-        // 等待 LIFF 準備完成
-        if (liffHook.isReady) {
+        // 等待 LIFF 準備完成 - 修復版本
+        if (liffHook.isReady && !liffHook.loading) {
             if (liffHook.isLoggedIn) {
                 const userId = getCurrentUserId();
                 if (userId) {
                     fetchFavorites();
+                } else {
+                    console.error('無法獲取用戶 ID');
+                    setError('無法獲取用戶資訊');
+                    setLoading(false);
                 }
             } else {
                 // 用戶未登入，停止載入狀態
                 setLoading(false);
             }
         }
-    }, [liffHook.isReady, liffHook.isLoggedIn]);
+    }, [liffHook.isReady, liffHook.isLoggedIn, liffHook.loading]);
 
     const fetchFavorites = async () => {
         const userId = getCurrentUserId();
@@ -761,17 +821,22 @@ const FavoritesPage = () => {
         setError(null);
 
         try {
+            console.log('正在獲取收藏，用戶 ID:', userId);
+
             const response = await axios.get('/api/user-favorites', {
                 params: {
                     line_user_id: userId,
                     limit: 100
                 },
-                timeout: 10000
+                timeout: 15000
             });
+
+            console.log('收藏 API 回應:', response.data);
 
             if (response.data && response.data.success) {
                 const favoritesData = response.data.favorites || [];
                 setFavorites(favoritesData);
+                console.log('收藏載入成功，數量:', favoritesData.length);
             } else {
                 throw new Error(response.data?.message || 'API 回應格式錯誤');
             }
@@ -825,7 +890,7 @@ const FavoritesPage = () => {
         try {
             await axios.delete('/api/user-favorites', {
                 data: { line_user_id: userId, trip_id: tripId },
-                timeout: 5000
+                timeout: 10000
             });
 
             const newFavorites = favorites.filter(f => f.trip_id !== tripId);
@@ -840,7 +905,7 @@ const FavoritesPage = () => {
         try {
             const response = await axios.get('/api/trip-detail', {
                 params: { id: tripId },
-                timeout: 5000
+                timeout: 10000
             });
 
             if (response.data && response.data.success) {
@@ -856,7 +921,6 @@ const FavoritesPage = () => {
 
     const handleLogin = async () => {
         try {
-            // 這裡可以添加實際的 LIFF 登入邏輯
             await liffHook.login();
         } catch (error) {
             console.error('登入失敗:', error);
