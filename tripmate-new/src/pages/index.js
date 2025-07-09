@@ -192,8 +192,8 @@ const LineLoginModal = ({ isOpen, onClose, onLogin, isLoading }) => {
     </div>
   );
 };
-
 const HomePage = () => {
+  // 基本狀態
   const [trips, setTrips] = useState([]);
   const [statistics, setStatistics] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -202,6 +202,13 @@ const HomePage = () => {
   const [selectedTrip, setSelectedTrip] = useState(null);
   const [areas, setAreas] = useState([]);
   const [mounted, setMounted] = useState(false);
+
+  // 搜尋相關狀態
+  const [searchKeyword, setSearchKeyword] = useState('');
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [searchResults, setSearchResults] = useState([]);
+  const [isSearchMode, setIsSearchMode] = useState(false);
+  const [searchHistory, setSearchHistory] = useState([]);
 
   // 收藏功能相關狀態
   const [favorites, setFavorites] = useState(new Set());
@@ -234,6 +241,7 @@ const HomePage = () => {
   useEffect(() => {
     setMounted(true);
     initializeLiff();
+    loadSearchHistory();
   }, []);
 
   useEffect(() => {
@@ -243,12 +251,39 @@ const HomePage = () => {
   }, [mounted, liffReady]);
 
   useEffect(() => {
-    if (mounted) {
+    if (mounted && !isSearchMode) {
       fetchTripRankings(activeTab);
     }
   }, [mounted, activeTab, filters]);
 
-  // LIFF 初始化（修復版本）
+  // 載入搜尋歷史
+  const loadSearchHistory = () => {
+    if (typeof window !== 'undefined') {
+      try {
+        const history = localStorage.getItem('tripSearchHistory');
+        if (history) {
+          setSearchHistory(JSON.parse(history));
+        }
+      } catch (e) {
+        console.error('載入搜尋歷史失敗:', e);
+      }
+    }
+  };
+
+  // 保存搜尋歷史
+  const saveSearchHistory = (keyword) => {
+    if (typeof window !== 'undefined' && keyword.trim()) {
+      try {
+        const newHistory = [keyword, ...searchHistory.filter(h => h !== keyword)].slice(0, 10);
+        setSearchHistory(newHistory);
+        localStorage.setItem('tripSearchHistory', JSON.stringify(newHistory));
+      } catch (e) {
+        console.error('保存搜尋歷史失敗:', e);
+      }
+    }
+  };
+
+  // LIFF 初始化
   const initializeLiff = async () => {
     if (typeof window === 'undefined') return;
 
@@ -259,7 +294,6 @@ const HomePage = () => {
       if (typeof window.liff === 'undefined') {
         console.log('正在載入 LIFF SDK...');
 
-        // 動態載入 LIFF SDK
         const script = document.createElement('script');
         script.src = 'https://static.line-scdn.net/liff/edge/2/sdk.js';
         script.async = true;
@@ -276,11 +310,9 @@ const HomePage = () => {
           };
         });
 
-        // 等待 SDK 完全初始化
         await new Promise(resolve => setTimeout(resolve, 100));
       }
 
-      // 檢查環境變數
       const liffId = process.env.NEXT_PUBLIC_LIFF_ID;
       if (!liffId) {
         throw new Error('LIFF ID 未設定，請檢查環境變數 NEXT_PUBLIC_LIFF_ID');
@@ -288,7 +320,6 @@ const HomePage = () => {
 
       console.log('正在初始化 LIFF，ID:', liffId);
 
-      // 初始化 LIFF - 修復版本
       await window.liff.init({
         liffId: liffId,
         withLoginOnExternalBrowser: true
@@ -297,20 +328,17 @@ const HomePage = () => {
       console.log('LIFF 初始化成功');
       setLiffReady(true);
 
-      // 檢查登入狀態
       const isLoggedIn = window.liff.isLoggedIn();
       console.log('LIFF 登入狀態:', isLoggedIn);
 
       if (isLoggedIn) {
         setLiffLoggedIn(true);
 
-        // 獲取用戶資料 - 使用 await 確保完成
         try {
           const profile = await window.liff.getProfile();
           console.log('用戶資料:', profile);
           setUserProfile(profile);
 
-          // 等待狀態更新後再載入收藏
           setTimeout(() => {
             fetchUserFavorites();
           }, 100);
@@ -340,7 +368,6 @@ const HomePage = () => {
     ]);
   };
 
-  // 獲取統計資料
   const fetchStatistics = async () => {
     if (!mounted) return;
 
@@ -352,7 +379,6 @@ const HomePage = () => {
     }
   };
 
-  // 獲取地區選項
   const fetchAreas = async () => {
     if (!mounted) return;
 
@@ -364,7 +390,6 @@ const HomePage = () => {
     }
   };
 
-  // 獲取行程排行榜
   const fetchTripRankings = async (rankingType) => {
     if (!mounted) return;
 
@@ -387,8 +412,79 @@ const HomePage = () => {
       setLoading(false);
     }
   };
+  // 執行搜尋功能
+  const performSearch = async (keyword) => {
+    if (!keyword.trim()) {
+      setIsSearchMode(false);
+      setSearchResults([]);
+      return;
+    }
 
-  // 獲取用戶收藏 - 修復版本
+    setSearchLoading(true);
+    setIsSearchMode(true);
+
+    try {
+      console.log('搜尋關鍵字:', keyword);
+
+      const response = await axios.get('/api/search-trips', {
+        params: {
+          keyword: keyword.trim(),
+          limit: 50
+        },
+        timeout: 10000
+      });
+
+      console.log('搜尋結果:', response.data);
+
+      if (response.data && response.data.success) {
+        setSearchResults(response.data.trips || []);
+        setError(null);
+
+        saveSearchHistory(keyword.trim());
+      } else {
+        throw new Error(response.data?.message || '搜尋失敗');
+      }
+
+    } catch (err) {
+      console.error('搜尋失敗:', err);
+
+      let errorMessage = '搜尋失敗，請稍後再試';
+      if (err.response?.status === 404) {
+        errorMessage = '沒有找到相關行程';
+      } else if (err.code === 'ECONNABORTED') {
+        errorMessage = '搜尋超時，請稍後再試';
+      } else if (err.response?.data?.message) {
+        errorMessage = err.response.data.message;
+      }
+
+      setError(errorMessage);
+      setSearchResults([]);
+    } finally {
+      setSearchLoading(false);
+    }
+  };
+
+  const handleSearchInput = (e) => {
+    setSearchKeyword(e.target.value);
+  };
+
+  const handleSearchSubmit = (e) => {
+    e.preventDefault();
+    performSearch(searchKeyword);
+  };
+
+  const clearSearch = () => {
+    setSearchKeyword('');
+    setIsSearchMode(false);
+    setSearchResults([]);
+    setError(null);
+  };
+
+  const quickSearch = (keyword) => {
+    setSearchKeyword(keyword);
+    performSearch(keyword);
+  };
+
   const fetchUserFavorites = async () => {
     if (!mounted || !liffLoggedIn || !userProfile) {
       console.log('條件不滿足，跳過載入收藏:', { mounted, liffLoggedIn, userProfile: !!userProfile });
@@ -420,13 +516,11 @@ const HomePage = () => {
     }
   };
 
-  // 獲取當前用戶 ID - 修復版本
   const getCurrentUserId = () => {
     if (liffLoggedIn && userProfile?.userId) {
       return userProfile.userId;
     }
 
-    // 開發環境備用方案
     if (process.env.NODE_ENV === 'development' && !liffReady) {
       console.warn('開發環境：使用測試用戶 ID');
       return 'demo_user_123';
@@ -435,12 +529,10 @@ const HomePage = () => {
     return null;
   };
 
-  // 檢查是否已登入 LINE
   const isLineLoggedIn = () => {
     return liffReady && liffLoggedIn && userProfile;
   };
 
-  // 格式化日期
   const formatDate = (dateString) => {
     if (!mounted || !dateString) return '';
     try {
@@ -450,12 +542,9 @@ const HomePage = () => {
       return dateString;
     }
   };
-
-  // 切換收藏狀態 - 修復版本
   const toggleFavorite = async (tripId, event) => {
     event.stopPropagation();
 
-    // 檢查是否已登入 LINE
     if (!isLineLoggedIn()) {
       setShowLoginModal(true);
       return;
@@ -514,7 +603,6 @@ const HomePage = () => {
     }
   };
 
-  // 詳細分享
   const handleDetailedShare = async (trip, e) => {
     e.stopPropagation();
 
@@ -545,7 +633,6 @@ const HomePage = () => {
     }
   };
 
-  // 快速分享 - 修復版本
   const handleQuickShare = async (trip, e) => {
     e.stopPropagation();
 
@@ -554,15 +641,12 @@ const HomePage = () => {
     const shareText = `🎯 推薦行程：${trip.title}\n📍 ${trip.area}\n📅 ${formatDate(trip.start_date)} - ${formatDate(trip.end_date)}\n\n✨ 透過 Tourhub 分享`;
 
     try {
-      // 檢查 LIFF 是否準備就緒且用戶已登入
       if (typeof window !== 'undefined' && window.liff && liffReady) {
 
-        // 檢查是否已登入
         if (window.liff.isLoggedIn()) {
           try {
             console.log('使用 LINE 分享功能');
 
-            // 使用正確的 LINE 分享 API
             await window.liff.shareTargetPicker([
               {
                 type: 'text',
@@ -572,7 +656,6 @@ const HomePage = () => {
 
             console.log('LINE 分享成功');
 
-            // 記錄分享行為
             const userId = getCurrentUserId();
             if (userId) {
               try {
@@ -592,20 +675,16 @@ const HomePage = () => {
           } catch (liffShareError) {
             console.error('LINE 分享失敗:', liffShareError);
 
-            // 檢查是否是用戶取消分享
             if (liffShareError.message && liffShareError.message.includes('cancel')) {
               console.log('用戶取消分享');
               return;
             }
-
-            // 繼續嘗試其他分享方式
           }
         } else {
           console.log('用戶未登入 LINE，使用備用分享方式');
         }
       }
 
-      // 備用分享方式：使用瀏覽器原生分享
       if (navigator.share) {
         try {
           await navigator.share({
@@ -617,7 +696,6 @@ const HomePage = () => {
         } catch (shareError) {
           console.error('瀏覽器分享失敗:', shareError);
 
-          // 如果是用戶取消，不需要顯示錯誤
           if (shareError.name === 'AbortError') {
             console.log('用戶取消分享');
             return;
@@ -625,7 +703,6 @@ const HomePage = () => {
         }
       }
 
-      // 最後備用：複製到剪貼簿
       try {
         await navigator.clipboard.writeText(shareText);
         alert('行程資訊已複製到剪貼簿！您可以貼到任何地方分享');
@@ -633,7 +710,6 @@ const HomePage = () => {
       } catch (clipboardError) {
         console.error('複製到剪貼簿失敗:', clipboardError);
 
-        // 手動選取文字複製（最後的備用方案）
         const textArea = document.createElement('textarea');
         textArea.value = shareText;
         textArea.style.position = 'fixed';
@@ -660,7 +736,6 @@ const HomePage = () => {
     }
   };
 
-  // 點擊行程
   const handleTripClick = async (tripId) => {
     try {
       const response = await axios.get(`/api/trip-detail?id=${tripId}`);
@@ -670,8 +745,6 @@ const HomePage = () => {
       alert('載入行程詳情失敗');
     }
   };
-
-  // 真正的 LINE 登入 - 修復版本
   const handleLogin = async () => {
     if (!liffReady) {
       alert('LINE 服務尚未準備就緒，請稍後再試');
@@ -687,20 +760,16 @@ const HomePage = () => {
         if (!window.liff.isLoggedIn()) {
           console.log('執行 LINE 登入');
 
-          // 關閉彈窗
           setShowLoginModal(false);
 
-          // 在外部瀏覽器中，LIFF 會開啟 LINE 登入頁面
           window.liff.login({
             redirectUri: window.location.href
           });
 
-          // 注意：這裡不會立即返回，因為會跳轉到登入頁面
           return;
         } else {
           console.log('用戶已登入，更新狀態');
 
-          // 用戶已經登入，更新本地狀態
           setLiffLoggedIn(true);
 
           try {
@@ -708,7 +777,6 @@ const HomePage = () => {
             setUserProfile(profile);
             console.log('用戶資料更新成功:', profile);
 
-            // 登入成功後載入收藏
             setTimeout(() => {
               fetchUserFavorites();
             }, 100);
@@ -731,14 +799,12 @@ const HomePage = () => {
     }
   };
 
-  // 登出功能
   const handleLogout = async () => {
     try {
       if (typeof window !== 'undefined' && window.liff && window.liff.isLoggedIn()) {
         window.liff.logout();
       }
 
-      // 清除本地狀態
       setLiffLoggedIn(false);
       setUserProfile(null);
       setFavorites(new Set());
@@ -751,7 +817,6 @@ const HomePage = () => {
     }
   };
 
-  // 處理收藏頁面導航 - 需要登入驗證
   const handleFavoritesNavigation = () => {
     if (!isLineLoggedIn()) {
       setShowLoginModal(true);
@@ -760,11 +825,12 @@ const HomePage = () => {
     window.location.href = '/favorites';
   };
 
-  // 如果尚未掛載，不渲染任何內容 (避免 hydration 錯誤)
   if (!mounted) {
     return null;
   }
 
+  const currentTrips = isSearchMode ? searchResults : trips;
+  const currentLoading = isSearchMode ? searchLoading : loading;
   return (
     <ClientOnly
       fallback={<LoadingScreen message="載入中..." subMessage="正在初始化 Tourhub 行程排行榜" />}
@@ -903,7 +969,7 @@ const HomePage = () => {
           )}
         </div>
 
-        {/* 篩選面板 */}
+        {/* 搜尋功能區域 */}
         <div style={{
           background: 'white',
           borderRadius: '12px',
@@ -913,170 +979,342 @@ const HomePage = () => {
           border: '1px solid #e2e8f0'
         }}>
           <div style={{
-            display: 'grid',
-            gridTemplateColumns: '1fr 1fr 1fr auto',
+            display: 'flex',
+            alignItems: 'center',
             gap: '16px',
-            alignItems: 'end'
+            marginBottom: '16px'
           }}>
-            <div>
-              <label style={{ fontWeight: '600', color: '#374151', fontSize: '14px', display: 'block', marginBottom: '8px' }}>
-                地區
-              </label>
-              <select
-                value={filters.area}
-                onChange={(e) => setFilters({ ...filters, area: e.target.value })}
+            <div style={{
+              fontSize: '20px',
+              fontWeight: '600',
+              color: '#374151',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px'
+            }}>
+              🔍 搜尋行程
+            </div>
+            {isSearchMode && (
+              <button
+                onClick={clearSearch}
                 style={{
-                  padding: '12px 16px',
+                  background: '#f3f4f6',
+                  color: '#374151',
                   border: '1px solid #d1d5db',
-                  borderRadius: '8px',
-                  fontSize: '14px',
-                  background: 'white',
-                  width: '100%'
+                  padding: '6px 12px',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  fontSize: '12px',
+                  fontWeight: '500'
                 }}
               >
-                <option value="">全部地區</option>
-                {areas.map((area, index) => (
-                  <option key={index} value={area}>{area}</option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label style={{ fontWeight: '600', color: '#374151', fontSize: '14px', display: 'block', marginBottom: '8px' }}>
-                行程長度
-              </label>
-              <select
-                value={filters.duration_type}
-                onChange={(e) => setFilters({ ...filters, duration_type: e.target.value })}
-                style={{
-                  padding: '12px 16px',
-                  border: '1px solid #d1d5db',
-                  borderRadius: '8px',
-                  fontSize: '14px',
-                  background: 'white',
-                  width: '100%'
-                }}
-              >
-                <option value="">旅途天數</option>
-                <option value="週末遊">1-2天</option>
-                <option value="短期旅行">3-5天</option>
-                <option value="長假期">6-10天</option>
-                <option value="深度旅行">10天以上</option>
-              </select>
-            </div>
-
-            <div>
-              <label style={{ fontWeight: '600', color: '#374151', fontSize: '14px', display: 'block', marginBottom: '8px' }}>
-                季節
-              </label>
-              <select
-                value={filters.season}
-                onChange={(e) => setFilters({ ...filters, season: e.target.value })}
-                style={{
-                  padding: '12px 16px',
-                  border: '1px solid #d1d5db',
-                  borderRadius: '8px',
-                  fontSize: '14px',
-                  background: 'white',
-                  width: '100%'
-                }}
-              >
-                <option value="">全部季節</option>
-                <option value="春季">春季 (3-5月)</option>
-                <option value="夏季">夏季 (6-8月)</option>
-                <option value="秋季">秋季 (9-11月)</option>
-                <option value="冬季">冬季 (12-2月)</option>
-              </select>
-            </div>
-
-            <button
-              onClick={() => setFilters({ duration_type: '', season: '', area: '' })}
-              style={{
-                background: '#f3f4f6',
-                color: '#374151',
-                border: '1px solid #d1d5db',
-                padding: '12px 20px',
-                borderRadius: '8px',
-                cursor: 'pointer',
-                fontWeight: '500',
-                height: 'fit-content'
-              }}
-            >
-              重置篩選
-            </button>
+                ✖ 清除搜尋
+              </button>
+            )}
           </div>
-        </div>
 
-        {/* 標籤切換 */}
-        <div style={{
-          display: 'flex',
-          gap: '8px',
-          marginBottom: '24px',
-          flexWrap: 'wrap'
-        }}>
-          {[
-            { key: 'all', label: '全部行程' },
-            { key: 'favorites', label: '我的收藏' }
-          ].map(tab => (
-            <button
-              key={tab.key}
-              style={{
-                padding: '12px 24px',
-                border: '1px solid #d1d5db',
-                background: activeTab === tab.key ? '#3b82f6' : 'white',
-                color: activeTab === tab.key ? 'white' : '#374151',
-                borderRadius: '8px',
-                cursor: 'pointer',
+          {/* 搜尋輸入框 */}
+          <form onSubmit={handleSearchSubmit} style={{ marginBottom: '16px' }}>
+            <div style={{
+              display: 'flex',
+              gap: '12px',
+              alignItems: 'center'
+            }}>
+              <input
+                type="text"
+                value={searchKeyword}
+                onChange={handleSearchInput}
+                placeholder="輸入關鍵字搜尋行程... (如：東京、台北、溫泉)"
+                style={{
+                  flex: '1',
+                  padding: '12px 16px',
+                  border: '2px solid #e2e8f0',
+                  borderRadius: '8px',
+                  fontSize: '16px',
+                  outline: 'none',
+                  transition: 'border-color 0.2s ease'
+                }}
+                onFocus={(e) => {
+                  e.target.style.borderColor = '#3b82f6';
+                }}
+                onBlur={(e) => {
+                  e.target.style.borderColor = '#e2e8f0';
+                }}
+              />
+              <button
+                type="submit"
+                disabled={searchLoading}
+                style={{
+                  background: searchLoading ? '#9ca3af' : '#3b82f6',
+                  color: 'white',
+                  border: 'none',
+                  padding: '12px 24px',
+                  borderRadius: '8px',
+                  cursor: searchLoading ? 'not-allowed' : 'pointer',
+                  fontSize: '16px',
+                  fontWeight: '600',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  minWidth: '120px',
+                  justifyContent: 'center'
+                }}
+              >
+                {searchLoading ? '⏳ 搜尋中...' : '🔍 搜尋'}
+              </button>
+            </div>
+          </form>
+
+          {/* 搜尋歷史 */}
+          {searchHistory.length > 0 && !isSearchMode && (
+            <div>
+              <div style={{
                 fontSize: '14px',
-                fontWeight: '500',
-                opacity: tab.key === 'favorites' && !isLineLoggedIn() ? 0.6 : 1
-              }}
-              onClick={() => {
-                if (tab.key === 'favorites') {
-                  handleFavoritesNavigation();
-                } else {
-                  setActiveTab(tab.key);
-                }
-              }}
-            >
-              {tab.label}
-              {tab.key === 'favorites' && (
-                <>
-                  {isLineLoggedIn() && favorites.size > 0 && (
-                    <span style={{
-                      marginLeft: '8px',
-                      background: '#ef4444',
-                      color: 'white',
-                      borderRadius: '10px',
-                      padding: '2px 6px',
-                      fontSize: '12px'
-                    }}>
-                      {favorites.size}
-                    </span>
-                  )}
-                  {!isLineLoggedIn() && (
-                    <span style={{
-                      marginLeft: '8px',
-                      background: '#fbbf24',
-                      color: 'white',
-                      borderRadius: '10px',
-                      padding: '2px 6px',
-                      fontSize: '12px'
-                    }}>
-                      🔒
-                    </span>
-                  )}
-                </>
-              )}
-            </button>
-          ))}
-        </div>
+                color: '#6b7280',
+                marginBottom: '8px',
+                fontWeight: '500'
+              }}>
+                📚 最近搜尋：
+              </div>
+              <div style={{
+                display: 'flex',
+                gap: '8px',
+                flexWrap: 'wrap'
+              }}>
+                {searchHistory.slice(0, 8).map((keyword, index) => (
+                  <button
+                    key={index}
+                    onClick={() => quickSearch(keyword)}
+                    style={{
+                      background: '#f8fafc',
+                      color: '#374151',
+                      border: '1px solid #e2e8f0',
+                      padding: '6px 12px',
+                      borderRadius: '16px',
+                      cursor: 'pointer',
+                      fontSize: '12px',
+                      fontWeight: '500',
+                      transition: 'all 0.2s ease'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.target.style.background = '#3b82f6';
+                      e.target.style.color = 'white';
+                      e.target.style.borderColor = '#3b82f6';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.target.style.background = '#f8fafc';
+                      e.target.style.color = '#374151';
+                      e.target.style.borderColor = '#e2e8f0';
+                    }}
+                  >
+                    {keyword}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
 
+          {/* 搜尋結果統計 */}
+          {isSearchMode && (
+            <div style={{
+              padding: '12px 16px',
+              background: '#eff6ff',
+              borderRadius: '8px',
+              border: '1px solid #bfdbfe',
+              fontSize: '14px',
+              color: '#1e40af',
+              fontWeight: '500'
+            }}>
+              {searchLoading ? (
+                '🔍 正在搜尋...'
+              ) : (
+                `🎯 找到 ${searchResults.length} 個相關行程${searchKeyword ? ` (關鍵字: ${searchKeyword})` : ''}`
+              )}
+            </div>
+          )}
+        </div>
+        {/* 篩選面板 - 只在非搜尋模式顯示 */}
+        {!isSearchMode && (
+          <div style={{
+            background: 'white',
+            borderRadius: '12px',
+            padding: '24px',
+            marginBottom: '24px',
+            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+            border: '1px solid #e2e8f0'
+          }}>
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+              gap: '16px',
+              alignItems: 'end'
+            }}>
+              <div>
+                <label style={{ fontWeight: '600', color: '#374151', fontSize: '14px', display: 'block', marginBottom: '8px' }}>
+                  地區
+                </label>
+                <select
+                  value={filters.area}
+                  onChange={(e) => setFilters({ ...filters, area: e.target.value })}
+                  style={{
+                    padding: '12px 16px',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '8px',
+                    fontSize: '14px',
+                    background: 'white',
+                    width: '100%'
+                  }}
+                >
+                  <option value="">全部地區</option>
+                  {areas.map((area, index) => (
+                    <option key={index} value={area}>{area}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label style={{ fontWeight: '600', color: '#374151', fontSize: '14px', display: 'block', marginBottom: '8px' }}>
+                  行程長度
+                </label>
+                <select
+                  value={filters.duration_type}
+                  onChange={(e) => setFilters({ ...filters, duration_type: e.target.value })}
+                  style={{
+                    padding: '12px 16px',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '8px',
+                    fontSize: '14px',
+                    background: 'white',
+                    width: '100%'
+                  }}
+                >
+                  <option value="">旅途天數</option>
+                  <option value="週末遊">1-2天</option>
+                  <option value="短期旅行">3-5天</option>
+                  <option value="長假期">6-10天</option>
+                  <option value="深度旅行">10天以上</option>
+                </select>
+              </div>
+
+              <div>
+                <label style={{ fontWeight: '600', color: '#374151', fontSize: '14px', display: 'block', marginBottom: '8px' }}>
+                  季節
+                </label>
+                <select
+                  value={filters.season}
+                  onChange={(e) => setFilters({ ...filters, season: e.target.value })}
+                  style={{
+                    padding: '12px 16px',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '8px',
+                    fontSize: '14px',
+                    background: 'white',
+                    width: '100%'
+                  }}
+                >
+                  <option value="">全部季節</option>
+                  <option value="春季">春季 (3-5月)</option>
+                  <option value="夏季">夏季 (6-8月)</option>
+                  <option value="秋季">秋季 (9-11月)</option>
+                  <option value="冬季">冬季 (12-2月)</option>
+                </select>
+              </div>
+
+              <div>
+                <button
+                  onClick={() => setFilters({ duration_type: '', season: '', area: '' })}
+                  style={{
+                    background: '#f3f4f6',
+                    color: '#374151',
+                    border: '1px solid #d1d5db',
+                    padding: '12px 20px',
+                    borderRadius: '8px',
+                    cursor: 'pointer',
+                    fontWeight: '500',
+                    width: '100%'
+                  }}
+                >
+                  重置篩選
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* 標籤切換 - 只在非搜尋模式顯示 */}
+        {!isSearchMode && (
+          <div style={{
+            display: 'flex',
+            gap: '8px',
+            marginBottom: '24px',
+            flexWrap: 'wrap'
+          }}>
+            {[
+              { key: 'all', label: '全部行程' },
+              { key: 'favorites', label: '我的收藏' }
+            ].map(tab => (
+              <button
+                key={tab.key}
+                style={{
+                  padding: '12px 24px',
+                  border: '1px solid #d1d5db',
+                  background: activeTab === tab.key ? '#3b82f6' : 'white',
+                  color: activeTab === tab.key ? 'white' : '#374151',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  opacity: tab.key === 'favorites' && !isLineLoggedIn() ? 0.6 : 1
+                }}
+                onClick={() => {
+                  if (tab.key === 'favorites') {
+                    handleFavoritesNavigation();
+                  } else {
+                    setActiveTab(tab.key);
+                  }
+                }}
+              >
+                {tab.label}
+                {tab.key === 'favorites' && (
+                  <>
+                    {isLineLoggedIn() && favorites.size > 0 && (
+                      <span style={{
+                        marginLeft: '8px',
+                        background: '#ef4444',
+                        color: 'white',
+                        borderRadius: '10px',
+                        padding: '2px 6px',
+                        fontSize: '12px'
+                      }}>
+                        {favorites.size}
+                      </span>
+                    )}
+                    {!isLineLoggedIn() && (
+                      <span style={{
+                        marginLeft: '8px',
+                        background: '#fbbf24',
+                        color: 'white',
+                        borderRadius: '10px',
+                        padding: '2px 6px',
+                        fontSize: '12px'
+                      }}>
+                        🔒
+                      </span>
+                    )}
+                  </>
+                )}
+              </button>
+            ))}
+          </div>
+        )}
         {/* 行程列表 */}
         {liffLoading ? (
           <LoadingScreen message="載入中..." subMessage="正在初始化 LINE 服務" />
-        ) : loading ? (
-          <LoadingScreen message="載入中..." subMessage="正在獲取行程資料" />
+        ) : currentLoading ? (
+          <LoadingScreen
+            message={isSearchMode ? "搜尋中..." : "載入中..."}
+            subMessage={isSearchMode ? `正在搜尋「${searchKeyword}」相關行程` : "正在獲取行程資料"}
+          />
         ) : error ? (
           <div style={{
             textAlign: 'center',
@@ -1086,10 +1324,10 @@ const HomePage = () => {
             boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
             border: '1px solid #fecaca'
           }}>
-            <div style={{ fontSize: '18px', marginBottom: '8px' }}>❌ 載入失敗</div>
+            <div style={{ fontSize: '18px', marginBottom: '8px' }}>❌ {isSearchMode ? '搜尋失敗' : '載入失敗'}</div>
             <div style={{ fontSize: '14px', marginBottom: '16px' }}>{error}</div>
             <button
-              onClick={() => fetchTripRankings(activeTab)}
+              onClick={() => isSearchMode ? performSearch(searchKeyword) : fetchTripRankings(activeTab)}
               style={{
                 background: '#ef4444',
                 color: 'white',
@@ -1102,7 +1340,7 @@ const HomePage = () => {
               🔄 重試
             </button>
           </div>
-        ) : trips.length === 0 ? (
+        ) : currentTrips.length === 0 ? (
           <div style={{
             textAlign: 'center',
             padding: '60px 20px',
@@ -1110,13 +1348,32 @@ const HomePage = () => {
             borderRadius: '12px',
             boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
           }}>
-            <div style={{ fontSize: '48px', marginBottom: '16px' }}>📍</div>
+            <div style={{ fontSize: '48px', marginBottom: '16px' }}>
+              {isSearchMode ? '🔍' : '📍'}
+            </div>
             <div style={{ fontSize: '18px', fontWeight: '600', color: '#374151', marginBottom: '8px' }}>
-              沒有找到符合條件的行程
+              {isSearchMode ? `沒有找到與「${searchKeyword}」相關的行程` : '沒有找到符合條件的行程'}
             </div>
             <div style={{ color: '#64748b', fontSize: '14px' }}>
-              嘗試調整篩選條件或選擇其他分類
+              {isSearchMode ? '試試其他關鍵字或檢查拼寫' : '嘗試調整篩選條件或選擇其他分類'}
             </div>
+            {isSearchMode && (
+              <button
+                onClick={clearSearch}
+                style={{
+                  background: '#3182ce',
+                  color: 'white',
+                  border: 'none',
+                  padding: '12px 24px',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                  marginTop: '16px'
+                }}
+              >
+                🏠 瀏覽全部行程
+              </button>
+            )}
           </div>
         ) : (
           <div style={{
@@ -1124,7 +1381,7 @@ const HomePage = () => {
             flexDirection: 'column',
             gap: '16px'
           }}>
-            {trips.map((trip, index) => (
+            {currentTrips.map((trip, index) => (
               <div
                 key={trip.trip_id}
                 style={{
@@ -1156,7 +1413,9 @@ const HomePage = () => {
                 <div style={{
                   width: '48px',
                   height: '48px',
-                  background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
+                  background: isSearchMode ?
+                    'linear-gradient(135deg, #10b981 0%, #059669 100%)' :
+                    'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
                   color: 'white',
                   borderRadius: '50%',
                   display: 'flex',
@@ -1166,7 +1425,7 @@ const HomePage = () => {
                   fontSize: '18px',
                   flexShrink: '0'
                 }}>
-                  {index + 1}
+                  {isSearchMode ? '🔍' : index + 1}
                 </div>
 
                 {/* 內容區域 */}
@@ -1253,6 +1512,19 @@ const HomePage = () => {
                         {trip.duration_type}
                       </span>
                     )}
+                    {isSearchMode && (
+                      <span style={{
+                        background: '#dcfce7',
+                        color: '#166534',
+                        padding: '4px 10px',
+                        borderRadius: '16px',
+                        fontSize: '12px',
+                        fontWeight: '500',
+                        border: '1px solid #bbf7d0'
+                      }}>
+                        🎯 搜尋結果
+                      </span>
+                    )}
                   </div>
 
                   {trip.description && (
@@ -1268,8 +1540,7 @@ const HomePage = () => {
                     </p>
                   )}
                 </div>
-
-                {/* 右側按鈕區域 - 收藏功能需要登入 */}
+                {/* 右側按鈕區域 */}
                 <div style={{
                   display: 'flex',
                   flexDirection: 'column',
@@ -1278,7 +1549,7 @@ const HomePage = () => {
                   flexShrink: '0',
                   minWidth: '60px'
                 }}>
-                  {/* 收藏按鈕 - 需要 LINE 登入 */}
+                  {/* 收藏按鈕 */}
                   <button
                     onClick={(e) => toggleFavorite(trip.trip_id, e)}
                     disabled={favoriteLoading[trip.trip_id]}
@@ -1405,10 +1676,10 @@ const HomePage = () => {
               </div>
             ))}
 
-            {trips.length >= 20 && (
+            {currentTrips.length >= 20 && (
               <div style={{ textAlign: 'center', marginTop: '24px' }}>
                 <button
-                  onClick={() => fetchTripRankings(activeTab)}
+                  onClick={() => isSearchMode ? performSearch(searchKeyword) : fetchTripRankings(activeTab)}
                   style={{
                     background: '#3182ce',
                     color: 'white',
@@ -1425,7 +1696,6 @@ const HomePage = () => {
             )}
           </div>
         )}
-
         {/* 行程詳情彈窗 */}
         {selectedTrip && (
           <TripDetail
