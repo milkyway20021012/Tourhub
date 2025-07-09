@@ -1222,7 +1222,7 @@ const HomePage = () => {
               alignItems: 'center',
               gap: '8px'
             }}>
-              🔍 即時搜尋行程
+              即時搜尋行程
             </div>
             {isSearchMode && (
               <button
@@ -1252,7 +1252,7 @@ const HomePage = () => {
                 onChange={handleSearchInput}
                 placeholder="輸入關鍵字即時搜尋... (如：東京、台北、溫泉、美食)"
                 style={{
-                  width: '100%',
+                  width: '94%',
                   padding: '12px 16px',
                   paddingRight: isTyping ? '50px' : '16px',
                   border: '2px solid #e2e8f0',
@@ -1311,7 +1311,7 @@ const HomePage = () => {
                   color: '#6b7280',
                   fontWeight: '500'
                 }}>
-                  📚 最近搜尋：
+                  最近搜尋：
                 </div>
                 <button
                   onClick={clearSearchHistory}
