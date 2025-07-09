@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import dynamic from 'next/dynamic';
 
@@ -203,12 +203,15 @@ const HomePage = () => {
   const [areas, setAreas] = useState([]);
   const [mounted, setMounted] = useState(false);
 
-  // 搜尋相關狀態
+  // 搜尋相關狀態 - 新增即時搜尋功能
   const [searchKeyword, setSearchKeyword] = useState('');
   const [searchLoading, setSearchLoading] = useState(false);
   const [searchResults, setSearchResults] = useState([]);
   const [isSearchMode, setIsSearchMode] = useState(false);
   const [searchHistory, setSearchHistory] = useState([]);
+  const [debouncedSearchKeyword, setDebouncedSearchKeyword] = useState('');
+  const [isTyping, setIsTyping] = useState(false);
+  const [allTripsCache, setAllTripsCache] = useState([]); // 緩存所有行程用於前端搜索
 
   // 收藏功能相關狀態
   const [favorites, setFavorites] = useState(new Set());
@@ -256,6 +259,36 @@ const HomePage = () => {
     }
   }, [mounted, activeTab, filters]);
 
+  // Debounce 搜索關鍵字 - 用戶停止輸入 300ms 後才執行搜索
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchKeyword(searchKeyword);
+      setIsTyping(false);
+    }, 300); // 縮短延遲以提供更好的用戶體驗
+
+    if (searchKeyword.trim()) {
+      setIsTyping(true);
+    }
+
+    return () => clearTimeout(timer);
+  }, [searchKeyword]);
+
+  // 當 debounced 關鍵字改變時自動執行搜索
+  useEffect(() => {
+    if (debouncedSearchKeyword.trim().length > 0) {
+      performSearch(debouncedSearchKeyword.trim());
+    } else if (!debouncedSearchKeyword.trim() && isSearchMode) {
+      clearSearch();
+    }
+  }, [debouncedSearchKeyword]);
+
+  // 緩存所有行程數據
+  useEffect(() => {
+    if (mounted && !isSearchMode) {
+      cacheAllTrips();
+    }
+  }, [mounted, trips]);
+
   // 載入搜尋歷史
   const loadSearchHistory = () => {
     if (typeof window !== 'undefined') {
@@ -283,6 +316,26 @@ const HomePage = () => {
     }
   };
 
+  // 緩存所有行程用於前端搜索
+  const cacheAllTrips = async () => {
+    if (allTripsCache.length > 0) return; // 已有緩存則跳過
+
+    try {
+      const response = await axios.get('/api/trip-rankings-enhanced', {
+        params: {
+          type: 'all',
+          limit: 500 // 獲取更多數據
+        },
+        timeout: 15000
+      });
+
+      const data = response.data.success ? response.data.data : response.data;
+      setAllTripsCache(data || []);
+      console.log('緩存行程數據:', data?.length || 0);
+    } catch (error) {
+      console.warn('緩存行程數據失敗:', error);
+    }
+  };
   // LIFF 初始化
   const initializeLiff = async () => {
     if (typeof window === 'undefined') return;
@@ -412,78 +465,6 @@ const HomePage = () => {
       setLoading(false);
     }
   };
-  // 執行搜尋功能
-  const performSearch = async (keyword) => {
-    if (!keyword.trim()) {
-      setIsSearchMode(false);
-      setSearchResults([]);
-      return;
-    }
-
-    setSearchLoading(true);
-    setIsSearchMode(true);
-
-    try {
-      console.log('搜尋關鍵字:', keyword);
-
-      const response = await axios.get('/api/search-trips', {
-        params: {
-          keyword: keyword.trim(),
-          limit: 50
-        },
-        timeout: 10000
-      });
-
-      console.log('搜尋結果:', response.data);
-
-      if (response.data && response.data.success) {
-        setSearchResults(response.data.trips || []);
-        setError(null);
-
-        saveSearchHistory(keyword.trim());
-      } else {
-        throw new Error(response.data?.message || '搜尋失敗');
-      }
-
-    } catch (err) {
-      console.error('搜尋失敗:', err);
-
-      let errorMessage = '搜尋失敗，請稍後再試';
-      if (err.response?.status === 404) {
-        errorMessage = '沒有找到相關行程';
-      } else if (err.code === 'ECONNABORTED') {
-        errorMessage = '搜尋超時，請稍後再試';
-      } else if (err.response?.data?.message) {
-        errorMessage = err.response.data.message;
-      }
-
-      setError(errorMessage);
-      setSearchResults([]);
-    } finally {
-      setSearchLoading(false);
-    }
-  };
-
-  const handleSearchInput = (e) => {
-    setSearchKeyword(e.target.value);
-  };
-
-  const handleSearchSubmit = (e) => {
-    e.preventDefault();
-    performSearch(searchKeyword);
-  };
-
-  const clearSearch = () => {
-    setSearchKeyword('');
-    setIsSearchMode(false);
-    setSearchResults([]);
-    setError(null);
-  };
-
-  const quickSearch = (keyword) => {
-    setSearchKeyword(keyword);
-    performSearch(keyword);
-  };
 
   const fetchUserFavorites = async () => {
     if (!mounted || !liffLoggedIn || !userProfile) {
@@ -541,6 +522,239 @@ const HomePage = () => {
     } catch (error) {
       return dateString;
     }
+  };
+  // 優化的搜索函數 - 混合使用 API 和前端搜索
+  const performSearch = useCallback(async (keyword) => {
+    if (!keyword.trim()) {
+      setIsSearchMode(false);
+      setSearchResults([]);
+      return;
+    }
+
+    setSearchLoading(true);
+    setIsSearchMode(true);
+
+    try {
+      console.log('開始搜尋:', keyword);
+
+      // 同時執行 API 搜索和前端搜索
+      const [apiResult, clientResult] = await Promise.allSettled([
+        searchViaAPI(keyword),
+        searchViaClient(keyword)
+      ]);
+
+      let finalResults = [];
+      let searchSource = 'none';
+
+      // 優先使用 API 結果
+      if (apiResult.status === 'fulfilled' && apiResult.value.length > 0) {
+        finalResults = apiResult.value;
+        searchSource = 'api';
+        console.log('使用 API 搜索結果:', finalResults.length);
+      }
+      // API 無結果時使用前端搜索結果
+      else if (clientResult.status === 'fulfilled' && clientResult.value.length > 0) {
+        finalResults = clientResult.value;
+        searchSource = 'client';
+        console.log('使用前端搜索結果:', finalResults.length);
+      }
+
+      setSearchResults(finalResults);
+      setError(null);
+
+      // 只有在手動搜索時才保存歷史（非即時搜索）
+      if (!isTyping && finalResults.length > 0) {
+        saveSearchHistory(keyword.trim());
+      }
+
+      console.log(`搜索完成 - 來源: ${searchSource}, 結果數: ${finalResults.length}`);
+
+    } catch (error) {
+      console.error('搜索失敗:', error);
+      setError('搜索失敗，請稍後再試');
+      setSearchResults([]);
+    } finally {
+      setSearchLoading(false);
+    }
+  }, [isTyping, allTripsCache]);
+
+  // API 搜索
+  const searchViaAPI = async (keyword) => {
+    try {
+      const response = await axios.get('/api/search-trips', {
+        params: {
+          keyword: keyword.trim(),
+          limit: 50
+        },
+        timeout: 8000 // 減少超時時間
+      });
+
+      if (response.data?.success && response.data?.trips) {
+        return response.data.trips;
+      }
+
+      throw new Error('API 搜索無結果');
+    } catch (error) {
+      console.warn('API 搜索失敗:', error.message);
+      return [];
+    }
+  };
+
+  // 前端搜索 - 增強版
+  const searchViaClient = async (keyword) => {
+    if (!allTripsCache || allTripsCache.length === 0) {
+      // 如果沒有緩存，嘗試獲取當前頁面的行程數據
+      const currentTrips = trips.length > 0 ? trips : [];
+      return performClientSideSearch(currentTrips, keyword);
+    }
+
+    return performClientSideSearch(allTripsCache, keyword);
+  };
+
+  // 增強的前端搜索邏輯
+  const performClientSideSearch = (tripsData, keyword) => {
+    if (!tripsData || tripsData.length === 0) return [];
+
+    const searchTerm = keyword.toLowerCase().trim();
+    const searchTokens = tokenizeSearchTerm(searchTerm);
+
+    console.log('前端搜索 - 關鍵字:', searchTerm, '分詞:', searchTokens);
+
+    const results = tripsData.filter(trip => {
+      // 構建搜索文本
+      const searchableFields = [
+        trip.title || '',
+        trip.area || '',
+        trip.description || '',
+        trip.season || '',
+        trip.duration_type || '',
+        formatDate(trip.start_date) || '',
+        formatDate(trip.end_date) || ''
+      ];
+
+      const searchText = searchableFields.join(' ').toLowerCase();
+
+      // 多種匹配策略
+      return searchTokens.some(token => {
+        return searchText.includes(token) ||
+          searchableFields.some(field =>
+            field.toLowerCase().includes(token)
+          );
+      }) ||
+        // 完整匹配
+        searchText.includes(searchTerm) ||
+        // 模糊匹配（移除空格）
+        searchText.replace(/\s/g, '').includes(searchTerm.replace(/\s/g, ''));
+    });
+
+    // 按相關性排序
+    const sortedResults = results.sort((a, b) => {
+      const aScore = calculateRelevanceScore(a, searchTerm, searchTokens);
+      const bScore = calculateRelevanceScore(b, searchTerm, searchTokens);
+      return bScore - aScore;
+    });
+
+    return sortedResults.slice(0, 50); // 限制結果數量
+  };
+
+  // 分詞函數
+  const tokenizeSearchTerm = (searchTerm) => {
+    const tokens = new Set();
+
+    // 1. 按空格分割
+    const words = searchTerm.split(/\s+/).filter(w => w.length > 0);
+    words.forEach(word => tokens.add(word));
+
+    // 2. 中文字符處理
+    if (/[\u4e00-\u9fff]/.test(searchTerm)) {
+      for (let i = 0; i < searchTerm.length; i++) {
+        const char = searchTerm[i];
+        if (/[\u4e00-\u9fff]/.test(char)) {
+          tokens.add(char);
+
+          // 雙字組合
+          if (i < searchTerm.length - 1) {
+            const nextChar = searchTerm[i + 1];
+            if (/[\u4e00-\u9fff]/.test(nextChar)) {
+              tokens.add(char + nextChar);
+            }
+          }
+        }
+      }
+    }
+
+    // 3. 英文單詞處理
+    const englishMatches = searchTerm.match(/[a-zA-Z]+/g) || [];
+    englishMatches.forEach(word => {
+      if (word.length > 1) {
+        tokens.add(word);
+        // 部分匹配
+        if (word.length > 3) {
+          tokens.add(word.substring(0, word.length - 1));
+        }
+      }
+    });
+
+    return Array.from(tokens).filter(token => token.length > 0);
+  };
+
+  // 計算相關性分數
+  const calculateRelevanceScore = (trip, searchTerm, tokens) => {
+    let score = 0;
+    const title = (trip.title || '').toLowerCase();
+    const area = (trip.area || '').toLowerCase();
+    const description = (trip.description || '').toLowerCase();
+
+    // 完整匹配獲得最高分
+    if (title.includes(searchTerm)) score += 10;
+    if (area.includes(searchTerm)) score += 8;
+    if (description.includes(searchTerm)) score += 3;
+
+    // Token 匹配
+    tokens.forEach(token => {
+      if (title.includes(token)) score += 5;
+      if (area.includes(token)) score += 4;
+      if (description.includes(token)) score += 1;
+    });
+
+    return score;
+  };
+
+  // 修改搜索輸入處理
+  const handleSearchInput = (e) => {
+    const value = e.target.value;
+    setSearchKeyword(value);
+
+    // 如果輸入為空，立即清除搜索
+    if (!value.trim()) {
+      clearSearch();
+    }
+  };
+
+  // 修改表單提交處理
+  const handleSearchSubmit = (e) => {
+    e.preventDefault();
+    if (searchKeyword.trim()) {
+      // 立即執行搜索並保存歷史
+      performSearch(searchKeyword.trim());
+      saveSearchHistory(searchKeyword.trim());
+    }
+  };
+
+  // 清除搜索
+  const clearSearch = () => {
+    setSearchKeyword('');
+    setDebouncedSearchKeyword('');
+    setIsSearchMode(false);
+    setSearchResults([]);
+    setError(null);
+    setIsTyping(false);
+  };
+
+  // 快速搜索
+  const quickSearch = (keyword) => {
+    setSearchKeyword(keyword);
+    // useEffect 會自動處理搜索
   };
   const toggleFavorite = async (tripId, event) => {
     event.stopPropagation();
@@ -969,7 +1183,7 @@ const HomePage = () => {
           )}
         </div>
 
-        {/* 搜尋功能區域 */}
+        {/* 即時搜尋功能區域 - 優化版 */}
         <div style={{
           background: 'white',
           borderRadius: '12px',
@@ -992,7 +1206,7 @@ const HomePage = () => {
               alignItems: 'center',
               gap: '8px'
             }}>
-              🔍 搜尋行程
+              🔍 即時搜尋行程
             </div>
             {isSearchMode && (
               <button
@@ -1013,44 +1227,59 @@ const HomePage = () => {
             )}
           </div>
 
-          {/* 搜尋輸入框 */}
+          {/* 即時搜尋輸入框 */}
           <form onSubmit={handleSearchSubmit} style={{ marginBottom: '16px' }}>
             <div style={{
               display: 'flex',
               gap: '12px',
               alignItems: 'center'
             }}>
-              <input
-                type="text"
-                value={searchKeyword}
-                onChange={handleSearchInput}
-                placeholder="輸入關鍵字搜尋行程... (如：東京、台北、溫泉)"
-                style={{
-                  flex: '1',
-                  padding: '12px 16px',
-                  border: '2px solid #e2e8f0',
-                  borderRadius: '8px',
-                  fontSize: '16px',
-                  outline: 'none',
-                  transition: 'border-color 0.2s ease'
-                }}
-                onFocus={(e) => {
-                  e.target.style.borderColor = '#3b82f6';
-                }}
-                onBlur={(e) => {
-                  e.target.style.borderColor = '#e2e8f0';
-                }}
-              />
+              <div style={{ flex: '1', position: 'relative' }}>
+                <input
+                  type="text"
+                  value={searchKeyword}
+                  onChange={handleSearchInput}
+                  placeholder="輸入關鍵字即時搜尋... (如：東京、台北、溫泉、美食)"
+                  style={{
+                    width: '100%',
+                    padding: '12px 16px',
+                    paddingRight: isTyping ? '50px' : '16px',
+                    border: '2px solid #e2e8f0',
+                    borderRadius: '8px',
+                    fontSize: '16px',
+                    outline: 'none',
+                    transition: 'border-color 0.2s ease'
+                  }}
+                  onFocus={(e) => {
+                    e.target.style.borderColor = '#3b82f6';
+                  }}
+                  onBlur={(e) => {
+                    e.target.style.borderColor = '#e2e8f0';
+                  }}
+                />
+                {/* 輸入中的指示器 */}
+                {isTyping && (
+                  <div style={{
+                    position: 'absolute',
+                    right: '12px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    fontSize: '16px'
+                  }}>
+                    ⏳
+                  </div>
+                )}
+              </div>
               <button
                 type="submit"
-                disabled={searchLoading}
+                disabled={searchLoading || !searchKeyword.trim()}
                 style={{
-                  background: searchLoading ? '#9ca3af' : '#3b82f6',
+                  background: (searchLoading || !searchKeyword.trim()) ? '#9ca3af' : '#3b82f6',
                   color: 'white',
                   border: 'none',
                   padding: '12px 24px',
                   borderRadius: '8px',
-                  cursor: searchLoading ? 'not-allowed' : 'pointer',
+                  cursor: (searchLoading || !searchKeyword.trim()) ? 'not-allowed' : 'pointer',
                   fontSize: '16px',
                   fontWeight: '600',
                   display: 'flex',
@@ -1060,10 +1289,24 @@ const HomePage = () => {
                   justifyContent: 'center'
                 }}
               >
-                {searchLoading ? '⏳ 搜尋中...' : '🔍 搜尋'}
+                {searchLoading ? '⏳ 搜尋中...' : '📌 加入歷史'}
               </button>
             </div>
           </form>
+
+          {/* 搜尋提示 */}
+          {searchKeyword && !isSearchMode && !isTyping && (
+            <div style={{
+              padding: '8px 12px',
+              background: '#fef3c7',
+              borderRadius: '6px',
+              fontSize: '14px',
+              color: '#92400e',
+              marginBottom: '16px'
+            }}>
+              💡 繼續輸入或等待 0.3 秒後自動搜尋
+            </div>
+          )}
 
           {/* 搜尋歷史 */}
           {searchHistory.length > 0 && !isSearchMode && (
@@ -1114,7 +1357,7 @@ const HomePage = () => {
             </div>
           )}
 
-          {/* 搜尋結果統計 */}
+          {/* 搜尋結果統計 - 增強版 */}
           {isSearchMode && (
             <div style={{
               padding: '12px 16px',
@@ -1125,10 +1368,18 @@ const HomePage = () => {
               color: '#1e40af',
               fontWeight: '500'
             }}>
-              {searchLoading ? (
+              {searchLoading || isTyping ? (
                 '🔍 正在搜尋...'
               ) : (
-                `🎯 找到 ${searchResults.length} 個相關行程${searchKeyword ? ` (關鍵字: ${searchKeyword})` : ''}`
+                <>
+                  🎯 找到 {searchResults.length} 個相關行程
+                  {searchKeyword && ` (關鍵字: ${searchKeyword})`}
+                  {searchResults.length === 0 && (
+                    <span style={{ color: '#dc2626', marginLeft: '8px' }}>
+                      - 嘗試使用不同的關鍵字
+                    </span>
+                  )}
+                </>
               )}
             </div>
           )}
