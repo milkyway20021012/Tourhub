@@ -315,6 +315,18 @@ const HomePage = () => {
       }
     }
   };
+  const clearSearchHistory = () => {
+    setSearchHistory([]);
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.removeItem('tripSearchHistory');
+      } catch (e) {
+        console.error('清除搜尋歷史失敗:', e);
+      }
+    }
+  };
+
+
 
   // 緩存所有行程用於前端搜索
   const cacheAllTrips = async () => {
@@ -523,7 +535,6 @@ const HomePage = () => {
       return dateString;
     }
   };
-  // 優化的搜索函數 - 混合使用 API 和前端搜索
   const performSearch = useCallback(async (keyword) => {
     if (!keyword.trim()) {
       setIsSearchMode(false);
@@ -562,10 +573,8 @@ const HomePage = () => {
       setSearchResults(finalResults);
       setError(null);
 
-      // 只有在手動搜索時才保存歷史（非即時搜索）
-      if (!isTyping && finalResults.length > 0) {
-        saveSearchHistory(keyword.trim());
-      }
+      // 自動保存所有搜索歷史（無論是否有結果）
+      saveSearchHistory(keyword.trim());
 
       console.log(`搜索完成 - 來源: ${searchSource}, 結果數: ${finalResults.length}`);
 
@@ -573,10 +582,14 @@ const HomePage = () => {
       console.error('搜索失敗:', error);
       setError('搜索失敗，請稍後再試');
       setSearchResults([]);
+
+      // 即使搜索失敗也保存歷史
+      saveSearchHistory(keyword.trim());
     } finally {
       setSearchLoading(false);
     }
-  }, [isTyping, allTripsCache]);
+  }, [allTripsCache, searchHistory]); // 添加 searchHistory 依賴
+
 
   // API 搜索
   const searchViaAPI = async (keyword) => {
@@ -735,9 +748,10 @@ const HomePage = () => {
   const handleSearchSubmit = (e) => {
     e.preventDefault();
     if (searchKeyword.trim()) {
-      // 立即執行搜索並保存歷史
-      performSearch(searchKeyword.trim());
-      saveSearchHistory(searchKeyword.trim());
+      // 如果還沒有搜索結果，立即執行搜索
+      if (!isSearchMode) {
+        performSearch(searchKeyword.trim());
+      }
     }
   };
 
@@ -1045,6 +1059,8 @@ const HomePage = () => {
 
   const currentTrips = isSearchMode ? searchResults : trips;
   const currentLoading = isSearchMode ? searchLoading : loading;
+
+
   return (
     <ClientOnly
       fallback={<LoadingScreen message="載入中..." subMessage="正在初始化 Tourhub 行程排行榜" />}
@@ -1183,7 +1199,7 @@ const HomePage = () => {
           )}
         </div>
 
-        {/* 即時搜尋功能區域 - 優化版 */}
+        {/* 即時搜尋功能區域 - 優化版本 */}
         <div style={{
           background: 'white',
           borderRadius: '12px',
@@ -1227,70 +1243,43 @@ const HomePage = () => {
             )}
           </div>
 
-          {/* 即時搜尋輸入框 */}
+          {/* 簡化的搜尋輸入框 - 移除按鈕 */}
           <form onSubmit={handleSearchSubmit} style={{ marginBottom: '16px' }}>
-            <div style={{
-              display: 'flex',
-              gap: '12px',
-              alignItems: 'center'
-            }}>
-              <div style={{ flex: '1', position: 'relative' }}>
-                <input
-                  type="text"
-                  value={searchKeyword}
-                  onChange={handleSearchInput}
-                  placeholder="輸入關鍵字即時搜尋... (如：東京、台北、溫泉、美食)"
-                  style={{
-                    width: '100%',
-                    padding: '12px 16px',
-                    paddingRight: isTyping ? '50px' : '16px',
-                    border: '2px solid #e2e8f0',
-                    borderRadius: '8px',
-                    fontSize: '16px',
-                    outline: 'none',
-                    transition: 'border-color 0.2s ease'
-                  }}
-                  onFocus={(e) => {
-                    e.target.style.borderColor = '#3b82f6';
-                  }}
-                  onBlur={(e) => {
-                    e.target.style.borderColor = '#e2e8f0';
-                  }}
-                />
-                {/* 輸入中的指示器 */}
-                {isTyping && (
-                  <div style={{
-                    position: 'absolute',
-                    right: '12px',
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    fontSize: '16px'
-                  }}>
-                    ⏳
-                  </div>
-                )}
-              </div>
-              <button
-                type="submit"
-                disabled={searchLoading || !searchKeyword.trim()}
+            <div style={{ position: 'relative' }}>
+              <input
+                type="text"
+                value={searchKeyword}
+                onChange={handleSearchInput}
+                placeholder="輸入關鍵字即時搜尋... (如：東京、台北、溫泉、美食)"
                 style={{
-                  background: (searchLoading || !searchKeyword.trim()) ? '#9ca3af' : '#3b82f6',
-                  color: 'white',
-                  border: 'none',
-                  padding: '12px 24px',
+                  width: '100%',
+                  padding: '12px 16px',
+                  paddingRight: isTyping ? '50px' : '16px',
+                  border: '2px solid #e2e8f0',
                   borderRadius: '8px',
-                  cursor: (searchLoading || !searchKeyword.trim()) ? 'not-allowed' : 'pointer',
                   fontSize: '16px',
-                  fontWeight: '600',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  minWidth: '120px',
-                  justifyContent: 'center'
+                  outline: 'none',
+                  transition: 'border-color 0.2s ease'
                 }}
-              >
-                {searchLoading ? '⏳ 搜尋中...' : '📌 加入歷史'}
-              </button>
+                onFocus={(e) => {
+                  e.target.style.borderColor = '#3b82f6';
+                }}
+                onBlur={(e) => {
+                  e.target.style.borderColor = '#e2e8f0';
+                }}
+              />
+              {/* 輸入中的指示器 */}
+              {isTyping && (
+                <div style={{
+                  position: 'absolute',
+                  right: '12px',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  fontSize: '16px'
+                }}>
+                  ⏳
+                </div>
+              )}
             </div>
           </form>
 
@@ -1308,16 +1297,50 @@ const HomePage = () => {
             </div>
           )}
 
-          {/* 搜尋歷史 */}
+          {/* 搜尋歷史 - 新增清除功能 */}
           {searchHistory.length > 0 && !isSearchMode && (
             <div>
               <div style={{
-                fontSize: '14px',
-                color: '#6b7280',
-                marginBottom: '8px',
-                fontWeight: '500'
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                marginBottom: '8px'
               }}>
-                📚 最近搜尋：
+                <div style={{
+                  fontSize: '14px',
+                  color: '#6b7280',
+                  fontWeight: '500'
+                }}>
+                  📚 最近搜尋：
+                </div>
+                <button
+                  onClick={clearSearchHistory}
+                  style={{
+                    background: '#fef2f2',
+                    color: '#dc2626',
+                    border: '1px solid #fecaca',
+                    padding: '4px 8px',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    fontSize: '12px',
+                    fontWeight: '500',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    transition: 'all 0.2s ease'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.target.style.background = '#dc2626';
+                    e.target.style.color = 'white';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.target.style.background = '#fef2f2';
+                    e.target.style.color = '#dc2626';
+                  }}
+                  title="清除所有搜尋歷史"
+                >
+                  ✖ 清除
+                </button>
               </div>
               <div style={{
                 display: 'flex',
@@ -1357,7 +1380,7 @@ const HomePage = () => {
             </div>
           )}
 
-          {/* 搜尋結果統計 - 增強版 */}
+          {/* 搜尋結果統計 */}
           {isSearchMode && (
             <div style={{
               padding: '12px 16px',
