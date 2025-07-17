@@ -1643,14 +1643,14 @@ const HomePage = () => {
                           fontSize: '13px',
                           fontWeight: '500'
                         }}>
-                          📍 {trip.area}
+                          {trip.area}
                         </span>
                         <span style={{
                           color: '#64748b',
                           fontSize: '14px',
                           fontWeight: '500'
                         }}>
-                          📅 {formatDate(trip.start_date)} - {formatDate(trip.end_date)}
+                          {formatDate(trip.start_date)} - {formatDate(trip.end_date)}
                         </span>
                       </div>
                       <div style={{
