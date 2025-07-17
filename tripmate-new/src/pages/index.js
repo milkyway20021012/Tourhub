@@ -966,7 +966,6 @@ const HomePage = () => {
               </div>
             ) : liffLoading ? (
               <div>
-                <span>🔄 正在初始化服務...</span>
               </div>
             ) : isLineLoggedIn() ? (
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
@@ -1203,10 +1202,10 @@ const HomePage = () => {
               fontWeight: '500'
             }}>
               {searchLoading || isTyping ? (
-                '🔍 正在搜尋...'
+                '正在搜尋...'
               ) : (
                 <>
-                  🎯 找到 {searchResults.length} 個相關行程
+                  找到 {searchResults.length} 個相關行程
                   {searchKeyword && ` (關鍵字: ${searchKeyword})`}
                   {searchResults.length === 0 && (
                     <span style={{ color: '#dc2626', marginLeft: '8px' }}>
@@ -1240,7 +1239,7 @@ const HomePage = () => {
                 fontWeight: '600',
                 color: '#374151'
               }}>
-                📊 排序方式
+                排序方式
               </div>
               <div style={{
                 display: 'flex',
@@ -1248,10 +1247,10 @@ const HomePage = () => {
                 flexWrap: 'wrap'
               }}>
                 {[
-                  { key: 'popularity', label: '🔥 熱門排行', desc: '綜合熱度' },
-                  { key: 'favorites', label: '❤️ 最多收藏', desc: '收藏數排序' },
-                  { key: 'shares', label: '📤 最多分享', desc: '分享數排序' },
-                  { key: 'views', label: '👀 最多查看', desc: '查看數排序' }
+                  { key: 'popularity', label: '熱門排行', desc: '綜合熱度' },
+                  { key: 'favorites', label: '最多收藏', desc: '收藏數排序' },
+                  { key: 'shares', label: '最多分享', desc: '分享數排序' },
+                  { key: 'views', label: '最多查看', desc: '查看數排序' }
                 ].map(option => (
                   <button
                     key={option.key}
@@ -1488,7 +1487,7 @@ const HomePage = () => {
               color: '#64748b',
               fontWeight: '500'
             }}>
-              📊 正在顯示第 {((pagination.currentPage - 1) * pagination.limit) + 1} - {Math.min(pagination.currentPage * pagination.limit, pagination.total)} 筆，
+              顯示第 {((pagination.currentPage - 1) * pagination.limit) + 1} - {Math.min(pagination.currentPage * pagination.limit, pagination.total)} 筆，
               共 {pagination.total} 筆行程資料
             </div>
           </div>
