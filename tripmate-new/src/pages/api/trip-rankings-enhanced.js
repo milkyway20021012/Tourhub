@@ -12,15 +12,27 @@ export default async function handler(req, res) {
             budget_max = '',
             duration_type = '',
             season = '',
-            area = ''
+            area = '',
+            page = 1,
+            limit = 10,
+            sort_by = 'date' // 新增：排序方式參數
         } = req.query;
 
-        console.log('trip-rankings-enhanced API 被呼叫，類型:', type);
+        console.log('trip-rankings-enhanced API 被呼叫，類型:', type, '頁碼:', page, '排序:', sort_by);
+
+        // 處理分頁參數
+        const pageNum = Math.max(1, parseInt(page) || 1);
+        const limitNum = Math.min(100, Math.max(1, parseInt(limit) || 10));
+        const offset = (pageNum - 1) * limitNum;
 
         let sql = '';
+        let countSql = '';
         let whereConditions = [];
 
-        // 基本查詢
+        // 確保行程統計表存在
+        await ensureStatsTable();
+
+        // 基本查詢 - 添加統計數據
         const baseSelect = `
             SELECT 
                 t.trip_id,
@@ -47,8 +59,20 @@ export default async function handler(req, res) {
                     WHEN t.start_date > CURDATE() THEN '即將出發'
                     WHEN t.start_date <= CURDATE() AND t.end_date >= CURDATE() THEN '進行中'
                     ELSE '已結束'
-                END as status
+                END as status,
+                COALESCE(ts.favorite_count, 0) as favorite_count,
+                COALESCE(ts.share_count, 0) as share_count,
+                COALESCE(ts.view_count, 0) as view_count,
+                COALESCE(ts.popularity_score, 0) as popularity_score
             FROM line_trips t
+            LEFT JOIN trip_stats ts ON t.trip_id = ts.trip_id
+        `;
+
+        // 基本計數查詢
+        const baseCount = `
+            SELECT COUNT(*) as total
+            FROM line_trips t
+            LEFT JOIN trip_stats ts ON t.trip_id = ts.trip_id
         `;
 
         // 添加篩選條件
@@ -92,122 +116,124 @@ export default async function handler(req, res) {
 
         const whereClause = whereConditions.length > 0 ? 'WHERE ' + whereConditions.join(' AND ') : '';
 
-        switch (type) {
-            case 'all':
-                // 全部行程 - 按開始日期排序
-                sql = `
-                    ${baseSelect}
-                    ${whereClause}
-                    ORDER BY t.start_date DESC
-                    LIMIT 50
-                `;
-                break;
+        // 構建計數SQL
+        countSql = `${baseCount} ${whereClause}`;
 
-            case 'popular':
-                // 熱門推薦 - 基於多種因素的綜合排序
-                sql = `
-                    ${baseSelect}
-                    ${whereClause}
-                    ORDER BY 
-                        (CASE WHEN t.start_date >= CURDATE() THEN 3 ELSE 1 END) DESC,
-                        DATEDIFF(t.end_date, t.start_date) DESC,
-                        t.start_date ASC
-                    LIMIT 50
-                `;
+        // 根據排序方式構建不同的 ORDER BY
+        let orderByClause = '';
+        switch (sort_by) {
+            case 'popularity':
+                // 用戶行為驅動排行
+                orderByClause = `ORDER BY 
+                    COALESCE(ts.popularity_score, 0) DESC,
+                    COALESCE(ts.favorite_count, 0) DESC,
+                    COALESCE(ts.share_count, 0) DESC,
+                    COALESCE(ts.view_count, 0) DESC,
+                    t.start_date DESC`;
                 break;
-
+            case 'favorites':
+                // 按收藏數排序
+                orderByClause = `ORDER BY 
+                    COALESCE(ts.favorite_count, 0) DESC,
+                    COALESCE(ts.popularity_score, 0) DESC,
+                    t.start_date DESC`;
+                break;
+            case 'shares':
+                // 按分享數排序
+                orderByClause = `ORDER BY 
+                    COALESCE(ts.share_count, 0) DESC,
+                    COALESCE(ts.popularity_score, 0) DESC,
+                    t.start_date DESC`;
+                break;
+            case 'views':
+                // 按查看數排序
+                orderByClause = `ORDER BY 
+                    COALESCE(ts.view_count, 0) DESC,
+                    COALESCE(ts.popularity_score, 0) DESC,
+                    t.start_date DESC`;
+                break;
             case 'latest':
-                // 最新行程 - 按建立時間排序（這裡用 trip_id 代替，因為通常 ID 越大越新）
-                sql = `
-                    ${baseSelect}
-                    ${whereClause}
-                    ORDER BY t.trip_id DESC
-                    LIMIT 50
-                `;
+                // 按最新排序
+                orderByClause = `ORDER BY t.trip_id DESC, t.start_date DESC`;
                 break;
-
             case 'upcoming':
-                // 即將出發 - 只顯示未來的行程
-                sql = `
-                    ${baseSelect}
-                    WHERE t.start_date >= CURDATE()
-                    ${whereConditions.length > 0 ? 'AND ' + whereConditions.join(' AND ') : ''}
-                    ORDER BY t.start_date ASC
-                    LIMIT 50
-                `;
+                // 按即將出發排序
+                orderByClause = `ORDER BY t.start_date ASC`;
                 break;
-
-            case 'duration':
-                // 按行程長度排行
-                sql = `
-                    ${baseSelect}
-                    ${whereClause}
-                    ORDER BY duration_days DESC, t.start_date ASC
-                    LIMIT 50
-                `;
-                break;
-
-            case 'season':
-                // 季節性排行榜
-                sql = `
-                    ${baseSelect}
-                    ${whereClause}
-                    ORDER BY 
-                        CASE 
-                            WHEN MONTH(t.start_date) IN (3,4,5) THEN 1
-                            WHEN MONTH(t.start_date) IN (6,7,8) THEN 2
-                            WHEN MONTH(t.start_date) IN (9,10,11) THEN 3
-                            ELSE 4
-                        END,
-                        t.start_date ASC
-                    LIMIT 50
-                `;
-                break;
-
-            case 'area':
-                // 按地區分組，每個地區最新的行程
-                sql = `
-                    ${baseSelect}
-                    WHERE t.trip_id IN (
-                        SELECT trip_id 
-                        FROM (
-                            SELECT trip_id, area, start_date,
-                                   ROW_NUMBER() OVER (PARTITION BY area ORDER BY start_date DESC) as rn
-                            FROM line_trips
-                            WHERE area IS NOT NULL AND area != ''
-                        ) ranked
-                        WHERE rn = 1
-                    )
-                    ${whereConditions.length > 0 ? 'AND ' + whereConditions.join(' AND ') : ''}
-                    ORDER BY t.area ASC, t.start_date DESC
-                    LIMIT 50
-                `;
-                break;
-
+            case 'date':
             default:
-                // 預設情況，顯示所有行程
-                sql = `
-                    ${baseSelect}
-                    ${whereClause}
-                    ORDER BY t.start_date DESC
-                    LIMIT 50
-                `;
+                // 預設按日期排序
+                orderByClause = `ORDER BY t.start_date DESC`;
                 break;
         }
 
-        console.log('執行增強排行榜查詢...');
-        const trips = await query(sql);
-        console.log('增強排行榜結果:', trips.length, '筆');
+        // 如果是即將出發的特殊處理
+        if (sort_by === 'upcoming') {
+            const upcomingWhere = whereConditions.length > 0 ?
+                `WHERE t.start_date >= CURDATE() AND ${whereConditions.join(' AND ')}` :
+                'WHERE t.start_date >= CURDATE()';
+
+            sql = `
+                ${baseSelect}
+                ${upcomingWhere}
+                ${orderByClause}
+                LIMIT ${limitNum} OFFSET ${offset}
+            `;
+
+            countSql = `
+                ${baseCount}
+                ${upcomingWhere}
+            `;
+        } else {
+            sql = `
+                ${baseSelect}
+                ${whereClause}
+                ${orderByClause}
+                LIMIT ${limitNum} OFFSET ${offset}
+            `;
+        }
+
+        console.log('執行查詢，排序方式:', sort_by);
+
+        // 同時執行數據查詢和計數查詢
+        const [trips, countResult] = await Promise.all([
+            query(sql),
+            query(countSql)
+        ]);
+
+        const total = countResult[0]?.total || 0;
+        const totalPages = Math.ceil(total / limitNum);
+        const hasNextPage = pageNum < totalPages;
+        const hasPrevPage = pageNum > 1;
+
+        console.log('查詢結果:', {
+            trips: trips.length,
+            total: total,
+            totalPages: totalPages,
+            currentPage: pageNum,
+            sortBy: sort_by
+        });
 
         res.status(200).json({
             success: true,
             data: trips,
             ranking_type: type,
+            sort_by: sort_by,
             count: trips.length,
+            pagination: {
+                currentPage: pageNum,
+                totalPages: totalPages,
+                total: total,
+                limit: limitNum,
+                hasNextPage: hasNextPage,
+                hasPrevPage: hasPrevPage,
+                offset: offset
+            },
             filters: {
                 duration_type,
                 season,
-                area
+                area,
+                sort_by
             },
             timestamp: new Date().toISOString()
         });
@@ -217,7 +243,42 @@ export default async function handler(req, res) {
         res.status(500).json({
             success: false,
             message: '伺服器錯誤',
-            error: error.message
+            error: error.message,
+            pagination: {
+                currentPage: 1,
+                totalPages: 0,
+                total: 0,
+                limit: parseInt(req.query.limit) || 10,
+                hasNextPage: false,
+                hasPrevPage: false,
+                offset: 0
+            }
         });
+    }
+}
+
+// 確保統計表存在
+async function ensureStatsTable() {
+    try {
+        const createTableSQL = `
+            CREATE TABLE IF NOT EXISTS trip_stats (
+                trip_id INT PRIMARY KEY,
+                favorite_count INT DEFAULT 0 COMMENT '收藏次數',
+                share_count INT DEFAULT 0 COMMENT '分享次數',
+                view_count INT DEFAULT 0 COMMENT '查看次數',
+                popularity_score DECIMAL(10,2) DEFAULT 0 COMMENT '綜合熱度分數',
+                last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                FOREIGN KEY (trip_id) REFERENCES line_trips(trip_id) ON DELETE CASCADE,
+                INDEX idx_popularity (popularity_score DESC),
+                INDEX idx_favorites (favorite_count DESC),
+                INDEX idx_shares (share_count DESC),
+                INDEX idx_views (view_count DESC)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='行程統計表'
+        `;
+
+        await query(createTableSQL);
+        console.log('統計表確認存在');
+    } catch (error) {
+        console.error('創建統計表失敗:', error);
     }
 }
