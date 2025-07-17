@@ -1524,7 +1524,7 @@ const HomePage = () => {
                     cursor: 'pointer'
                   }}
                 >
-                  🔄 重試
+                  重試
                 </button>
               </div>
             ) : currentTrips.length === 0 ? (
@@ -1558,7 +1558,7 @@ const HomePage = () => {
                       marginTop: '16px'
                     }}
                   >
-                    🏠 瀏覽全部行程
+                    瀏覽全部行程
                   </button>
                 )}
               </div>
@@ -1669,7 +1669,7 @@ const HomePage = () => {
                             fontWeight: '500',
                             border: '1px solid #e2e8f0'
                           }}>
-                            ⏰ {trip.duration_days}天
+                            {trip.duration_days}天
                           </span>
                         )}
                         {trip.season && (
@@ -1682,7 +1682,7 @@ const HomePage = () => {
                             fontWeight: '500',
                             border: '1px solid #e2e8f0'
                           }}>
-                            🌸 {trip.season}
+                            {trip.season}
                           </span>
                         )}
                         {trip.duration_type && (
@@ -1695,7 +1695,7 @@ const HomePage = () => {
                             fontWeight: '500',
                             border: '1px solid #e2e8f0'
                           }}>
-                            🎯 {trip.duration_type}
+                            {trip.duration_type}
                           </span>
                         )}
                         {/* 統計資料標籤 */}
