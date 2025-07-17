@@ -909,7 +909,7 @@ const HomePage = () => {
       }
       return;
     }
-    window.location.href = '/favorites';
+    window.location.href = 'https://tourhub-ashy.vercel.app/';
   };
 
   if (!mounted) {
