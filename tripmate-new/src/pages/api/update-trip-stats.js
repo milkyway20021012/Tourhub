@@ -119,7 +119,7 @@ async function ensureStatsTable() {
                 INDEX idx_views (view_count DESC)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='行程統計表'
         `;
-        
+
         await query(createTableSQL);
     } catch (error) {
         console.error('創建統計表失敗:', error);
@@ -146,7 +146,7 @@ async function updatePopularityScore(tripId) {
         // 熱度分數 = (收藏數 * 3) + (分享數 * 2) + (查看數 * 0.1)
         const updateScoreSQL = `
             UPDATE trip_stats 
-            SET popularity_score = (favorite_count * 3) + (share_count * 2) + (view_count * 0.1)
+            SET popularity_score = LEAST(5, ((favorite_count * 3) + (share_count * 2) + (view_count * 0.1)) / 1000 * 5)
             WHERE trip_id = ?
         `;
         await query(updateScoreSQL, [tripId]);
