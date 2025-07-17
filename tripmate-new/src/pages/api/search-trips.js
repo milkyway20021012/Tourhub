@@ -1,99 +1,122 @@
 import { query } from '../../lib/db';
 
 export default async function handler(req, res) {
-    if (req.method !== 'GET') {
+    if (req.method === 'POST') {
+        const { tripId, action } = req.body;
+
+        if (!tripId || !action) {
+            return res.status(400).json({ success: false, message: '缺少必要參數' });
+        }
+
+        try {
+            if (action === 'add') {
+                // 添加收藏邏輯
+                await query('INSERT INTO favorites (trip_id, user_id) VALUES (?, ?)', [tripId, userId]);
+                return res.status(200).json({ success: true, message: '收藏成功' });
+            } else if (action === 'remove') {
+                // 取消收藏邏輯
+                await query('DELETE FROM favorites WHERE trip_id = ? AND user_id = ?', [tripId, userId]);
+                return res.status(200).json({ success: true, message: '取消收藏成功' });
+            } else {
+                return res.status(400).json({ success: false, message: '未知的操作' });
+            }
+        } catch (error) {
+            console.error('收藏操作失敗:', error);
+            return res.status(500).json({ success: false, message: '收藏操作失敗' });
+        }
+    } else if (req.method === 'GET') {
+        try {
+            const {
+                keyword = '',
+                limit = 50,
+                offset = 0
+            } = req.query;
+
+            console.log('search-trips API 被呼叫，關鍵字:', keyword);
+
+            // 檢查關鍵字
+            if (!keyword || keyword.trim().length === 0) {
+                return res.status(400).json({
+                    success: false,
+                    message: '請提供搜尋關鍵字',
+                    trips: []
+                });
+            }
+
+            const searchKeyword = keyword.trim();
+            const limitNum = Math.min(100, Math.max(1, parseInt(limit) || 50));
+            const offsetNum = Math.max(0, parseInt(offset) || 0);
+
+            console.log('搜尋參數:', {
+                keyword: searchKeyword,
+                limit: limitNum,
+                offset: offsetNum
+            });
+
+            // ===== 主要優化：多層次搜索策略 =====
+
+            // 1. 首先嘗試精確搜索
+            let trips = await performExactSearch(searchKeyword, limitNum, offsetNum);
+            let searchType = 'exact';
+            let total = 0;
+
+            if (trips.length > 0) {
+                // 獲取精確搜索的總數
+                total = await getSearchCount(searchKeyword, 'exact');
+            } else {
+                // 2. 如果精確搜索無結果，嘗試模糊搜索
+                console.log('精確搜索無結果，嘗試模糊搜索...');
+                trips = await performFuzzySearch(searchKeyword, limitNum, offsetNum);
+                searchType = 'fuzzy';
+
+                if (trips.length > 0) {
+                    total = await getSearchCount(searchKeyword, 'fuzzy');
+                } else {
+                    // 3. 如果模糊搜索也無結果，嘗試分詞搜索
+                    console.log('模糊搜索無結果，嘗試分詞搜索...');
+                    trips = await performTokenSearch(searchKeyword, limitNum, offsetNum);
+                    searchType = 'token';
+                    total = trips.length; // 分詞搜索通常返回較少結果
+                }
+            }
+
+            console.log(`${searchType} 搜尋結果數量:`, trips.length);
+
+            // 返回搜尋結果
+            const response = {
+                success: true,
+                trips: trips,
+                total: total,
+                searchType: searchType,
+                keyword: searchKeyword,
+                pagination: {
+                    limit: limitNum,
+                    offset: offsetNum,
+                    hasMore: total > offsetNum + trips.length
+                },
+                message: trips.length > 0 ?
+                    `找到 ${trips.length} 個相關行程${searchType === 'exact' ? '' : `（${searchType === 'fuzzy' ? '模糊' : '分詞'}搜尋）`}` :
+                    '沒有找到相關行程，請嘗試其他關鍵字'
+            };
+
+            console.log('最終搜索結果:', response);
+            res.status(200).json(response);
+
+        } catch (error) {
+            console.error('search-trips API 錯誤:', error);
+
+            res.status(500).json({
+                success: false,
+                message: '搜尋失敗，請稍後再試',
+                error: process.env.NODE_ENV === 'development' ? error.message : undefined,
+                trips: [],
+                total: 0
+            });
+        }
+    } else {
         return res.status(405).json({
             success: false,
             message: '不允許的請求方法'
-        });
-    }
-
-    try {
-        const {
-            keyword = '',
-            limit = 50,
-            offset = 0
-        } = req.query;
-
-        console.log('search-trips API 被呼叫，關鍵字:', keyword);
-
-        // 檢查關鍵字
-        if (!keyword || keyword.trim().length === 0) {
-            return res.status(400).json({
-                success: false,
-                message: '請提供搜尋關鍵字',
-                trips: []
-            });
-        }
-
-        const searchKeyword = keyword.trim();
-        const limitNum = Math.min(100, Math.max(1, parseInt(limit) || 50));
-        const offsetNum = Math.max(0, parseInt(offset) || 0);
-
-        console.log('搜尋參數:', {
-            keyword: searchKeyword,
-            limit: limitNum,
-            offset: offsetNum
-        });
-
-        // ===== 主要優化：多層次搜索策略 =====
-
-        // 1. 首先嘗試精確搜索
-        let trips = await performExactSearch(searchKeyword, limitNum, offsetNum);
-        let searchType = 'exact';
-        let total = 0;
-
-        if (trips.length > 0) {
-            // 獲取精確搜索的總數
-            total = await getSearchCount(searchKeyword, 'exact');
-        } else {
-            // 2. 如果精確搜索無結果，嘗試模糊搜索
-            console.log('精確搜索無結果，嘗試模糊搜索...');
-            trips = await performFuzzySearch(searchKeyword, limitNum, offsetNum);
-            searchType = 'fuzzy';
-
-            if (trips.length > 0) {
-                total = await getSearchCount(searchKeyword, 'fuzzy');
-            } else {
-                // 3. 如果模糊搜索也無結果，嘗試分詞搜索
-                console.log('模糊搜索無結果，嘗試分詞搜索...');
-                trips = await performTokenSearch(searchKeyword, limitNum, offsetNum);
-                searchType = 'token';
-                total = trips.length; // 分詞搜索通常返回較少結果
-            }
-        }
-
-        console.log(`${searchType} 搜尋結果數量:`, trips.length);
-
-        // 返回搜尋結果
-        const response = {
-            success: true,
-            trips: trips,
-            total: total,
-            searchType: searchType,
-            keyword: searchKeyword,
-            pagination: {
-                limit: limitNum,
-                offset: offsetNum,
-                hasMore: total > offsetNum + trips.length
-            },
-            message: trips.length > 0 ?
-                `找到 ${trips.length} 個相關行程${searchType === 'exact' ? '' : `（${searchType === 'fuzzy' ? '模糊' : '分詞'}搜尋）`}` :
-                '沒有找到相關行程，請嘗試其他關鍵字'
-        };
-
-        console.log('最終搜索結果:', response);
-        res.status(200).json(response);
-
-    } catch (error) {
-        console.error('search-trips API 錯誤:', error);
-
-        res.status(500).json({
-            success: false,
-            message: '搜尋失敗，請稍後再試',
-            error: process.env.NODE_ENV === 'development' ? error.message : undefined,
-            trips: [],
-            total: 0
         });
     }
 }
@@ -378,3 +401,48 @@ async function getSearchCount(searchKeyword, searchType) {
         return 0;
     }
 }
+
+const toggleFavorite = async (tripId) => {
+    try {
+        const action = favorites.has(tripId) ? 'remove' : 'add';
+        const response = await fetch('/api/favorites', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ tripId, action })
+        });
+
+        const result = await response.json();
+        if (result.success) {
+            if (action === 'add') {
+                setFavorites(new Set([...favorites, tripId]));
+            } else {
+                const updatedFavorites = new Set(favorites);
+                updatedFavorites.delete(tripId);
+                setFavorites(updatedFavorites);
+            }
+        } else {
+            alert(result.message);
+        }
+    } catch (error) {
+        console.error('收藏操作失敗:', error);
+        alert('收藏操作失敗，請稍後再試');
+    }
+};
+
+useEffect(() => {
+    const fetchFavorites = async () => {
+        try {
+            const response = await fetch('/api/favorites');
+            const result = await response.json();
+            if (result.success) {
+                setFavorites(new Set(result.favorites));
+            } else {
+                console.error('獲取收藏失敗:', result.message);
+            }
+        } catch (error) {
+            console.error('獲取收藏失敗:', error);
+        }
+    };
+
+    fetchFavorites();
+}, []);
