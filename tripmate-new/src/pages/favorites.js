@@ -462,7 +462,7 @@ const FavoritesContent = ({
     }
 
     // 載入錯誤
-    if (error) {
+    if (error && favorites.length === 0) {
         return (
             <div style={styles.container}>
                 {renderBackButton()}
@@ -470,20 +470,54 @@ const FavoritesContent = ({
                 <div style={styles.error}>
                     <div style={{ fontSize: '18px', marginBottom: '8px' }}>❌ 載入失敗</div>
                     <div style={{ fontSize: '14px', marginBottom: '16px' }}>{error}</div>
-                    <button
-                        onClick={onFetchFavorites}
-                        style={{
-                            background: '#3182ce',
-                            color: 'white',
-                            border: 'none',
-                            padding: '12px 24px',
-                            borderRadius: '8px',
-                            cursor: 'pointer',
-                            fontSize: '14px'
-                        }}
-                    >
-                        🔄 重新載入
-                    </button>
+                    <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap' }}>
+                        <button
+                            onClick={onFetchFavorites}
+                            style={{
+                                background: '#3182ce',
+                                color: 'white',
+                                border: 'none',
+                                padding: '12px 24px',
+                                borderRadius: '8px',
+                                cursor: 'pointer',
+                                fontSize: '14px',
+                                transition: 'all 0.2s ease'
+                            }}
+                            onMouseEnter={(e) => {
+                                e.currentTarget.style.background = '#2563eb';
+                                e.currentTarget.style.transform = 'translateY(-2px)';
+                            }}
+                            onMouseLeave={(e) => {
+                                e.currentTarget.style.background = '#3182ce';
+                                e.currentTarget.style.transform = 'translateY(0)';
+                            }}
+                        >
+                            🔄 重新載入
+                        </button>
+                        <button
+                            onClick={() => window.location.href = '/'}
+                            style={{
+                                background: '#f3f4f6',
+                                color: '#374151',
+                                border: '1px solid #d1d5db',
+                                padding: '12px 24px',
+                                borderRadius: '8px',
+                                cursor: 'pointer',
+                                fontSize: '14px',
+                                transition: 'all 0.2s ease'
+                            }}
+                            onMouseEnter={(e) => {
+                                e.currentTarget.style.background = '#e5e7eb';
+                                e.currentTarget.style.transform = 'translateY(-2px)';
+                            }}
+                            onMouseLeave={(e) => {
+                                e.currentTarget.style.background = '#f3f4f6';
+                                e.currentTarget.style.transform = 'translateY(0)';
+                            }}
+                        >
+                            🏠 返回首頁
+                        </button>
+                    </div>
                 </div>
             </div>
         );
@@ -494,12 +528,12 @@ const FavoritesContent = ({
             {renderBackButton()}
             {renderHeader()}
 
-            {favorites.length === 0 ? (
+            {favorites.length === 0 && !error ? (
                 <div style={styles.empty}>
-                    <div style={styles.emptyIcon}>📍</div>
+                    <div style={styles.emptyIcon}>💔</div>
                     <div style={styles.emptyText}>還沒有收藏任何行程</div>
                     <div style={styles.emptySubtext}>
-                        去發現一些精彩的旅程吧！
+                        去首頁發現更多精彩行程吧！
                     </div>
                     <button
                         onClick={() => {
@@ -515,10 +549,19 @@ const FavoritesContent = ({
                             borderRadius: '8px',
                             cursor: 'pointer',
                             fontSize: '14px',
-                            marginTop: '16px'
+                            marginTop: '16px',
+                            transition: 'all 0.2s ease'
+                        }}
+                        onMouseEnter={(e) => {
+                            e.currentTarget.style.background = '#2563eb';
+                            e.currentTarget.style.transform = 'translateY(-2px)';
+                        }}
+                        onMouseLeave={(e) => {
+                            e.currentTarget.style.background = '#3182ce';
+                            e.currentTarget.style.transform = 'translateY(0)';
                         }}
                     >
-                        🎯 探索行程
+                        🏠 瀏覽行程
                     </button>
                 </div>
             ) : (
@@ -795,14 +838,16 @@ const FavoritesPage = () => {
             if (liffHook.isLoggedIn) {
                 const userId = getCurrentUserId();
                 if (userId) {
+                    console.log('開始載入收藏，用戶 ID:', userId);
                     fetchFavorites();
                 } else {
                     console.error('無法獲取用戶 ID');
-                    setError('無法獲取用戶資訊');
+                    setError('無法獲取用戶資訊，請重新登入');
                     setLoading(false);
                 }
             } else {
                 // 用戶未登入，停止載入狀態
+                console.log('用戶未登入，停止載入');
                 setLoading(false);
             }
         }
@@ -837,6 +882,13 @@ const FavoritesPage = () => {
                 const favoritesData = response.data.favorites || [];
                 setFavorites(favoritesData);
                 console.log('收藏載入成功，數量:', favoritesData.length);
+                
+                // 如果沒有收藏，顯示友好訊息
+                if (favoritesData.length === 0) {
+                    setError('您還沒有收藏任何行程，快去首頁收藏喜歡的行程吧！');
+                } else {
+                    setError(null);
+                }
             } else {
                 throw new Error(response.data?.message || 'API 回應格式錯誤');
             }
@@ -888,16 +940,49 @@ const FavoritesPage = () => {
         }
 
         try {
-            await axios.delete('/api/user-favorites', {
+            const response = await axios.delete('/api/user-favorites', {
                 data: { line_user_id: userId, trip_id: tripId },
                 timeout: 10000
             });
 
-            const newFavorites = favorites.filter(f => f.trip_id !== tripId);
-            setFavorites(newFavorites);
+            if (response.data.success) {
+                const newFavorites = favorites.filter(f => f.trip_id !== tripId);
+                setFavorites(newFavorites);
+                console.log('收藏移除成功:', tripId);
+            } else {
+                throw new Error(response.data.message || '移除收藏失敗');
+            }
         } catch (error) {
             console.error('移除收藏失敗:', error);
-            alert('移除收藏失敗，請稍後再試。');
+
+            let errorMessage = '移除收藏失敗，請稍後再試。';
+
+            if (error.response) {
+                const status = error.response.status;
+                const serverMessage = error.response.data?.message || '';
+
+                switch (status) {
+                    case 400:
+                        errorMessage = '請求參數錯誤';
+                        break;
+                    case 404:
+                        errorMessage = '收藏不存在或已被移除';
+                        break;
+                    case 500:
+                        errorMessage = `伺服器錯誤：${serverMessage}`;
+                        break;
+                    default:
+                        errorMessage = `移除失敗 (${status})：${serverMessage}`;
+                }
+            } else if (error.request) {
+                errorMessage = '網路連接失敗，請檢查網路連接';
+            } else if (error.code === 'ECONNABORTED') {
+                errorMessage = '請求超時，請稍後再試';
+            } else {
+                errorMessage = error.message || '發生未知錯誤';
+            }
+
+            alert(errorMessage);
         }
     };
 

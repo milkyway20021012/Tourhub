@@ -719,6 +719,11 @@ const HomePage = () => {
   const toggleFavorite = async (tripId, event) => {
     event.stopPropagation();
 
+    // 防止重複點擊
+    if (favoriteLoading[tripId]) {
+      return;
+    }
+
     // 如果未登入，提示用戶登入，但不強制
     if (!isLineLoggedIn()) {
       const shouldLogin = confirm('需要登入 LINE 才能使用收藏功能，是否要立即登入？');
@@ -740,35 +745,79 @@ const HomePage = () => {
       const isFavorited = favorites.has(tripId);
 
       if (isFavorited) {
-        await axios.delete('/api/user-favorites', {
+        // 取消收藏
+        const response = await axios.delete('/api/user-favorites', {
           data: { line_user_id: userId, trip_id: tripId },
           timeout: 10000
         });
 
-        setFavorites(prev => {
-          const newSet = new Set(prev);
-          newSet.delete(tripId);
-          return newSet;
-        });
+        if (response.data.success) {
+          setFavorites(prev => {
+            const newSet = new Set(prev);
+            newSet.delete(tripId);
+            return newSet;
+          });
 
-        // 更新統計：移除收藏
-        await updateTripStats(tripId, 'favorite_remove');
+          // 更新統計：移除收藏
+          await updateTripStats(tripId, 'favorite_remove');
+          console.log('取消收藏成功:', tripId);
+        } else {
+          throw new Error(response.data.message || '取消收藏失敗');
+        }
       } else {
-        await axios.post('/api/user-favorites', {
+        // 新增收藏
+        const response = await axios.post('/api/user-favorites', {
           line_user_id: userId,
           trip_id: tripId
         }, {
           timeout: 10000
         });
 
-        setFavorites(prev => new Set([...prev, tripId]));
+        if (response.data.success) {
+          setFavorites(prev => new Set([...prev, tripId]));
 
-        // 更新統計：添加收藏
-        await updateTripStats(tripId, 'favorite_add');
+          // 更新統計：添加收藏
+          await updateTripStats(tripId, 'favorite_add');
+          console.log('新增收藏成功:', tripId);
+        } else {
+          throw new Error(response.data.message || '新增收藏失敗');
+        }
       }
     } catch (err) {
       console.error('收藏操作失敗:', err);
-      alert('操作失敗，請稍後再試');
+
+      // 更詳細的錯誤處理
+      let errorMessage = '操作失敗，請稍後再試';
+
+      if (err.response) {
+        const status = err.response.status;
+        const serverMessage = err.response.data?.message || '';
+
+        switch (status) {
+          case 400:
+            errorMessage = '請求參數錯誤';
+            break;
+          case 404:
+            errorMessage = '行程不存在';
+            break;
+          case 409:
+            errorMessage = '已經收藏此行程';
+            break;
+          case 500:
+            errorMessage = `伺服器錯誤：${serverMessage}`;
+            break;
+          default:
+            errorMessage = `操作失敗 (${status})：${serverMessage}`;
+        }
+      } else if (err.request) {
+        errorMessage = '網路連接失敗，請檢查網路連接';
+      } else if (err.code === 'ECONNABORTED') {
+        errorMessage = '請求超時，請稍後再試';
+      } else {
+        errorMessage = err.message || '發生未知錯誤';
+      }
+
+      alert(errorMessage);
     } finally {
       setFavoriteLoading(prev => ({ ...prev, [tripId]: false }));
     }
@@ -909,7 +958,8 @@ const HomePage = () => {
       }
       return;
     }
-    window.location.href = 'https://tourhub-ashy.vercel.app/';
+    // 修正導航到正確的收藏頁面
+    window.location.href = '/favorites';
   };
 
   if (!mounted) {

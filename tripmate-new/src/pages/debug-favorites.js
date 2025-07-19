@@ -4,6 +4,8 @@ import axios from 'axios';
 const DebugFavorites = () => {
     const [results, setResults] = useState([]);
     const [loading, setLoading] = useState(false);
+    const [testUserId, setTestUserId] = useState('debug_user_123');
+    const [testTripId, setTestTripId] = useState('1');
 
     const addLog = (message, type = 'info', data = null) => {
         const timestamp = new Date().toLocaleTimeString();
@@ -38,7 +40,7 @@ const DebugFavorites = () => {
         addLog('🔍 測試收藏 API...', 'info');
         try {
             const response = await axios.get('/api/user-favorites', {
-                params: { line_user_id: 'demo_user_123' },
+                params: { line_user_id: testUserId },
                 timeout: 10000
             });
             addLog('✅ 收藏 API 成功', 'success', response.data);
@@ -56,8 +58,8 @@ const DebugFavorites = () => {
         addLog('💖 測試添加收藏...', 'info');
         try {
             const response = await axios.post('/api/user-favorites', {
-                line_user_id: 'debug_user',
-                trip_id: 1
+                line_user_id: testUserId,
+                trip_id: parseInt(testTripId)
             });
             addLog('✅ 添加收藏成功', 'success', response.data);
         } catch (error) {
@@ -74,8 +76,8 @@ const DebugFavorites = () => {
         try {
             const response = await axios.delete('/api/user-favorites', {
                 data: {
-                    line_user_id: 'debug_user',
-                    trip_id: 1
+                    line_user_id: testUserId,
+                    trip_id: parseInt(testTripId)
                 }
             });
             addLog('✅ 移除收藏成功', 'success', response.data);
@@ -85,6 +87,56 @@ const DebugFavorites = () => {
                 response: error.response?.data,
                 status: error.response?.status
             });
+        }
+    };
+
+    const testDuplicateAdd = async () => {
+        addLog('🔄 測試重複添加收藏...', 'info');
+        try {
+            // 第一次添加
+            await axios.post('/api/user-favorites', {
+                line_user_id: testUserId,
+                trip_id: parseInt(testTripId)
+            });
+            addLog('✅ 第一次添加成功', 'success');
+
+            // 第二次添加（應該失敗）
+            const response = await axios.post('/api/user-favorites', {
+                line_user_id: testUserId,
+                trip_id: parseInt(testTripId)
+            });
+            addLog('❌ 重複添加應該失敗但成功了', 'error', response.data);
+        } catch (error) {
+            if (error.response?.status === 409) {
+                addLog('✅ 重複添加正確被拒絕', 'success', error.response.data);
+            } else {
+                addLog('❌ 重複添加測試失敗', 'error', {
+                    message: error.message,
+                    response: error.response?.data,
+                    status: error.response?.status
+                });
+            }
+        }
+    };
+
+    const testInvalidTripId = async () => {
+        addLog('🚫 測試無效行程 ID...', 'info');
+        try {
+            const response = await axios.post('/api/user-favorites', {
+                line_user_id: testUserId,
+                trip_id: 99999 // 不存在的行程 ID
+            });
+            addLog('❌ 無效行程 ID 應該失敗但成功了', 'error', response.data);
+        } catch (error) {
+            if (error.response?.status === 404) {
+                addLog('✅ 無效行程 ID 正確被拒絕', 'success', error.response.data);
+            } else {
+                addLog('❌ 無效行程 ID 測試失敗', 'error', {
+                    message: error.message,
+                    response: error.response?.data,
+                    status: error.response?.status
+                });
+            }
         }
     };
 
@@ -106,151 +158,181 @@ const DebugFavorites = () => {
         await testFavoritesAPI();
         await new Promise(resolve => setTimeout(resolve, 500));
 
+        await testDuplicateAdd();
+        await new Promise(resolve => setTimeout(resolve, 500));
+
+        await testInvalidTripId();
+        await new Promise(resolve => setTimeout(resolve, 500));
+
         await testRemoveFavorite();
+        await new Promise(resolve => setTimeout(resolve, 500));
+
+        await testFavoritesAPI();
         await new Promise(resolve => setTimeout(resolve, 500));
 
         addLog('🏁 診斷完成', 'info');
         setLoading(false);
     };
 
-    const getLogColor = (type) => {
-        switch (type) {
-            case 'success': return '#10b981';
-            case 'error': return '#ef4444';
-            case 'warning': return '#f59e0b';
-            default: return '#6b7280';
-        }
-    };
-
     return (
         <div style={{
             maxWidth: '1200px',
-            margin: '20px auto',
+            margin: '0 auto',
             padding: '20px',
-            fontFamily: 'monospace'
+            fontFamily: 'Arial, sans-serif'
         }}>
-            <h1>🔧 收藏功能診斷工具</h1>
+            <h1 style={{ color: '#1f2937', marginBottom: '24px' }}>🔧 收藏功能診斷工具</h1>
 
-            <div style={{ marginBottom: '20px' }}>
-                <button
-                    onClick={runAllTests}
-                    disabled={loading}
-                    style={{
-                        background: loading ? '#ccc' : '#3b82f6',
-                        color: 'white',
-                        border: 'none',
-                        padding: '12px 24px',
-                        borderRadius: '6px',
-                        cursor: loading ? 'not-allowed' : 'pointer',
-                        marginRight: '10px'
-                    }}
-                >
-                    {loading ? '⏳ 診斷中...' : '🚀 開始完整診斷'}
-                </button>
+            <div style={{
+                background: 'white',
+                borderRadius: '12px',
+                padding: '24px',
+                marginBottom: '24px',
+                boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+                border: '1px solid #e2e8f0'
+            }}>
+                <h2 style={{ color: '#374151', marginBottom: '16px' }}>測試參數</h2>
+                <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', marginBottom: '16px' }}>
+                    <div>
+                        <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', color: '#6b7280' }}>
+                            測試用戶 ID:
+                        </label>
+                        <input
+                            type="text"
+                            value={testUserId}
+                            onChange={(e) => setTestUserId(e.target.value)}
+                            style={{
+                                padding: '8px 12px',
+                                border: '1px solid #d1d5db',
+                                borderRadius: '6px',
+                                fontSize: '14px',
+                                width: '200px'
+                            }}
+                        />
+                    </div>
+                    <div>
+                        <label style={{ display: 'block', marginBottom: '4px', fontSize: '14px', color: '#6b7280' }}>
+                            測試行程 ID:
+                        </label>
+                        <input
+                            type="number"
+                            value={testTripId}
+                            onChange={(e) => setTestTripId(e.target.value)}
+                            style={{
+                                padding: '8px 12px',
+                                border: '1px solid #d1d5db',
+                                borderRadius: '6px',
+                                fontSize: '14px',
+                                width: '100px'
+                            }}
+                        />
+                    </div>
+                </div>
 
-                <button
-                    onClick={testDatabaseConnection}
-                    style={{
-                        background: '#10b981',
-                        color: 'white',
-                        border: 'none',
-                        padding: '8px 16px',
-                        borderRadius: '6px',
-                        cursor: 'pointer',
-                        marginRight: '10px'
-                    }}
-                >
-                    🔌 測試數據庫
-                </button>
-
-                <button
-                    onClick={testFavoritesAPI}
-                    style={{
-                        background: '#f59e0b',
-                        color: 'white',
-                        border: 'none',
-                        padding: '8px 16px',
-                        borderRadius: '6px',
-                        cursor: 'pointer',
-                        marginRight: '10px'
-                    }}
-                >
-                    🔍 測試查詢
-                </button>
-
-                <button
-                    onClick={clearLogs}
-                    style={{
-                        background: '#6b7280',
-                        color: 'white',
-                        border: 'none',
-                        padding: '8px 16px',
-                        borderRadius: '6px',
-                        cursor: 'pointer'
-                    }}
-                >
-                    🗑️ 清除日誌
-                </button>
+                <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+                    <button
+                        onClick={runAllTests}
+                        disabled={loading}
+                        style={{
+                            background: loading ? '#9ca3af' : '#3b82f6',
+                            color: 'white',
+                            border: 'none',
+                            padding: '12px 24px',
+                            borderRadius: '8px',
+                            cursor: loading ? 'not-allowed' : 'pointer',
+                            fontSize: '14px',
+                            fontWeight: '600'
+                        }}
+                    >
+                        {loading ? '⏳ 執行中...' : '🚀 執行完整測試'}
+                    </button>
+                    <button
+                        onClick={clearLogs}
+                        style={{
+                            background: '#f3f4f6',
+                            color: '#374151',
+                            border: '1px solid #d1d5db',
+                            padding: '12px 24px',
+                            borderRadius: '8px',
+                            cursor: 'pointer',
+                            fontSize: '14px'
+                        }}
+                    >
+                        🗑️ 清除日誌
+                    </button>
+                </div>
             </div>
 
             <div style={{
-                background: '#1f2937',
-                color: '#f9fafb',
-                padding: '20px',
-                borderRadius: '8px',
-                maxHeight: '600px',
-                overflowY: 'auto',
-                fontSize: '14px'
+                background: 'white',
+                borderRadius: '12px',
+                padding: '24px',
+                boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+                border: '1px solid #e2e8f0'
             }}>
-                {results.length === 0 ? (
-                    <div style={{ color: '#9ca3af' }}>點擊上方按鈕開始診斷...</div>
-                ) : (
-                    results.map(log => (
-                        <div key={log.id} style={{
-                            marginBottom: '10px',
-                            padding: '8px',
-                            borderLeft: `3px solid ${getLogColor(log.type)}`,
-                            background: 'rgba(75, 85, 99, 0.3)'
-                        }}>
-                            <div style={{
-                                color: getLogColor(log.type),
-                                fontWeight: 'bold',
-                                marginBottom: '4px'
-                            }}>
-                                [{log.timestamp}] {log.message}
-                            </div>
-                            {log.data && (
-                                <pre style={{
-                                    margin: 0,
-                                    fontSize: '12px',
-                                    color: '#d1d5db',
-                                    background: '#111827',
-                                    padding: '8px',
-                                    borderRadius: '4px',
-                                    overflow: 'auto'
-                                }}>
-                                    {JSON.stringify(log.data, null, 2)}
-                                </pre>
-                            )}
+                <h2 style={{ color: '#374151', marginBottom: '16px' }}>測試結果</h2>
+                <div style={{
+                    maxHeight: '600px',
+                    overflowY: 'auto',
+                    border: '1px solid #e5e7eb',
+                    borderRadius: '8px',
+                    padding: '16px',
+                    background: '#f9fafb'
+                }}>
+                    {results.length === 0 ? (
+                        <div style={{ textAlign: 'center', color: '#9ca3af', fontSize: '14px' }}>
+                            點擊「執行完整測試」開始診斷
                         </div>
-                    ))
-                )}
-            </div>
-
-            <div style={{
-                marginTop: '20px',
-                padding: '15px',
-                background: '#fef3c7',
-                borderRadius: '6px',
-                fontSize: '14px'
-            }}>
-                <strong>💡 使用說明：</strong>
-                <ul style={{ marginTop: '8px' }}>
-                    <li><strong>完整診斷</strong> - 運行所有測試，找出問題所在</li>
-                    <li><strong>測試數據庫</strong> - 檢查數據庫連接和表結構</li>
-                    <li><strong>測試查詢</strong> - 單獨測試收藏查詢功能</li>
-                    <li>查看詳細的錯誤信息和數據流</li>
-                </ul>
+                    ) : (
+                        results.map((result) => (
+                            <div
+                                key={result.id}
+                                style={{
+                                    marginBottom: '12px',
+                                    padding: '12px',
+                                    borderRadius: '6px',
+                                    background: result.type === 'error' ? '#fef2f2' :
+                                        result.type === 'success' ? '#f0fdf4' : '#eff6ff',
+                                    border: `1px solid ${result.type === 'error' ? '#fecaca' :
+                                        result.type === 'success' ? '#bbf7d0' : '#bfdbfe'}`,
+                                    fontSize: '14px'
+                                }}
+                            >
+                                <div style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '8px',
+                                    marginBottom: '4px'
+                                }}>
+                                    <span style={{
+                                        color: result.type === 'error' ? '#dc2626' :
+                                            result.type === 'success' ? '#16a34a' : '#3b82f6',
+                                        fontWeight: '600'
+                                    }}>
+                                        {result.message}
+                                    </span>
+                                    <span style={{ color: '#9ca3af', fontSize: '12px' }}>
+                                        {result.timestamp}
+                                    </span>
+                                </div>
+                                {result.data && (
+                                    <pre style={{
+                                        margin: '8px 0 0 0',
+                                        fontSize: '12px',
+                                        color: '#6b7280',
+                                        background: 'rgba(0,0,0,0.05)',
+                                        padding: '8px',
+                                        borderRadius: '4px',
+                                        overflow: 'auto',
+                                        maxHeight: '200px'
+                                    }}>
+                                        {JSON.stringify(result.data, null, 2)}
+                                    </pre>
+                                )}
+                            </div>
+                        ))
+                    )}
+                </div>
             </div>
         </div>
     );
