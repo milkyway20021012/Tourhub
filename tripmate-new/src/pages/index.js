@@ -1160,8 +1160,17 @@ const HomePage = () => {
               <div style={{
                 display: 'flex',
                 gap: '8px',
-                flexWrap: 'wrap'
+                flexWrap: 'nowrap', // 讓按鈕橫向排列不換行
+                overflowX: 'auto', // 超出螢幕可滑動
+                WebkitOverflowScrolling: 'touch', // iOS 慣性滑動
+                width: '100%',
+                paddingBottom: '4px',
+                scrollbarWidth: 'none', // Firefox 隱藏捲軸
               }}>
+                {/* 隱藏捲軸（Chrome/Safari） */}
+                <style>{`
+                  ::-webkit-scrollbar { display: none; }
+                `}</style>
                 {[
                   { key: 'favorites', label: '最多收藏', desc: '收藏數排序' },
                   { key: 'shares', label: '最多分享', desc: '分享數排序' },
