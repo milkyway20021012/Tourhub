@@ -832,6 +832,10 @@ const HomePage = () => {
     setSearchKeyword(keyword);
   };
   // 收藏功能
+  const updateFavoriteCount = (tripId, delta) => {
+    setTrips(prev => prev.map(trip => trip.trip_id === tripId ? { ...trip, favorite_count: Math.max(0, (trip.favorite_count || 0) + delta) } : trip));
+    setSearchResults(prev => prev.map(trip => trip.trip_id === tripId ? { ...trip, favorite_count: Math.max(0, (trip.favorite_count || 0) + delta) } : trip));
+  };
   const toggleFavorite = async (tripId, event) => {
     event.stopPropagation();
     if (favoriteLoading[tripId]) return;
@@ -855,8 +859,10 @@ const HomePage = () => {
         newSet.delete(tripId);
         return newSet;
       });
+      updateFavoriteCount(tripId, -1);
     } else {
       setFavorites(prev => new Set([...prev, tripId]));
+      updateFavoriteCount(tripId, 1);
     }
     try {
       if (isFavorited) {
@@ -892,6 +898,7 @@ const HomePage = () => {
         else newSet.delete(tripId);
         return newSet;
       });
+      updateFavoriteCount(tripId, isFavorited ? 1 : -1);
       let errorMessage = '操作失敗，請稍後再試';
       if (err.response) {
         const status = err.response.status;
@@ -1075,7 +1082,7 @@ const HomePage = () => {
       const forceTimer = setTimeout(() => {
         setCurrentToast(null);
         setToastQueue(q => q.slice(1));
-      }, 2000);
+      }, 100);
       return () => { clearTimeout(timer); clearTimeout(forceTimer); };
     }
   }, [toastQueue, currentToast]);
