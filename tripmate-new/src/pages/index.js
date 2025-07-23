@@ -1062,7 +1062,7 @@ const HomePage = () => {
       const timer = setTimeout(() => {
         setCurrentToast(null);
         setToastQueue(q => q.slice(1));
-      }, 2200);
+      }, 1000);
       return () => clearTimeout(timer);
     }
   }, [toastQueue, currentToast]);
