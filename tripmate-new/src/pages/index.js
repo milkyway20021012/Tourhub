@@ -1163,7 +1163,6 @@ const HomePage = () => {
                 flexWrap: 'wrap'
               }}>
                 {[
-                  { key: 'popularity', label: '熱門排行', desc: '綜合熱度' },
                   { key: 'favorites', label: '最多收藏', desc: '收藏數排序' },
                   { key: 'shares', label: '最多分享', desc: '分享數排序' },
                   { key: 'views', label: '最多查看', desc: '查看數排序' }
