@@ -45,7 +45,7 @@ const TripCard = ({ trip, isFavorited, favoriteLoading, onFavorite, onShare, isL
                 }}>{trip.title}</h3>
                 <div style={{ display: 'flex', gap: '16px', marginBottom: '12px', flexWrap: 'wrap' }}>
                     <span style={{ display: 'inline-flex', alignItems: 'center', background: '#e0e7ff', color: '#3730a3', padding: '4px 12px', borderRadius: '20px', fontSize: '13px', fontWeight: '500' }}>{trip.area}</span>
-                    <span style={{ color: '#64748b', fontSize: '14px', fontWeight: '500' }}>{trip.start_date} - {trip.end_date}</span>
+                    {/* 日期區塊已移除 */}
                 </div>
                 <div style={{ display: 'flex', gap: '8px', marginBottom: '12px', flexWrap: 'wrap' }}>
                     {trip.duration_days && <span style={{ background: '#f1f5f9', color: '#475569', padding: '4px 10px', borderRadius: '16px', fontSize: '12px', fontWeight: '500', border: '1px solid #e2e8f0' }}>{trip.duration_days}天</span>}
