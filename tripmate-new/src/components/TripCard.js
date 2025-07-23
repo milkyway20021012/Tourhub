@@ -53,7 +53,6 @@ const TripCard = ({ trip, isFavorited, favoriteLoading, onFavorite, onShare, isL
                         columnGap: '8px',
                         justifyContent: 'flex-start',
                         alignItems: 'center',
-                        // 手機寬度時自動換行並置中
                         width: '100%',
                     }}
                 >
@@ -68,7 +67,7 @@ const TripCard = ({ trip, isFavorited, favoriteLoading, onFavorite, onShare, isL
                             borderRadius: '20px',
                             fontSize: '13px',
                             fontWeight: '500',
-                            minWidth: '70px',
+                            minWidth: '40px', // 改小，讓標籤能橫向排列
                             textAlign: 'center',
                         }}
                     >
@@ -76,22 +75,22 @@ const TripCard = ({ trip, isFavorited, favoriteLoading, onFavorite, onShare, isL
                     </span>
                     {/* 其他標籤區塊 */}
                     {trip.duration_days && (
-                        <span style={{ background: '#f1f5f9', color: '#475569', padding: '4px 10px', borderRadius: '16px', fontSize: '12px', fontWeight: '500', border: '1px solid #e2e8f0', minWidth: '60px', textAlign: 'center', display: 'inline-flex', justifyContent: 'center' }}>{trip.duration_days}天</span>
+                        <span style={{ background: '#f1f5f9', color: '#475569', padding: '4px 10px', borderRadius: '16px', fontSize: '12px', fontWeight: '500', border: '1px solid #e2e8f0', minWidth: '40px', textAlign: 'center', display: 'inline-flex', justifyContent: 'center' }}>{trip.duration_days}天</span>
                     )}
                     {trip.season && (
-                        <span style={{ background: '#f1f5f9', color: '#475569', padding: '4px 10px', borderRadius: '16px', fontSize: '12px', fontWeight: '500', border: '1px solid #e2e8f0', minWidth: '60px', textAlign: 'center', display: 'inline-flex', justifyContent: 'center' }}>{trip.season}</span>
+                        <span style={{ background: '#f1f5f9', color: '#475569', padding: '4px 10px', borderRadius: '16px', fontSize: '12px', fontWeight: '500', border: '1px solid #e2e8f0', minWidth: '40px', textAlign: 'center', display: 'inline-flex', justifyContent: 'center' }}>{trip.season}</span>
                     )}
                     {trip.duration_type && (
-                        <span style={{ background: '#f1f5f9', color: '#475569', padding: '4px 10px', borderRadius: '16px', fontSize: '12px', fontWeight: '500', border: '1px solid #e2e8f0', minWidth: '60px', textAlign: 'center', display: 'inline-flex', justifyContent: 'center' }}>{trip.duration_type}</span>
+                        <span style={{ background: '#f1f5f9', color: '#475569', padding: '4px 10px', borderRadius: '16px', fontSize: '12px', fontWeight: '500', border: '1px solid #e2e8f0', minWidth: '40px', textAlign: 'center', display: 'inline-flex', justifyContent: 'center' }}>{trip.duration_type}</span>
                     )}
                     {trip.favorite_count > 0 && (
-                        <span style={{ background: '#fee2e2', color: '#991b1b', padding: '4px 10px', borderRadius: '16px', fontSize: '12px', fontWeight: '500', border: '1px solid #fecaca', minWidth: '60px', textAlign: 'center', display: 'inline-flex', justifyContent: 'center' }}>❤️ {trip.favorite_count}</span>
+                        <span style={{ background: '#fee2e2', color: '#991b1b', padding: '4px 10px', borderRadius: '16px', fontSize: '12px', fontWeight: '500', border: '1px solid #fecaca', minWidth: '40px', textAlign: 'center', display: 'inline-flex', justifyContent: 'center' }}>❤️ {trip.favorite_count}</span>
                     )}
                     {trip.share_count > 0 && (
-                        <span style={{ background: '#ecfdf5', color: '#065f46', padding: '4px 10px', borderRadius: '16px', fontSize: '12px', fontWeight: '500', border: '1px solid #bbf7d0', minWidth: '60px', textAlign: 'center', display: 'inline-flex', justifyContent: 'center' }}>📤 {trip.share_count}</span>
+                        <span style={{ background: '#ecfdf5', color: '#065f46', padding: '4px 10px', borderRadius: '16px', fontSize: '12px', fontWeight: '500', border: '1px solid #bbf7d0', minWidth: '40px', textAlign: 'center', display: 'inline-flex', justifyContent: 'center' }}>📤 {trip.share_count}</span>
                     )}
                     {trip.view_count > 0 && (
-                        <span style={{ background: '#eff6ff', color: '#1e40af', padding: '4px 10px', borderRadius: '16px', fontSize: '12px', fontWeight: '500', border: '1px solid #bfdbfe', minWidth: '60px', textAlign: 'center', display: 'inline-flex', justifyContent: 'center' }}>👀 {trip.view_count}</span>
+                        <span style={{ background: '#eff6ff', color: '#1e40af', padding: '4px 10px', borderRadius: '16px', fontSize: '12px', fontWeight: '500', border: '1px solid #bfdbfe', minWidth: '40px', textAlign: 'center', display: 'inline-flex', justifyContent: 'center' }}>👀 {trip.view_count}</span>
                     )}
                 </div>
                 {trip.description && <p style={{ margin: '0', color: '#64748b', fontSize: '14px', lineHeight: '1.5' }}>{trip.description.length > 100 ? trip.description.substring(0, 100) + '...' : trip.description}</p>}
