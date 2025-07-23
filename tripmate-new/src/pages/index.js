@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import dynamic from 'next/dynamic';
+import api from '../utils/api';
 
 // 動態載入組件
 const TripDetail = dynamic(() => import('../components/TripDetail'), {
@@ -310,6 +311,13 @@ const Toast = ({ message, type = 'info', onClose }) => {
     info: { bg: '#323232', icon: '🔔' }
   };
   const { bg, icon } = typeMap[type] || typeMap.info;
+  // 保證 5 秒內自動消失
+  React.useEffect(() => {
+    const timer = setTimeout(() => {
+      onClose();
+    }, 5000);
+    return () => clearTimeout(timer);
+  }, [onClose]);
   return (
     <div style={{
       position: 'fixed',
@@ -606,7 +614,7 @@ const HomePage = () => {
       }
     } catch (e) { /* 忽略快取錯誤 */ }
     try {
-      const response = await axios.get('/api/trip-statistics');
+      const response = await api.get('/api/trip-statistics');
       setStatistics(response.data);
       try {
         localStorage.setItem('tripStatisticsCache', JSON.stringify({ data: response.data, ts: Date.now() }));
@@ -630,7 +638,7 @@ const HomePage = () => {
       }
     } catch (e) { /* 忽略快取錯誤 */ }
     try {
-      const response = await axios.get('/api/get-filters');
+      const response = await api.get('/api/get-filters');
       setAreas(response.data.areas || []);
       try {
         localStorage.setItem('tripAreasCache', JSON.stringify({ data: response.data.areas || [], ts: Date.now() }));
@@ -653,7 +661,7 @@ const HomePage = () => {
         ...filters
       };
 
-      const response = await axios.get('/api/trip-rankings-enhanced', { params });
+      const response = await api.get('/api/trip-rankings-enhanced', { params });
 
       if (response.data.success) {
         setTrips(response.data.data || []);
@@ -686,7 +694,7 @@ const HomePage = () => {
     if (!userId) return;
 
     try {
-      const response = await axios.get('/api/user-favorites', {
+      const response = await api.get('/api/user-favorites', {
         params: { line_user_id: userId },
         timeout: 10000
       });
@@ -730,7 +738,7 @@ const HomePage = () => {
   // 新增：更新統計資料的函數
   const updateTripStats = async (tripId, action) => {
     try {
-      await axios.post('/api/update-trip-stats', {
+      await api.post('/api/update-trip-stats', {
         trip_id: tripId,
         action: action
       });
@@ -760,7 +768,7 @@ const HomePage = () => {
     setSearchLoading(true);
     setIsSearchMode(true);
     try {
-      const response = await axios.get('/api/search-trips', {
+      const response = await api.get('/api/search-trips', {
         params: {
           keyword: keyword.trim(),
           limit: searchLimit,
@@ -852,7 +860,7 @@ const HomePage = () => {
     }
     try {
       if (isFavorited) {
-        const response = await axios.delete('/api/user-favorites', {
+        const response = await api.delete('/api/user-favorites', {
           data: { line_user_id: userId, trip_id: tripId },
           timeout: 10000
         });
@@ -864,7 +872,7 @@ const HomePage = () => {
           throw new Error(response.data.message || '取消收藏失敗');
         }
       } else {
-        const response = await axios.post('/api/user-favorites', {
+        const response = await api.post('/api/user-favorites', {
           line_user_id: userId,
           trip_id: tripId
         }, { timeout: 10000 });
@@ -915,7 +923,7 @@ const HomePage = () => {
     setShareLoading(prev => ({ ...prev, [trip.trip_id]: true }));
 
     try {
-      const response = await axios.get(`/api/trip-detail?id=${trip.trip_id}`);
+      const response = await api.get(`/api/trip-detail?id=${trip.trip_id}`);
 
       if (response.data.success) {
         setShareModalData({
@@ -947,7 +955,7 @@ const HomePage = () => {
       // 更新統計：查看
       await updateTripStats(tripId, 'view');
 
-      const response = await axios.get(`/api/trip-detail?id=${tripId}`);
+      const response = await api.get(`/api/trip-detail?id=${tripId}`);
       setSelectedTrip(response.data);
     } catch (err) {
       console.error('獲取行程詳情失敗:', err);
@@ -1062,8 +1070,13 @@ const HomePage = () => {
       const timer = setTimeout(() => {
         setCurrentToast(null);
         setToastQueue(q => q.slice(1));
-      }, 1000);
-      return () => clearTimeout(timer);
+      }, 2200);
+      // 強制保底 5 秒內消失
+      const forceTimer = setTimeout(() => {
+        setCurrentToast(null);
+        setToastQueue(q => q.slice(1));
+      }, 5000);
+      return () => { clearTimeout(timer); clearTimeout(forceTimer); };
     }
   }, [toastQueue, currentToast]);
 
@@ -1075,7 +1088,7 @@ const HomePage = () => {
   const currentLoading = isSearchMode ? searchLoading : loading;
   return (
     <ClientOnly>
-      <div style={{
+      <div className="main" style={{
         maxWidth: '1200px',
         margin: '0 auto',
         padding: '20px',
@@ -2078,7 +2091,7 @@ const HomePage = () => {
         />
         {/* Toast 提示 */}
         {currentToast && (
-          <Toast message={currentToast.message} type={currentToast.type} onClose={() => { setCurrentToast(null); setToastQueue(q => q.slice(1)); }} />
+          <Toast message={currentToast.message} type={currentToast.type} onClose={() => { setCurrentToast(null); setToastQueue(q => q.slice(1)); }} className="Toast" />
         )}
       </div>
     </ClientOnly>

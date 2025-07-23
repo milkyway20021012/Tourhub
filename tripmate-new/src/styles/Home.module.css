@@ -166,3 +166,86 @@ a.secondary {
     filter: invert();
   }
 }
+
+/* 手機 RWD 強化 */
+@media (max-width: 640px) {
+
+  .container,
+  .main {
+    padding: 12px !important;
+  }
+
+  h1,
+  h2,
+  h3 {
+    font-size: 20px !important;
+    line-height: 1.4;
+  }
+
+  .card,
+  .tripCard,
+  .tripList {
+    border-radius: 14px !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    margin-bottom: 14px !important;
+    padding: 14px !important;
+  }
+
+  .button,
+  button {
+    min-height: 44px !important;
+    font-size: 16px !important;
+    padding: 12px 18px !important;
+    border-radius: 10px !important;
+  }
+
+  .input,
+  input,
+  select {
+    font-size: 16px !important;
+    padding: 12px 14px !important;
+    border-radius: 8px !important;
+  }
+
+  .toast,
+  .Toast {
+    min-width: 80vw !important;
+    max-width: 90vw !important;
+    font-size: 16px !important;
+    padding: 16px 10px !important;
+    border-radius: 18px !important;
+  }
+
+  .modal,
+  .LineLoginModal,
+  .shareOverlay,
+  .shareContainer {
+    max-width: 95vw !important;
+    padding: 0 !important;
+    border-radius: 16px !important;
+  }
+
+  .pagination,
+  .Pagination {
+    flex-wrap: wrap;
+    gap: 4px !important;
+    font-size: 14px !important;
+  }
+
+  .tripCardView,
+  .tripList {
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+  }
+
+  .actionButtons,
+  .tripCardActions {
+    gap: 10px !important;
+  }
+
+  .tag,
+  .label {
+    font-size: 13px !important;
+    padding: 4px 10px !important;
+  }
+}
