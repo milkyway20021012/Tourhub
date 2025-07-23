@@ -1071,11 +1071,11 @@ const HomePage = () => {
         setCurrentToast(null);
         setToastQueue(q => q.slice(1));
       }, 2200);
-      // 強制保底 5 秒內消失
+      // 強制保底 2 秒內消失
       const forceTimer = setTimeout(() => {
         setCurrentToast(null);
         setToastQueue(q => q.slice(1));
-      }, 5000);
+      }, 2000);
       return () => { clearTimeout(timer); clearTimeout(forceTimer); };
     }
   }, [toastQueue, currentToast]);
