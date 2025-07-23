@@ -1077,12 +1077,12 @@ const HomePage = () => {
       const timer = setTimeout(() => {
         setCurrentToast(null);
         setToastQueue(q => q.slice(1));
-      }, 2200);
+      }, 900);
       // 強制保底 2 秒內消失
       const forceTimer = setTimeout(() => {
         setCurrentToast(null);
         setToastQueue(q => q.slice(1));
-      }, 100);
+      }, 1000);
       return () => { clearTimeout(timer); clearTimeout(forceTimer); };
     }
   }, [toastQueue, currentToast]);
