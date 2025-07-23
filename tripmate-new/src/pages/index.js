@@ -300,6 +300,46 @@ const LineLoginModal = ({ isOpen, onClose, onLogin, isLoading }) => {
     </div>
   );
 };
+// Toast 元件
+const Toast = ({ message, onClose }) => (
+  <div style={{
+    position: 'fixed',
+    bottom: '40px',
+    left: '50%',
+    transform: 'translateX(-50%)',
+    background: '#323232',
+    color: 'white',
+    padding: '14px 32px',
+    borderRadius: '24px',
+    fontSize: '16px',
+    fontWeight: '500',
+    boxShadow: '0 4px 16px rgba(0,0,0,0.15)',
+    zIndex: 9999,
+    opacity: 0.95,
+    display: 'flex',
+    alignItems: 'center',
+    gap: '12px',
+    animation: 'fadeInUp 0.3s',
+  }}>
+    <span>🔔</span>
+    <span>{message}</span>
+    <button onClick={onClose} style={{
+      background: 'none',
+      border: 'none',
+      color: 'white',
+      fontSize: '18px',
+      marginLeft: '12px',
+      cursor: 'pointer',
+      opacity: 0.7
+    }}>×</button>
+    <style jsx>{`
+      @keyframes fadeInUp {
+        from { opacity: 0; transform: translateY(30px) translateX(-50%); }
+        to { opacity: 0.95; transform: translateY(0) translateX(-50%); }
+      }
+    `}</style>
+  </div>
+);
 const HomePage = () => {
   // 核心狀態
   const [trips, setTrips] = useState([]);
@@ -761,6 +801,7 @@ const HomePage = () => {
           // 更新統計：移除收藏
           await updateTripStats(tripId, 'favorite_remove');
           console.log('取消收藏成功:', tripId);
+          showToast('已取消收藏');
         } else {
           throw new Error(response.data.message || '取消收藏失敗');
         }
@@ -779,6 +820,7 @@ const HomePage = () => {
           // 更新統計：添加收藏
           await updateTripStats(tripId, 'favorite_add');
           console.log('新增收藏成功:', tripId);
+          showToast('已加入收藏');
         } else {
           throw new Error(response.data.message || '新增收藏失敗');
         }
@@ -960,6 +1002,14 @@ const HomePage = () => {
     }
     // 修正導航到正確的收藏頁面
     window.location.href = '/favorites';
+  };
+
+  // Toast 狀態
+  const [toast, setToast] = useState({ show: false, message: '' });
+  // 顯示 Toast
+  const showToast = (msg) => {
+    setToast({ show: true, message: msg });
+    setTimeout(() => setToast({ show: false, message: '' }), 2000);
   };
 
   if (!mounted) {
@@ -1965,6 +2015,10 @@ const HomePage = () => {
           onLogin={handleLogin}
           isLoading={loginLoading}
         />
+        {/* Toast 提示 */}
+        {toast.show && (
+          <Toast message={toast.message} onClose={() => setToast({ show: false, message: '' })} />
+        )}
       </div>
     </ClientOnly>
   );
