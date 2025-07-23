@@ -300,46 +300,59 @@ const LineLoginModal = ({ isOpen, onClose, onLogin, isLoading }) => {
     </div>
   );
 };
-// Toast 元件
-const Toast = ({ message, onClose }) => (
-  <div style={{
-    position: 'fixed',
-    bottom: '40px',
-    left: '50%',
-    transform: 'translateX(-50%)',
-    background: '#323232',
-    color: 'white',
-    padding: '14px 32px',
-    borderRadius: '24px',
-    fontSize: '16px',
-    fontWeight: '500',
-    boxShadow: '0 4px 16px rgba(0,0,0,0.15)',
-    zIndex: 9999,
-    opacity: 0.95,
-    display: 'flex',
-    alignItems: 'center',
-    gap: '12px',
-    animation: 'fadeInUp 0.3s',
-  }}>
-    <span>🔔</span>
-    <span>{message}</span>
-    <button onClick={onClose} style={{
-      background: 'none',
-      border: 'none',
+// Toast 元件（支援多類型與佇列）
+const Toast = ({ message, type = 'info', onClose }) => {
+  // 顏色對應
+  const typeMap = {
+    success: { bg: '#22c55e', icon: '✅' },
+    error: { bg: '#ef4444', icon: '❌' },
+    warning: { bg: '#f59e42', icon: '⚠️' },
+    info: { bg: '#323232', icon: '🔔' }
+  };
+  const { bg, icon } = typeMap[type] || typeMap.info;
+  return (
+    <div style={{
+      position: 'fixed',
+      bottom: '40px',
+      left: '50%',
+      transform: 'translateX(-50%)',
+      background: bg,
       color: 'white',
-      fontSize: '18px',
-      marginLeft: '12px',
-      cursor: 'pointer',
-      opacity: 0.7
-    }}>×</button>
-    <style jsx>{`
-      @keyframes fadeInUp {
-        from { opacity: 0; transform: translateY(30px) translateX(-50%); }
-        to { opacity: 0.95; transform: translateY(0) translateX(-50%); }
-      }
-    `}</style>
-  </div>
-);
+      padding: '14px 32px',
+      borderRadius: '24px',
+      fontSize: '16px',
+      fontWeight: '500',
+      boxShadow: '0 4px 16px rgba(0,0,0,0.15)',
+      zIndex: 9999,
+      opacity: 0.95,
+      display: 'flex',
+      alignItems: 'center',
+      gap: '12px',
+      animation: 'fadeInUp 0.3s',
+      minWidth: '220px',
+      maxWidth: '90vw',
+      wordBreak: 'break-all',
+    }}>
+      <span>{icon}</span>
+      <span>{message}</span>
+      <button onClick={onClose} style={{
+        background: 'none',
+        border: 'none',
+        color: 'white',
+        fontSize: '18px',
+        marginLeft: '12px',
+        cursor: 'pointer',
+        opacity: 0.7
+      }}>×</button>
+      <style jsx>{`
+        @keyframes fadeInUp {
+          from { opacity: 0; transform: translateY(30px) translateX(-50%); }
+          to { opacity: 0.95; transform: translateY(0) translateX(-50%); }
+        }
+      `}</style>
+    </div>
+  );
+};
 const HomePage = () => {
   // 核心狀態
   const [trips, setTrips] = useState([]);
@@ -368,6 +381,11 @@ const HomePage = () => {
   const [searchHistory, setSearchHistory] = useState([]);
   const [debouncedSearchKeyword, setDebouncedSearchKeyword] = useState('');
   const [isTyping, setIsTyping] = useState(false);
+  // infinite scroll 狀態
+  const [searchOffset, setSearchOffset] = useState(0);
+  const [searchHasMore, setSearchHasMore] = useState(false);
+  const searchLimit = 20;
+  const loaderRef = React.useRef();
 
   // 收藏狀態
   const [favorites, setFavorites] = useState(new Set());
@@ -439,11 +457,29 @@ const HomePage = () => {
   // 搜尋執行
   useEffect(() => {
     if (debouncedSearchKeyword.trim().length > 0) {
-      performSearch(debouncedSearchKeyword.trim());
+      // 新搜尋，重設 offset
+      setSearchResults([]);
+      setSearchOffset(0);
+      setSearchHasMore(false);
+      performSearch(debouncedSearchKeyword.trim(), false, 0);
     } else if (!debouncedSearchKeyword.trim() && isSearchMode) {
       clearSearch();
     }
   }, [debouncedSearchKeyword]);
+
+  // infinite scroll observer
+  useEffect(() => {
+    if (!isSearchMode || !searchHasMore || searchLoading) return;
+    const observer = new window.IntersectionObserver(entries => {
+      if (entries[0].isIntersecting) {
+        performSearch(searchKeyword, true, searchOffset);
+      }
+    }, { threshold: 1 });
+    if (loaderRef.current) observer.observe(loaderRef.current);
+    return () => {
+      if (loaderRef.current) observer.unobserve(loaderRef.current);
+    };
+  }, [isSearchMode, searchHasMore, searchLoading, searchKeyword, searchOffset]);
 
   // 搜尋歷史管理
   const loadSearchHistory = () => {
@@ -558,10 +594,23 @@ const HomePage = () => {
 
   const fetchStatistics = async () => {
     if (!mounted) return;
-
+    // localStorage 快取
+    try {
+      const cache = localStorage.getItem('tripStatisticsCache');
+      if (cache) {
+        const { data, ts } = JSON.parse(cache);
+        if (Date.now() - ts < 3600 * 1000) {
+          setStatistics(data);
+          return;
+        }
+      }
+    } catch (e) { /* 忽略快取錯誤 */ }
     try {
       const response = await axios.get('/api/trip-statistics');
       setStatistics(response.data);
+      try {
+        localStorage.setItem('tripStatisticsCache', JSON.stringify({ data: response.data, ts: Date.now() }));
+      } catch (e) { }
     } catch (err) {
       console.error('獲取統計資料失敗:', err);
     }
@@ -569,10 +618,23 @@ const HomePage = () => {
 
   const fetchAreas = async () => {
     if (!mounted) return;
-
+    // localStorage 快取
+    try {
+      const cache = localStorage.getItem('tripAreasCache');
+      if (cache) {
+        const { data, ts } = JSON.parse(cache);
+        if (Date.now() - ts < 3600 * 1000) {
+          setAreas(data);
+          return;
+        }
+      }
+    } catch (e) { /* 忽略快取錯誤 */ }
     try {
       const response = await axios.get('/api/get-filters');
       setAreas(response.data.areas || []);
+      try {
+        localStorage.setItem('tripAreasCache', JSON.stringify({ data: response.data.areas || [], ts: Date.now() }));
+      } catch (e) { }
     } catch (err) {
       console.error('獲取地區失敗:', err);
     }
@@ -687,38 +749,42 @@ const HomePage = () => {
   }, [pagination.totalPages, loading]);
 
   // 搜尋功能
-  const performSearch = useCallback(async (keyword) => {
+  const performSearch = useCallback(async (keyword, append = false, offset = 0) => {
     if (!keyword.trim()) {
       setIsSearchMode(false);
       setSearchResults([]);
+      setSearchOffset(0);
+      setSearchHasMore(false);
       return;
     }
-
     setSearchLoading(true);
     setIsSearchMode(true);
-
     try {
       const response = await axios.get('/api/search-trips', {
         params: {
           keyword: keyword.trim(),
-          limit: 50
+          limit: searchLimit,
+          offset: offset
         },
         timeout: 8000
       });
-
       if (response.data?.success && response.data?.trips) {
-        setSearchResults(response.data.trips);
+        setSearchResults(prev => append ? [...prev, ...response.data.trips] : response.data.trips);
+        setSearchHasMore(response.data.pagination?.hasMore || false);
+        setSearchOffset(offset + response.data.trips.length);
       } else {
         setSearchResults([]);
+        setSearchHasMore(false);
+        setSearchOffset(0);
       }
-
       setError(null);
       saveSearchHistory(keyword.trim());
-
     } catch (error) {
       console.error('搜尋失敗:', error);
       setError('搜尋失敗，請稍後再試');
       setSearchResults([]);
+      setSearchHasMore(false);
+      setSearchOffset(0);
       saveSearchHistory(keyword.trim());
     } finally {
       setSearchLoading(false);
@@ -748,6 +814,8 @@ const HomePage = () => {
     setDebouncedSearchKeyword('');
     setIsSearchMode(false);
     setSearchResults([]);
+    setSearchOffset(0);
+    setSearchHasMore(false);
     setError(null);
     setIsTyping(false);
   };
@@ -758,98 +826,74 @@ const HomePage = () => {
   // 收藏功能
   const toggleFavorite = async (tripId, event) => {
     event.stopPropagation();
-
-    // 防止重複點擊
-    if (favoriteLoading[tripId]) {
-      return;
-    }
-
-    // 如果未登入，提示用戶登入，但不強制
+    if (favoriteLoading[tripId]) return;
     if (!isLineLoggedIn()) {
       const shouldLogin = confirm('需要登入 LINE 才能使用收藏功能，是否要立即登入？');
-      if (shouldLogin) {
-        setShowLoginModal(true);
-      }
+      if (shouldLogin) setShowLoginModal(true);
       return;
     }
-
     const userId = getCurrentUserId();
     if (!userId) {
       alert('無法獲取用戶資訊，請重新登入');
       return;
     }
-
     setFavoriteLoading(prev => ({ ...prev, [tripId]: true }));
-
+    const isFavorited = favorites.has(tripId);
+    // optimistic update
+    let rollback = false;
+    if (isFavorited) {
+      setFavorites(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(tripId);
+        return newSet;
+      });
+    } else {
+      setFavorites(prev => new Set([...prev, tripId]));
+    }
     try {
-      const isFavorited = favorites.has(tripId);
-
       if (isFavorited) {
-        // 取消收藏
         const response = await axios.delete('/api/user-favorites', {
           data: { line_user_id: userId, trip_id: tripId },
           timeout: 10000
         });
-
         if (response.data.success) {
-          setFavorites(prev => {
-            const newSet = new Set(prev);
-            newSet.delete(tripId);
-            return newSet;
-          });
-
-          // 更新統計：移除收藏
           await updateTripStats(tripId, 'favorite_remove');
-          console.log('取消收藏成功:', tripId);
-          showToast('已取消收藏');
+          showToast('已取消收藏', 'success');
         } else {
+          rollback = true;
           throw new Error(response.data.message || '取消收藏失敗');
         }
       } else {
-        // 新增收藏
         const response = await axios.post('/api/user-favorites', {
           line_user_id: userId,
           trip_id: tripId
-        }, {
-          timeout: 10000
-        });
-
+        }, { timeout: 10000 });
         if (response.data.success) {
-          setFavorites(prev => new Set([...prev, tripId]));
-
-          // 更新統計：添加收藏
           await updateTripStats(tripId, 'favorite_add');
-          console.log('新增收藏成功:', tripId);
-          showToast('已加入收藏');
+          showToast('已加入收藏', 'success');
         } else {
+          rollback = true;
           throw new Error(response.data.message || '新增收藏失敗');
         }
       }
     } catch (err) {
-      console.error('收藏操作失敗:', err);
-
-      // 更詳細的錯誤處理
+      // 回滾
+      setFavorites(prev => {
+        const newSet = new Set(prev);
+        if (isFavorited) newSet.add(tripId);
+        else newSet.delete(tripId);
+        return newSet;
+      });
       let errorMessage = '操作失敗，請稍後再試';
-
       if (err.response) {
         const status = err.response.status;
         const serverMessage = err.response.data?.message || '';
-
         switch (status) {
-          case 400:
-            errorMessage = '請求參數錯誤';
-            break;
-          case 404:
-            errorMessage = '行程不存在';
-            break;
-          case 409:
-            errorMessage = '已經收藏此行程';
-            break;
-          case 500:
-            errorMessage = `伺服器錯誤：${serverMessage}`;
-            break;
-          default:
-            errorMessage = `操作失敗 (${status})：${serverMessage}`;
+          case 400: errorMessage = '請求參數錯誤'; break;
+          case 404: errorMessage = '行程不存在'; break;
+          case 409: errorMessage = '已經收藏此行程'; break;
+          case 500: errorMessage = `伺服器錯誤：${serverMessage}`; break;
+          default: errorMessage = `操作失敗 (${status})：${serverMessage}`;
         }
       } else if (err.request) {
         errorMessage = '網路連接失敗，請檢查網路連接';
@@ -858,8 +902,7 @@ const HomePage = () => {
       } else {
         errorMessage = err.message || '發生未知錯誤';
       }
-
-      alert(errorMessage);
+      showToast(errorMessage, 'error');
     } finally {
       setFavoriteLoading(prev => ({ ...prev, [tripId]: false }));
     }
@@ -1004,13 +1047,25 @@ const HomePage = () => {
     window.location.href = '/favorites';
   };
 
-  // Toast 狀態
-  const [toast, setToast] = useState({ show: false, message: '' });
-  // 顯示 Toast
-  const showToast = (msg) => {
-    setToast({ show: true, message: msg });
-    setTimeout(() => setToast({ show: false, message: '' }), 2000);
+  // HomePage 內 Toast 狀態與 showToast 優化
+  const [toastQueue, setToastQueue] = useState([]); // [{message, type, id}]
+  const [currentToast, setCurrentToast] = useState(null);
+
+  const showToast = (msg, type = 'info') => {
+    const id = Date.now() + Math.random();
+    setToastQueue(q => [...q, { message: msg, type, id }]);
   };
+
+  useEffect(() => {
+    if (!currentToast && toastQueue.length > 0) {
+      setCurrentToast(toastQueue[0]);
+      const timer = setTimeout(() => {
+        setCurrentToast(null);
+        setToastQueue(q => q.slice(1));
+      }, 2200);
+      return () => clearTimeout(timer);
+    }
+  }, [toastQueue, currentToast]);
 
   if (!mounted) {
     return null;
@@ -1975,6 +2030,12 @@ const HomePage = () => {
                     </div>
                   </div>
                 ))}
+                {/* infinite scroll 載入更多 */}
+                {isSearchMode && (
+                  <div ref={loaderRef} style={{ minHeight: '32px', textAlign: 'center', margin: '16px 0' }}>
+                    {searchLoading ? '載入中...' : (searchHasMore ? '繼續下滑載入更多...' : '— 沒有更多結果 —')}
+                  </div>
+                )}
               </div>
             )}
           </>
@@ -2016,8 +2077,8 @@ const HomePage = () => {
           isLoading={loginLoading}
         />
         {/* Toast 提示 */}
-        {toast.show && (
-          <Toast message={toast.message} onClose={() => setToast({ show: false, message: '' })} />
+        {currentToast && (
+          <Toast message={currentToast.message} type={currentToast.type} onClose={() => { setCurrentToast(null); setToastQueue(q => q.slice(1)); }} />
         )}
       </div>
     </ClientOnly>
