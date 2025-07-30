@@ -139,44 +139,40 @@ function generateTripDetails(trip, days) {
     }
 
     for (let day = 1; day <= days; day++) {
-        // 每天安排1-2個主要景點
-        const dailyAttractions = Math.floor(Math.random() * 2) + 1;
+        // 每天只安排1個主要景點
         const shuffledAttractions = [...attractions].sort(() => Math.random() - 0.5);
+        const attraction = shuffledAttractions[0]; // 只取第一個景點
 
-        for (let i = 0; i < Math.min(dailyAttractions, shuffledAttractions.length); i++) {
-            const attraction = shuffledAttractions[i];
+        // 生成更合理的時間範圍
+        const startHour = Math.floor(Math.random() * 4) + 8; // 8:00 - 11:00
+        const startMinute = Math.floor(Math.random() * 4) * 15; // 0, 15, 30, 45
+        const startTime = `${startHour.toString().padStart(2, '0')}:${startMinute.toString().padStart(2, '0')}`;
 
-            // 生成更合理的時間範圍
-            const startHour = Math.floor(Math.random() * 4) + 8; // 8:00 - 11:00
-            const startMinute = Math.floor(Math.random() * 4) * 15; // 0, 15, 30, 45
-            const startTime = `${startHour.toString().padStart(2, '0')}:${startMinute.toString().padStart(2, '0')}`;
+        // 結束時間在開始時間後6-10小時
+        const duration = Math.floor(Math.random() * 5) + 6;
+        const endHour = (startHour + duration) % 24;
+        const endTime = `${endHour.toString().padStart(2, '0')}:${startMinute.toString().padStart(2, '0')}`;
 
-            // 結束時間在開始時間後6-10小時
-            const duration = Math.floor(Math.random() * 5) + 6;
-            const endHour = (startHour + duration) % 24;
-            const endTime = `${endHour.toString().padStart(2, '0')}:${startMinute.toString().padStart(2, '0')}`;
+        const date = new Date(trip.start_date);
+        date.setDate(date.getDate() + day - 1);
 
-            const date = new Date(trip.start_date);
-            date.setDate(date.getDate() + day - 1);
+        // 格式化日期為中文格式
+        const year = date.getFullYear();
+        const month = date.getMonth() + 1;
+        const dayOfMonth = date.getDate();
+        const weekdays = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'];
+        const weekday = weekdays[date.getDay()];
 
-            // 格式化日期為中文格式
-            const year = date.getFullYear();
-            const month = date.getMonth() + 1;
-            const dayOfMonth = date.getDate();
-            const weekdays = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'];
-            const weekday = weekdays[date.getDay()];
+        const formattedDate = `${year}年${month}月${dayOfMonth}日 ${weekday}`;
 
-            const formattedDate = `${year}年${month}月${dayOfMonth}日 ${weekday}`;
-
-            details.push({
-                trip_id: trip.trip_id,
-                location: `${attraction.name}`,
-                date: date.toISOString().split('T')[0],
-                start_time: startTime,
-                end_time: endTime,
-                description: `${formattedDate}\n${startTime} - ${endTime}\n${attraction.name}`
-            });
-        }
+        details.push({
+            trip_id: trip.trip_id,
+            location: `${attraction.name}`,
+            date: date.toISOString().split('T')[0],
+            start_time: startTime,
+            end_time: endTime,
+            description: `${formattedDate}\n${startTime} - ${endTime}\n${attraction.name}`
+        });
     }
 
     return details;
