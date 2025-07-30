@@ -11,7 +11,25 @@ const countryAttractions = {
             { name: '東京迪士尼樂園・迪士尼海洋', description: '夢幻的迪士尼世界，適合親子遊玩' },
             { name: '上野公園・動物園', description: '春季賞櫻勝地，還有動物園和博物館' },
             { name: '秋葉原・電器街', description: '電器街，動漫愛好者的天堂' },
-            { name: '銀座・築地市場', description: '高級購物區，精品店林立' }
+            { name: '銀座・築地市場', description: '高級購物區，精品店林立' },
+            { name: '台場・彩虹橋', description: '現代化海濱區域，購物娛樂中心' },
+            { name: '新宿御苑・都廳', description: '都市綠洲，春季賞櫻勝地' },
+            { name: '池袋・陽光城', description: '購物娛樂中心，水族館和展望台' },
+            { name: '六本木・東京中城', description: '時尚藝術區，現代建築群' }
+        ],
+        'tokyo': [
+            { name: '淺草寺・雷門', description: '東京最古老的寺廟，感受傳統日本文化' },
+            { name: '東京晴空塔・墨田水族館', description: '東京地標，俯瞰整個城市美景' },
+            { name: '澀谷十字路口・忠犬八公像', description: '世界最繁忙的十字路口，體驗東京的活力' },
+            { name: '明治神宮・原宿竹下通', description: '莊嚴的神社，體驗日本傳統婚禮文化' },
+            { name: '東京迪士尼樂園・迪士尼海洋', description: '夢幻的迪士尼世界，適合親子遊玩' },
+            { name: '上野公園・動物園', description: '春季賞櫻勝地，還有動物園和博物館' },
+            { name: '秋葉原・電器街', description: '電器街，動漫愛好者的天堂' },
+            { name: '銀座・築地市場', description: '高級購物區，精品店林立' },
+            { name: '台場・彩虹橋', description: '現代化海濱區域，購物娛樂中心' },
+            { name: '新宿御苑・都廳', description: '都市綠洲，春季賞櫻勝地' },
+            { name: '池袋・陽光城', description: '購物娛樂中心，水族館和展望台' },
+            { name: '六本木・東京中城', description: '時尚藝術區，現代建築群' }
         ],
         '大阪': [
             { name: '大阪城', description: '日本三大名城之一，歷史文化遺產' },
@@ -104,13 +122,21 @@ function generateRandomTime() {
 // 生成行程詳細內容
 function generateTripDetails(trip, days) {
     const details = [];
-    const country = trip.area || '日本'; // 預設為日本
-    const cities = countryAttractions[country] || countryAttractions['日本'];
+    const area = trip.area || '日本'; // 預設為日本
 
-    // 隨機選擇城市
-    const cityNames = Object.keys(cities);
-    const selectedCity = cityNames[Math.floor(Math.random() * cityNames.length)];
-    const attractions = cities[selectedCity];
+    // 根據地區選擇對應的景點
+    let attractions = [];
+
+    // 檢查是否有直接對應的地區
+    if (countryAttractions['日本'][area]) {
+        attractions = countryAttractions['日本'][area];
+    } else {
+        // 如果沒有直接對應的地區，隨機選擇一個城市
+        const cities = countryAttractions['日本'];
+        const cityNames = Object.keys(cities);
+        const selectedCity = cityNames[Math.floor(Math.random() * cityNames.length)];
+        attractions = cities[selectedCity];
+    }
 
     for (let day = 1; day <= days; day++) {
         // 每天安排1-2個主要景點
