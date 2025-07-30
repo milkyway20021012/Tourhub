@@ -17,7 +17,7 @@ export default async function handler(req, res) {
         // 1. 測試數據庫連接
         console.log('🔌 測試數據庫連接...');
         try {
-            const connectionTest = await query('SELECT 1 as test, NOW() as current_time');
+            const connectionTest = await query('SELECT 1 as test');
             results.database = {
                 status: 'connected',
                 test_result: connectionTest[0],
