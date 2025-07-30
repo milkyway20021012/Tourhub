@@ -1,0 +1,266 @@
+import { query } from '../../lib/db';
+
+// 各國家的景點資料庫（簡化版，與 add-trip-details.js 相同）
+const countryAttractions = {
+    '日本': {
+        '東京': [
+            { name: '淺草寺・雷門', description: '東京最古老的寺廟，感受傳統日本文化' },
+            { name: '東京晴空塔・墨田水族館', description: '東京地標，俯瞰整個城市美景' },
+            { name: '澀谷十字路口・忠犬八公像', description: '世界最繁忙的十字路口，體驗東京的活力' },
+            { name: '明治神宮・原宿竹下通', description: '莊嚴的神社，體驗日本傳統婚禮文化' },
+            { name: '東京迪士尼樂園・迪士尼海洋', description: '夢幻的迪士尼世界，適合親子遊玩' },
+            { name: '上野公園・動物園', description: '春季賞櫻勝地，還有動物園和博物館' },
+            { name: '秋葉原・電器街', description: '電器街，動漫愛好者的天堂' },
+            { name: '銀座・築地市場', description: '高級購物區，精品店林立' }
+        ],
+        '大阪': [
+            { name: '大阪城', description: '日本三大名城之一，歷史文化遺產' },
+            { name: '道頓堀', description: '美食天堂，品嚐大阪特色小吃' },
+            { name: '環球影城', description: '刺激的遊樂設施和哈利波特世界' },
+            { name: '天保山摩天輪', description: '欣賞大阪港美景' },
+            { name: '心齋橋', description: '購物天堂，時尚品牌聚集地' },
+            { name: '通天閣', description: '大阪地標，新世界區域的象徵' },
+            { name: '大阪水族館', description: '世界最大的水族館之一' },
+            { name: '四天王寺', description: '日本最古老的寺廟之一' }
+        ],
+        '京都': [
+            { name: '金閣寺', description: '世界文化遺產，金碧輝煌的寺廟' },
+            { name: '清水寺', description: '京都最著名的寺廟，櫻花季節絕美' },
+            { name: '伏見稻荷大社', description: '千本鳥居，神秘的狐狸神社' },
+            { name: '嵐山竹林', description: '寧靜的竹林小徑，竹林禪意' },
+            { name: '二条城', description: '德川幕府的權力象徵' },
+            { name: '祇園', description: '藝伎文化，傳統日本風情' },
+            { name: '銀閣寺', description: '簡樸優雅的禪宗寺廟' },
+            { name: '天龍寺', description: '世界文化遺產，禪宗名寺' }
+        ],
+        '北海道': [
+            { name: '札幌市區・大通公園', description: '北海道開拓時代的象徵' },
+            { name: '小樽運河・堺町通り', description: '浪漫的運河夜景，玻璃工藝品' },
+            { name: '富良野薰衣草田', description: '夏季紫色花海，浪漫滿分' },
+            { name: '美瑛青池・白鬚瀑布', description: '神秘的藍色池塘，如夢似幻' },
+            { name: '函館山夜景・朝市', description: '世界三大夜景之一' },
+            { name: '登別地獄谷・熊牧場', description: '日本著名溫泉鄉，地獄谷奇景' },
+            { name: '新千歲機場商圈', description: '機場周邊購物美食' },
+            { name: '洞爺湖・昭和新山', description: '火山湖美景，溫泉度假勝地' }
+        ]
+    },
+    '韓國': {
+        '首爾': [
+            { name: '景福宮', description: '朝鮮王朝正宮，傳統韓式建築' },
+            { name: '明洞', description: '購物天堂，美妝和時尚品牌' },
+            { name: '南山首爾塔', description: '首爾地標，浪漫夜景' },
+            { name: '弘大', description: '年輕人聚集地，藝術和美食' },
+            { name: '東大門', description: '24小時購物區，批發市場' },
+            { name: '北村韓屋村', description: '傳統韓式建築群，體驗古朝鮮生活' },
+            { name: '梨花洞壁畫村', description: '藝術壁畫，文青打卡地' },
+            { name: '樂天世界', description: '室內外遊樂園，適合親子' }
+        ]
+    },
+    '泰國': {
+        '曼谷': [
+            { name: '大皇宮', description: '泰國王室宮殿，金碧輝煌' },
+            { name: '臥佛寺', description: '巨大臥佛，傳統泰式按摩發源地' },
+            { name: '鄭王廟', description: '黎明寺，湄南河畔美景' },
+            { name: '考山路', description: '背包客天堂，夜市美食' },
+            { name: '暹羅廣場', description: '現代購物中心，時尚聚集地' },
+            { name: '水上市場', description: '傳統水上交易，體驗泰式生活' },
+            { name: '四面佛', description: '曼谷最靈驗的佛像' },
+            { name: '曼谷藝術文化中心', description: '現代藝術展覽，文青必訪' }
+        ]
+    },
+    '新加坡': {
+        '新加坡': [
+            { name: '濱海灣金沙', description: '三棟大樓相連，無邊際泳池' },
+            { name: '魚尾獅公園', description: '新加坡象徵，必拍地標' },
+            { name: '聖淘沙島', description: '度假勝地，環球影城' },
+            { name: '牛車水', description: '華人聚集地，傳統美食' },
+            { name: '小印度', description: '印度文化區，香料和紗麗' },
+            { name: '烏節路', description: '購物天堂，精品店林立' },
+            { name: '新加坡植物園', description: '世界文化遺產，蘭花園' },
+            { name: '克拉碼頭', description: '河畔酒吧區，夜生活' }
+        ]
+    },
+    '台灣': {
+        '台北': [
+            { name: '台北101', description: '台北地標，世界最高綠建築' },
+            { name: '故宮博物院', description: '中華文化瑰寶，文物展覽' },
+            { name: '士林夜市', description: '台灣最大夜市，美食天堂' },
+            { name: '陽明山國家公園', description: '火山地形，溫泉和花季' },
+            { name: '九份老街', description: '山城風情，宮崎駿靈感來源' },
+            { name: '淡水老街', description: '河岸風光，夕陽美景' },
+            { name: '西門町', description: '年輕人聚集地，時尚購物' },
+            { name: '貓空纜車', description: '茶園風光，夜景迷人' }
+        ]
+    }
+};
+
+// 生成隨機時間
+function generateRandomTime() {
+    const hours = Math.floor(Math.random() * 12) + 8; // 8:00 - 19:00
+    const minutes = Math.floor(Math.random() * 4) * 15; // 0, 15, 30, 45
+    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+}
+
+// 生成行程詳細內容
+function generateTripDetails(trip, days) {
+    const details = [];
+    const country = trip.area || '日本'; // 預設為日本
+    const cities = countryAttractions[country] || countryAttractions['日本'];
+
+    // 隨機選擇城市
+    const cityNames = Object.keys(cities);
+    const selectedCity = cityNames[Math.floor(Math.random() * cityNames.length)];
+    const attractions = cities[selectedCity];
+
+    for (let day = 1; day <= days; day++) {
+        // 每天安排1-2個主要景點
+        const dailyAttractions = Math.floor(Math.random() * 2) + 1;
+        const shuffledAttractions = [...attractions].sort(() => Math.random() - 0.5);
+
+        for (let i = 0; i < Math.min(dailyAttractions, shuffledAttractions.length); i++) {
+            const attraction = shuffledAttractions[i];
+
+            // 生成更合理的時間範圍
+            const startHour = Math.floor(Math.random() * 4) + 8; // 8:00 - 11:00
+            const startMinute = Math.floor(Math.random() * 4) * 15; // 0, 15, 30, 45
+            const startTime = `${startHour.toString().padStart(2, '0')}:${startMinute.toString().padStart(2, '0')}`;
+
+            // 結束時間在開始時間後6-10小時
+            const duration = Math.floor(Math.random() * 5) + 6;
+            const endHour = (startHour + duration) % 24;
+            const endTime = `${endHour.toString().padStart(2, '0')}:${startMinute.toString().padStart(2, '0')}`;
+
+            const date = new Date(trip.start_date);
+            date.setDate(date.getDate() + day - 1);
+
+            // 格式化日期為中文格式
+            const year = date.getFullYear();
+            const month = date.getMonth() + 1;
+            const dayOfMonth = date.getDate();
+            const weekdays = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'];
+            const weekday = weekdays[date.getDay()];
+
+            const formattedDate = `${year}年${month}月${dayOfMonth}日 ${weekday}`;
+
+            details.push({
+                trip_id: trip.trip_id,
+                location: `${attraction.name}`,
+                date: date.toISOString().split('T')[0],
+                start_time: startTime,
+                end_time: endTime,
+                description: `${formattedDate}\n${startTime} - ${endTime}\n${attraction.name}`
+            });
+        }
+    }
+
+    return details;
+}
+
+export default async function handler(req, res) {
+    if (req.method !== 'POST') {
+        return res.status(405).json({ message: '不允許的請求方法' });
+    }
+
+    try {
+        const { limit = 10 } = req.body;
+
+        console.log('batch-add-trip-details API 被呼叫，限制數量:', limit);
+
+        // 獲取沒有詳細行程的行程列表
+        const tripsWithoutDetailsSql = `
+      SELECT 
+        t.trip_id,
+        t.title,
+        t.description,
+        t.start_date,
+        t.end_date,
+        t.area,
+        t.line_user_id,
+        DATEDIFF(t.end_date, t.start_date) + 1 as duration_days
+      FROM line_trips t
+      LEFT JOIN line_trip_details d ON t.trip_id = d.trip_id
+      WHERE d.trip_id IS NULL
+      ORDER BY t.start_date DESC
+      LIMIT ?
+    `;
+
+        const tripsWithoutDetails = await query(tripsWithoutDetailsSql, [parseInt(limit)]);
+
+        if (tripsWithoutDetails.length === 0) {
+            return res.status(200).json({
+                success: true,
+                message: '沒有找到需要添加詳細行程的行程',
+                processed_count: 0,
+                total_details_added: 0
+            });
+        }
+
+        console.log(`找到 ${tripsWithoutDetails.length} 個需要添加詳細行程的行程`);
+
+        const results = [];
+        let totalDetailsAdded = 0;
+
+        // 為每個行程添加詳細內容
+        for (const trip of tripsWithoutDetails) {
+            try {
+                const days = trip.duration_days || 1;
+                const details = generateTripDetails(trip, days);
+
+                // 插入詳細行程到資料庫
+                const insertSql = `
+          INSERT INTO line_trip_details 
+          (trip_id, location, date, start_time, end_time, description) 
+          VALUES (?, ?, ?, ?, ?, ?)
+        `;
+
+                for (const detail of details) {
+                    await query(insertSql, [
+                        detail.trip_id,
+                        detail.location,
+                        detail.date,
+                        detail.start_time,
+                        detail.end_time,
+                        detail.description
+                    ]);
+                }
+
+                results.push({
+                    trip_id: trip.trip_id,
+                    title: trip.title,
+                    success: true,
+                    details_count: details.length,
+                    days: days
+                });
+
+                totalDetailsAdded += details.length;
+
+                console.log(`已為行程「${trip.title}」添加 ${details.length} 個詳細景點`);
+
+            } catch (error) {
+                console.error(`為行程 ${trip.trip_id} 添加詳細內容失敗:`, error);
+                results.push({
+                    trip_id: trip.trip_id,
+                    title: trip.title,
+                    success: false,
+                    error: error.message
+                });
+            }
+        }
+
+        res.status(200).json({
+            success: true,
+            message: `批量處理完成，成功處理 ${results.filter(r => r.success).length} 個行程`,
+            processed_count: results.length,
+            total_details_added: totalDetailsAdded,
+            results: results
+        });
+
+    } catch (error) {
+        console.error('batch-add-trip-details API 錯誤:', error);
+        res.status(500).json({
+            success: false,
+            message: '伺服器錯誤',
+            error: error.message
+        });
+    }
+} 

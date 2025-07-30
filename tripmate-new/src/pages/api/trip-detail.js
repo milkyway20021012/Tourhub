@@ -45,7 +45,8 @@ export default async function handler(req, res) {
                 location,
                 date,
                 start_time,
-                end_time
+                end_time,
+                description
             FROM line_trip_details 
             WHERE trip_id = ? 
             ORDER BY date ASC, start_time ASC
