@@ -216,10 +216,18 @@ function generateTripDetails(trip, days) {
         attractions = cities[selectedCity];
     }
 
+    // 隨機打亂景點順序，並確保不重複
+    const shuffledAttractions = [...attractions].sort(() => Math.random() - 0.5);
+
+    // 如果景點數量少於行程天數，則重複使用景點（但盡量避免）
+    const availableAttractions = shuffledAttractions.length >= days ?
+        shuffledAttractions.slice(0, days) :
+        shuffledAttractions;
+
     for (let day = 1; day <= days; day++) {
-        // 每天只安排1個主要景點
-        const shuffledAttractions = [...attractions].sort(() => Math.random() - 0.5);
-        const attraction = shuffledAttractions[0]; // 只取第一個景點
+        // 每天只安排1個主要景點，從可用景點中選擇
+        const attractionIndex = (day - 1) % availableAttractions.length;
+        const attraction = availableAttractions[attractionIndex];
 
         // 生成更合理的時間範圍
         const startHour = Math.floor(Math.random() * 4) + 8; // 8:00 - 11:00
