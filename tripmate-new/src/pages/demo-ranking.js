@@ -86,9 +86,29 @@ const DemoRanking = () => {
         }
     ];
 
+    // 模擬收藏狀態
+    const [favorites, setFavorites] = React.useState(new Set());
+
     const handleFavorite = (tripId, event) => {
         event.stopPropagation();
-        console.log('收藏行程:', tripId);
+
+        // 模擬收藏/取消收藏
+        setFavorites(prev => {
+            const newFavorites = new Set(prev);
+            if (newFavorites.has(tripId)) {
+                newFavorites.delete(tripId);
+                console.log('取消收藏行程:', tripId);
+            } else {
+                newFavorites.add(tripId);
+                console.log('收藏行程:', tripId);
+            }
+            return newFavorites;
+        });
+
+        // 模擬異步操作
+        return new Promise(resolve => {
+            setTimeout(resolve, 300);
+        });
     };
 
     const handleShare = (trip, event) => {
@@ -181,7 +201,7 @@ const DemoRanking = () => {
                     <div key={trip.trip_id} className="ranking-card">
                         <TripCard
                             trip={trip}
-                            isFavorited={false}
+                            isFavorited={favorites.has(trip.trip_id)}
                             favoriteLoading={false}
                             onFavorite={(e) => handleFavorite(trip.trip_id, e)}
                             onShare={(e) => handleShare(trip, e)}
