@@ -1000,18 +1000,54 @@ const HomePage = () => {
         <div style={{
           textAlign: 'center',
           marginBottom: '32px',
-          padding: '32px 24px',
+          padding: '40px 32px',
           background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-          borderRadius: '16px',
-          color: 'white'
+          borderRadius: '20px',
+          color: 'white',
+          position: 'relative',
+          overflow: 'hidden',
+          boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)'
         }}>
-          <h1 style={{
-            margin: '0 0 24px 0',
-            fontSize: '32px',
-            fontWeight: '700'
-          }}>
-            Tourhub 行程排行榜
-          </h1>
+          {/* 背景裝飾 */}
+          <div style={{
+            position: 'absolute',
+            top: '-50%',
+            left: '-50%',
+            width: '200%',
+            height: '200%',
+            background: 'radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%)',
+            animation: 'float 6s ease-in-out infinite'
+          }} />
+
+          {/* 排行榜圖標和標題 */}
+          <div style={{ position: 'relative', zIndex: 1 }}>
+            <div style={{
+              fontSize: '48px',
+              marginBottom: '16px',
+              display: 'inline-block',
+              animation: 'bounce 2s infinite'
+            }}>
+              🏆
+            </div>
+            <h1 style={{
+              margin: '0 0 16px 0',
+              fontSize: '36px',
+              fontWeight: '800',
+              letterSpacing: '-0.025em',
+              textShadow: '0 2px 4px rgba(0,0,0,0.1)'
+            }}>
+              Tourhub 行程排行榜
+            </h1>
+            <p style={{
+              margin: '0 0 32px 0',
+              fontSize: '16px',
+              opacity: '0.9',
+              fontWeight: '500',
+              letterSpacing: '0.025em'
+            }}>
+              探索最受歡迎的旅遊行程，發現您的下一個冒險目的地
+            </p>
+          </div>
 
           {/* 用戶資訊 */}
           <div style={{ marginBottom: '16px', color: 'white', textAlign: 'center' }}>
@@ -1092,29 +1128,105 @@ const HomePage = () => {
           {state.statistics && (
             <div style={{
               display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))',
-              gap: '24px',
-              marginTop: '24px'
+              gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
+              gap: '20px',
+              marginTop: '32px',
+              position: 'relative',
+              zIndex: 1
             }}>
-              <div style={{ textAlign: 'center' }}>
-                <div style={{ fontSize: '28px', fontWeight: '700', marginBottom: '4px' }}>
+              <div style={{
+                textAlign: 'center',
+                background: 'rgba(255, 255, 255, 0.15)',
+                borderRadius: '16px',
+                padding: '20px 16px',
+                backdropFilter: 'blur(10px)',
+                border: '1px solid rgba(255, 255, 255, 0.2)',
+                transition: 'all 0.3s ease'
+              }}>
+                <div style={{
+                  fontSize: '32px',
+                  fontWeight: '800',
+                  marginBottom: '8px',
+                  textShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                  background: 'linear-gradient(45deg, #fbbf24, #f59e0b)',
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent',
+                  backgroundClip: 'text'
+                }}>
                   {state.statistics.overview?.totalTrips || 0}
                 </div>
-                <div style={{ fontSize: '14px', opacity: '0.9' }}>總行程</div>
+                <div style={{
+                  fontSize: '14px',
+                  opacity: '0.95',
+                  fontWeight: '600',
+                  letterSpacing: '0.5px'
+                }}>
+                  📊 總行程數
+                </div>
               </div>
-              <div style={{ textAlign: 'center' }}>
-                <div style={{ fontSize: '28px', fontWeight: '700', marginBottom: '4px' }}>
+
+              <div style={{
+                textAlign: 'center',
+                background: 'rgba(255, 255, 255, 0.15)',
+                borderRadius: '16px',
+                padding: '20px 16px',
+                backdropFilter: 'blur(10px)',
+                border: '1px solid rgba(255, 255, 255, 0.2)',
+                transition: 'all 0.3s ease'
+              }}>
+                <div style={{
+                  fontSize: '32px',
+                  fontWeight: '800',
+                  marginBottom: '8px',
+                  textShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                  background: isLineLoggedIn()
+                    ? 'linear-gradient(45deg, #ef4444, #dc2626)'
+                    : 'linear-gradient(45deg, #9ca3af, #6b7280)',
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent',
+                  backgroundClip: 'text'
+                }}>
                   {isLineLoggedIn() ? favorites.size : '--'}
                 </div>
-                <div style={{ fontSize: '14px', opacity: '0.9' }}>
-                  我的收藏 {!isLineLoggedIn() && '(需登入)'}
+                <div style={{
+                  fontSize: '14px',
+                  opacity: '0.95',
+                  fontWeight: '600',
+                  letterSpacing: '0.5px'
+                }}>
+                  ❤️ 我的收藏 {!isLineLoggedIn() && '(需登入)'}
                 </div>
               </div>
-              <div style={{ textAlign: 'center' }}>
-                <div style={{ fontSize: '28px', fontWeight: '700', marginBottom: '4px' }}>
+
+              <div style={{
+                textAlign: 'center',
+                background: 'rgba(255, 255, 255, 0.15)',
+                borderRadius: '16px',
+                padding: '20px 16px',
+                backdropFilter: 'blur(10px)',
+                border: '1px solid rgba(255, 255, 255, 0.2)',
+                transition: 'all 0.3s ease'
+              }}>
+                <div style={{
+                  fontSize: '32px',
+                  fontWeight: '800',
+                  marginBottom: '8px',
+                  textShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                  background: 'linear-gradient(45deg, #10b981, #059669)',
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent',
+                  backgroundClip: 'text'
+                }}>
                   {state.statistics.overview?.avgDuration || 0}
                 </div>
-                <div style={{ fontSize: '14px', opacity: '0.9' }}>平均天數</div>
+                <div style={{
+                  fontSize: '14px',
+                  opacity: '0.95',
+                  fontWeight: '600',
+                  letterSpacing: '0.5px'
+                }}>
+                  ⏰ 平均天數
+                </div>
               </div>
             </div>
           )}
@@ -1136,83 +1248,149 @@ const HomePage = () => {
         {/* 排序選擇器 - 只在非搜尋模式顯示 */}
         {!isSearchMode && (
           <div style={{
-            background: 'white',
-            borderRadius: '12px',
-            padding: '20px',
-            marginBottom: '24px',
-            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-            border: '1px solid #e2e8f0'
+            background: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)',
+            borderRadius: '20px',
+            padding: '28px',
+            marginBottom: '32px',
+            boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+            border: '1px solid #e2e8f0',
+            position: 'relative',
+            overflow: 'hidden'
           }}>
+            {/* 背景裝飾 */}
+            <div style={{
+              position: 'absolute',
+              top: '-50%',
+              right: '-50%',
+              width: '100%',
+              height: '100%',
+              background: 'radial-gradient(circle, rgba(59, 130, 246, 0.05) 0%, transparent 70%)',
+              pointerEvents: 'none'
+            }} />
+
             <div style={{
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
               flexWrap: 'wrap',
-              gap: '16px'
+              gap: '20px',
+              position: 'relative',
+              zIndex: 1
             }}>
               <div style={{
-                fontSize: '18px',
-                fontWeight: '600',
-                color: '#374151'
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px'
               }}>
-                排序方式
+                <div style={{
+                  fontSize: '24px',
+                  background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
+                  borderRadius: '12px',
+                  padding: '8px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
+                  📊
+                </div>
+                <div>
+                  <div style={{
+                    fontSize: '20px',
+                    fontWeight: '700',
+                    color: '#1e293b',
+                    marginBottom: '4px'
+                  }}>
+                    排序方式
+                  </div>
+                  <div style={{
+                    fontSize: '14px',
+                    color: '#64748b',
+                    fontWeight: '500'
+                  }}>
+                    選擇您想要的排序標準
+                  </div>
+                </div>
               </div>
+
               <div style={{
                 display: 'flex',
-                gap: '8px',
-                flexWrap: 'nowrap', // 讓按鈕橫向排列不換行
-                overflowX: 'auto', // 超出螢幕可滑動
-                WebkitOverflowScrolling: 'touch', // iOS 慣性滑動
+                gap: '12px',
+                flexWrap: 'nowrap',
+                overflowX: 'auto',
+                WebkitOverflowScrolling: 'touch',
                 width: '100%',
                 paddingBottom: '4px',
-                scrollbarWidth: 'none', // Firefox 隱藏捲軸
+                scrollbarWidth: 'none',
+                maxWidth: '600px'
               }}>
-                {/* 隱藏捲軸（Chrome/Safari） */}
                 <style>{`
                   ::-webkit-scrollbar { display: none; }
                 `}</style>
                 {[
-                  { key: 'favorites', label: '最多收藏', desc: '收藏數排序' },
-                  { key: 'shares', label: '最多分享', desc: '分享數排序' },
-                  { key: 'views', label: '最多查看', desc: '查看數排序' }
+                  { key: 'favorites', label: '最多收藏', desc: '收藏數排序', icon: '❤️', color: '#ef4444' },
+                  { key: 'shares', label: '最多分享', desc: '分享數排序', icon: '📤', color: '#10b981' },
+                  { key: 'views', label: '最多查看', desc: '查看數排序', icon: '👁️', color: '#3b82f6' }
                 ].map(option => (
                   <button
                     key={option.key}
                     onClick={() => setSortBy(option.key)}
                     style={{
-                      padding: '8px 16px',
-                      border: `2px solid ${sortBy === option.key ? '#3b82f6' : '#e2e8f0'}`,
-                      background: sortBy === option.key ? '#eff6ff' : 'white',
-                      color: sortBy === option.key ? '#1e40af' : '#374151',
-                      borderRadius: '8px',
+                      padding: '16px 20px',
+                      border: `2px solid ${sortBy === option.key ? option.color : '#e2e8f0'}`,
+                      background: sortBy === option.key
+                        ? `linear-gradient(135deg, ${option.color}15 0%, ${option.color}25 100%)`
+                        : 'white',
+                      color: sortBy === option.key ? option.color : '#374151',
+                      borderRadius: '16px',
                       cursor: 'pointer',
                       fontSize: '14px',
-                      fontWeight: sortBy === option.key ? '600' : '500',
-                      transition: 'all 0.2s ease',
+                      fontWeight: sortBy === option.key ? '700' : '600',
+                      transition: 'all 0.3s ease',
                       display: 'flex',
                       flexDirection: 'column',
                       alignItems: 'center',
-                      minWidth: '100px'
+                      minWidth: '120px',
+                      boxShadow: sortBy === option.key
+                        ? `0 4px 12px ${option.color}30`
+                        : '0 2px 4px rgba(0, 0, 0, 0.05)',
+                      transform: sortBy === option.key ? 'translateY(-2px)' : 'translateY(0)',
+                      position: 'relative',
+                      overflow: 'hidden'
                     }}
                     title={option.desc}
                     onMouseEnter={(e) => {
                       if (sortBy !== option.key) {
-                        e.currentTarget.style.borderColor = '#93c5fd';
-                        e.currentTarget.style.background = '#f8fafc';
+                        e.currentTarget.style.borderColor = option.color + '80';
+                        e.currentTarget.style.background = option.color + '10';
+                        e.currentTarget.style.transform = 'translateY(-2px)';
+                        e.currentTarget.style.boxShadow = `0 4px 8px ${option.color}20`;
                       }
                     }}
                     onMouseLeave={(e) => {
                       if (sortBy !== option.key) {
                         e.currentTarget.style.borderColor = '#e2e8f0';
                         e.currentTarget.style.background = 'white';
+                        e.currentTarget.style.transform = 'translateY(0)';
+                        e.currentTarget.style.boxShadow = '0 2px 4px rgba(0, 0, 0, 0.05)';
                       }
                     }}
                   >
-                    <span style={{ marginBottom: '2px' }}>{option.label}</span>
+                    <div style={{
+                      fontSize: '20px',
+                      marginBottom: '8px',
+                      filter: sortBy === option.key ? 'none' : 'grayscale(0.3)'
+                    }}>
+                      {option.icon}
+                    </div>
+                    <span style={{ marginBottom: '4px', textAlign: 'center' }}>
+                      {option.label}
+                    </span>
                     <span style={{
-                      fontSize: '10px',
-                      opacity: 0.7,
-                      color: sortBy === option.key ? '#1e40af' : '#6b7280'
+                      fontSize: '11px',
+                      opacity: 0.8,
+                      color: sortBy === option.key ? option.color : '#6b7280',
+                      textAlign: 'center',
+                      letterSpacing: '0.25px'
                     }}>
                       {option.desc}
                     </span>
@@ -1551,6 +1729,41 @@ const HomePage = () => {
         {currentToast && (
           <CustomToast message={currentToast.message} type={currentToast.type} onClose={() => { setCurrentToast(null); setToastQueue(q => q.slice(1)); }} />
         )}
+
+        {/* 添加CSS動畫 */}
+        <style jsx>{`
+          @keyframes float {
+            0%, 100% { transform: translateY(0px) rotate(0deg); }
+            50% { transform: translateY(-10px) rotate(180deg); }
+          }
+
+          @keyframes bounce {
+            0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+            40% { transform: translateY(-10px); }
+            60% { transform: translateY(-5px); }
+          }
+
+          @keyframes fadeInUp {
+            from {
+              opacity: 0;
+              transform: translateY(30px);
+            }
+            to {
+              opacity: 1;
+              transform: translateY(0);
+            }
+          }
+
+          .ranking-card {
+            animation: fadeInUp 0.6s ease-out;
+          }
+
+          .ranking-card:nth-child(1) { animation-delay: 0.1s; }
+          .ranking-card:nth-child(2) { animation-delay: 0.2s; }
+          .ranking-card:nth-child(3) { animation-delay: 0.3s; }
+          .ranking-card:nth-child(4) { animation-delay: 0.4s; }
+          .ranking-card:nth-child(5) { animation-delay: 0.5s; }
+        `}</style>
       </div>
     </ClientOnly>
   );
