@@ -738,12 +738,7 @@ const FavoritesContent = ({
                                             ⏰ {favorite.duration_days}天
                                         </span>
                                     )}
-                                    {favorite.status && (
-                                        <span style={styles.tag}>
-                                            {favorite.status === '進行中' ? '🔥' :
-                                                favorite.status === '即將出發' ? '🎯' : '✅'} {favorite.status}
-                                        </span>
-                                    )}
+
                                     <span style={{
                                         ...styles.tag,
                                         background: 'linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%)',
