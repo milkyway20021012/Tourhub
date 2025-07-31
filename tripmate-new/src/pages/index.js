@@ -674,7 +674,6 @@ const HomePage = () => {
         const response = await removeFavorite(userId, tripId);
         if (response.data.success) {
           await updateTripStatsWrapper(tripId, 'favorite_remove');
-          showToast('已取消收藏', 'success');
         } else {
           throw new Error(response.data.message || '取消收藏失敗');
         }
@@ -682,7 +681,6 @@ const HomePage = () => {
         const response = await addFavorite(userId, tripId);
         if (response.data.success) {
           await updateTripStatsWrapper(tripId, 'favorite_add');
-          showToast('已加入收藏', 'success');
         } else {
           throw new Error(response.data.message || '新增收藏失敗');
         }
