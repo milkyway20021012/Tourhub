@@ -992,17 +992,17 @@ const HomePage = () => {
       <div className="main" style={{
         maxWidth: '1200px',
         margin: '0 auto',
-        padding: '20px',
+        padding: typeof window !== 'undefined' && window.innerWidth <= 768 ? '12px' : '20px',
         minHeight: '100vh',
         background: '#f8fafc'
       }}>
         {/* 標題區域 */}
         <div style={{
           textAlign: 'center',
-          marginBottom: '32px',
-          padding: '40px 32px',
+          marginBottom: typeof window !== 'undefined' && window.innerWidth <= 768 ? '24px' : '32px',
+          padding: typeof window !== 'undefined' && window.innerWidth <= 768 ? '24px 16px' : '40px 32px',
           background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-          borderRadius: '20px',
+          borderRadius: typeof window !== 'undefined' && window.innerWidth <= 768 ? '16px' : '20px',
           color: 'white',
           position: 'relative',
           overflow: 'hidden',
@@ -1022,28 +1022,30 @@ const HomePage = () => {
           {/* 排行榜圖標和標題 */}
           <div style={{ position: 'relative', zIndex: 1 }}>
             <div style={{
-              fontSize: '48px',
-              marginBottom: '16px',
+              fontSize: typeof window !== 'undefined' && window.innerWidth <= 768 ? '36px' : '48px',
+              marginBottom: typeof window !== 'undefined' && window.innerWidth <= 768 ? '12px' : '16px',
               display: 'inline-block',
               animation: 'bounce 2s infinite'
             }}>
               🏆
             </div>
             <h1 style={{
-              margin: '0 0 16px 0',
-              fontSize: '36px',
+              margin: '0 0 12px 0',
+              fontSize: typeof window !== 'undefined' && window.innerWidth <= 768 ? '24px' : '36px',
               fontWeight: '800',
               letterSpacing: '-0.025em',
-              textShadow: '0 2px 4px rgba(0,0,0,0.1)'
+              textShadow: '0 2px 4px rgba(0,0,0,0.1)',
+              lineHeight: '1.2'
             }}>
               Tourhub 行程排行榜
             </h1>
             <p style={{
-              margin: '0 0 32px 0',
-              fontSize: '16px',
+              margin: typeof window !== 'undefined' && window.innerWidth <= 768 ? '0 0 20px 0' : '0 0 32px 0',
+              fontSize: typeof window !== 'undefined' && window.innerWidth <= 768 ? '14px' : '16px',
               opacity: '0.9',
               fontWeight: '500',
-              letterSpacing: '0.025em'
+              letterSpacing: '0.025em',
+              lineHeight: '1.4'
             }}>
               探索最受歡迎的旅遊行程，發現您的下一個冒險目的地
             </p>
@@ -1128,9 +1130,11 @@ const HomePage = () => {
           {state.statistics && (
             <div style={{
               display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
-              gap: '20px',
-              marginTop: '32px',
+              gridTemplateColumns: typeof window !== 'undefined' && window.innerWidth <= 768
+                ? 'repeat(auto-fit, minmax(100px, 1fr))'
+                : 'repeat(auto-fit, minmax(140px, 1fr))',
+              gap: typeof window !== 'undefined' && window.innerWidth <= 768 ? '12px' : '20px',
+              marginTop: typeof window !== 'undefined' && window.innerWidth <= 768 ? '20px' : '32px',
               position: 'relative',
               zIndex: 1
             }}>
@@ -1144,7 +1148,7 @@ const HomePage = () => {
                 transition: 'all 0.3s ease'
               }}>
                 <div style={{
-                  fontSize: '32px',
+                  fontSize: typeof window !== 'undefined' && window.innerWidth <= 768 ? '24px' : '32px',
                   fontWeight: '800',
                   marginBottom: '8px',
                   textShadow: '0 2px 4px rgba(0,0,0,0.1)',
@@ -1156,7 +1160,7 @@ const HomePage = () => {
                   {state.statistics.overview?.totalTrips || 0}
                 </div>
                 <div style={{
-                  fontSize: '14px',
+                  fontSize: typeof window !== 'undefined' && window.innerWidth <= 768 ? '12px' : '14px',
                   opacity: '0.95',
                   fontWeight: '600',
                   letterSpacing: '0.5px'
@@ -1249,9 +1253,9 @@ const HomePage = () => {
         {!isSearchMode && (
           <div style={{
             background: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)',
-            borderRadius: '20px',
-            padding: '28px',
-            marginBottom: '32px',
+            borderRadius: typeof window !== 'undefined' && window.innerWidth <= 768 ? '16px' : '20px',
+            padding: typeof window !== 'undefined' && window.innerWidth <= 768 ? '20px' : '28px',
+            marginBottom: typeof window !== 'undefined' && window.innerWidth <= 768 ? '24px' : '32px',
             boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
             border: '1px solid #e2e8f0',
             position: 'relative',
@@ -1295,7 +1299,7 @@ const HomePage = () => {
                 </div>
                 <div>
                   <div style={{
-                    fontSize: '20px',
+                    fontSize: typeof window !== 'undefined' && window.innerWidth <= 768 ? '18px' : '20px',
                     fontWeight: '700',
                     color: '#1e293b',
                     marginBottom: '4px'
@@ -1303,7 +1307,7 @@ const HomePage = () => {
                     排序方式
                   </div>
                   <div style={{
-                    fontSize: '14px',
+                    fontSize: typeof window !== 'undefined' && window.innerWidth <= 768 ? '13px' : '14px',
                     color: '#64748b',
                     fontWeight: '500'
                   }}>
@@ -1314,14 +1318,14 @@ const HomePage = () => {
 
               <div style={{
                 display: 'flex',
-                gap: '12px',
+                gap: typeof window !== 'undefined' && window.innerWidth <= 768 ? '8px' : '12px',
                 flexWrap: 'nowrap',
                 overflowX: 'auto',
                 WebkitOverflowScrolling: 'touch',
                 width: '100%',
                 paddingBottom: '4px',
                 scrollbarWidth: 'none',
-                maxWidth: '600px'
+                maxWidth: typeof window !== 'undefined' && window.innerWidth <= 768 ? '100%' : '600px'
               }}>
                 <style>{`
                   ::-webkit-scrollbar { display: none; }
@@ -1335,21 +1339,21 @@ const HomePage = () => {
                     key={option.key}
                     onClick={() => setSortBy(option.key)}
                     style={{
-                      padding: '16px 20px',
+                      padding: typeof window !== 'undefined' && window.innerWidth <= 768 ? '12px 16px' : '16px 20px',
                       border: `2px solid ${sortBy === option.key ? option.color : '#e2e8f0'}`,
                       background: sortBy === option.key
                         ? `linear-gradient(135deg, ${option.color}15 0%, ${option.color}25 100%)`
                         : 'white',
                       color: sortBy === option.key ? option.color : '#374151',
-                      borderRadius: '16px',
+                      borderRadius: typeof window !== 'undefined' && window.innerWidth <= 768 ? '12px' : '16px',
                       cursor: 'pointer',
-                      fontSize: '14px',
+                      fontSize: typeof window !== 'undefined' && window.innerWidth <= 768 ? '12px' : '14px',
                       fontWeight: sortBy === option.key ? '700' : '600',
                       transition: 'all 0.3s ease',
                       display: 'flex',
                       flexDirection: 'column',
                       alignItems: 'center',
-                      minWidth: '120px',
+                      minWidth: typeof window !== 'undefined' && window.innerWidth <= 768 ? '90px' : '120px',
                       boxShadow: sortBy === option.key
                         ? `0 4px 12px ${option.color}30`
                         : '0 2px 4px rgba(0, 0, 0, 0.05)',
@@ -1376,24 +1380,30 @@ const HomePage = () => {
                     }}
                   >
                     <div style={{
-                      fontSize: '20px',
-                      marginBottom: '8px',
+                      fontSize: typeof window !== 'undefined' && window.innerWidth <= 768 ? '16px' : '20px',
+                      marginBottom: typeof window !== 'undefined' && window.innerWidth <= 768 ? '6px' : '8px',
                       filter: sortBy === option.key ? 'none' : 'grayscale(0.3)'
                     }}>
                       {option.icon}
                     </div>
-                    <span style={{ marginBottom: '4px', textAlign: 'center' }}>
+                    <span style={{
+                      marginBottom: typeof window !== 'undefined' && window.innerWidth <= 768 ? '2px' : '4px',
+                      textAlign: 'center',
+                      fontSize: typeof window !== 'undefined' && window.innerWidth <= 768 ? '11px' : '14px'
+                    }}>
                       {option.label}
                     </span>
-                    <span style={{
-                      fontSize: '11px',
-                      opacity: 0.8,
-                      color: sortBy === option.key ? option.color : '#6b7280',
-                      textAlign: 'center',
-                      letterSpacing: '0.25px'
-                    }}>
-                      {option.desc}
-                    </span>
+                    {typeof window !== 'undefined' && window.innerWidth > 768 && (
+                      <span style={{
+                        fontSize: '11px',
+                        opacity: 0.8,
+                        color: sortBy === option.key ? option.color : '#6b7280',
+                        textAlign: 'center',
+                        letterSpacing: '0.25px'
+                      }}>
+                        {option.desc}
+                      </span>
+                    )}
                   </button>
                 ))}
               </div>

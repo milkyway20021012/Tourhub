@@ -100,21 +100,34 @@ const DemoRanking = () => {
         console.log('查看行程詳情:', tripId);
     };
 
+    // 檢測是否為手機設備
+    const [isMobile, setIsMobile] = React.useState(false);
+
+    React.useEffect(() => {
+        const checkMobile = () => {
+            setIsMobile(window.innerWidth <= 768);
+        };
+
+        checkMobile();
+        window.addEventListener('resize', checkMobile);
+        return () => window.removeEventListener('resize', checkMobile);
+    }, []);
+
     return (
         <div style={{
             maxWidth: '1200px',
             margin: '0 auto',
-            padding: '20px',
+            padding: isMobile ? '12px' : '20px',
             minHeight: '100vh',
             background: '#f8fafc'
         }}>
             {/* 標題區域 */}
             <div style={{
                 textAlign: 'center',
-                marginBottom: '32px',
-                padding: '40px 32px',
+                marginBottom: isMobile ? '24px' : '32px',
+                padding: isMobile ? '24px 16px' : '40px 32px',
                 background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                borderRadius: '20px',
+                borderRadius: isMobile ? '16px' : '20px',
                 color: 'white',
                 position: 'relative',
                 overflow: 'hidden',
@@ -129,31 +142,33 @@ const DemoRanking = () => {
                     background: 'radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%)',
                     animation: 'float 6s ease-in-out infinite'
                 }} />
-                
+
                 <div style={{ position: 'relative', zIndex: 1 }}>
                     <div style={{
-                        fontSize: '48px',
-                        marginBottom: '16px',
+                        fontSize: isMobile ? '36px' : '48px',
+                        marginBottom: isMobile ? '12px' : '16px',
                         display: 'inline-block',
                         animation: 'bounce 2s infinite'
                     }}>
                         🏆
                     </div>
                     <h1 style={{
-                        margin: '0 0 16px 0',
-                        fontSize: '36px',
+                        margin: '0 0 12px 0',
+                        fontSize: isMobile ? '24px' : '36px',
                         fontWeight: '800',
                         letterSpacing: '-0.025em',
-                        textShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                        textShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                        lineHeight: '1.2'
                     }}>
                         現代化排行榜設計演示
                     </h1>
                     <p style={{
-                        margin: '0 0 32px 0',
-                        fontSize: '16px',
+                        margin: isMobile ? '0 0 20px 0' : '0 0 32px 0',
+                        fontSize: isMobile ? '14px' : '16px',
                         opacity: '0.9',
                         fontWeight: '500',
-                        letterSpacing: '0.025em'
+                        letterSpacing: '0.025em',
+                        lineHeight: '1.4'
                     }}>
                         全新的排行榜UI設計，提供更好的視覺體驗和互動效果
                     </p>
@@ -161,7 +176,7 @@ const DemoRanking = () => {
             </div>
 
             {/* 排行榜列表 */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: isMobile ? '16px' : '20px' }}>
                 {mockTrips.map((trip, index) => (
                     <div key={trip.trip_id} className="ranking-card">
                         <TripCard
