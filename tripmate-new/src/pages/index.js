@@ -854,13 +854,8 @@ const HomePage = () => {
       const timer = setTimeout(() => {
         setCurrentToast(null);
         setToastQueue(q => q.slice(1));
-      }, 900);
-      // 強制保底 2 秒內消失
-      const forceTimer = setTimeout(() => {
-        setCurrentToast(null);
-        setToastQueue(q => q.slice(1));
       }, 1000);
-      return () => { clearTimeout(timer); clearTimeout(forceTimer); };
+      return () => { clearTimeout(timer); };
     }
   }, [toastQueue, currentToast]);
 
