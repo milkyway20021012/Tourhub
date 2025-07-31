@@ -1,6 +1,5 @@
 import React, { useReducer } from 'react';
 import dynamic from 'next/dynamic';
-import api from '../utils/api';
 import TripCard from '../components/TripCard';
 import CustomToast from '../components/CustomToast';
 import Pagination from '../components/Pagination';
@@ -139,66 +138,7 @@ const LineLoginModal = ({ isOpen, onClose, onLogin, isLoading }) => {
     </div>
   );
 };
-// Toast 元件（支援多類型與佇列）
-const Toast = ({ message, type = 'info', onClose }) => {
-  // 顏色對應
-  const typeMap = {
-    success: { bg: '#22c55e', icon: '✅' },
-    error: { bg: '#ef4444', icon: '❌' },
-    warning: { bg: '#f59e42', icon: '⚠️' },
-    info: { bg: '#323232', icon: '🔔' }
-  };
-  const { bg, icon } = typeMap[type] || typeMap.info;
-  // 保證 5 秒內自動消失
-  React.useEffect(() => {
-    const timer = setTimeout(() => {
-      onClose();
-    }, 5000);
-    return () => clearTimeout(timer);
-  }, [onClose]);
-  return (
-    <div style={{
-      position: 'fixed',
-      bottom: '40px',
-      left: '50%',
-      transform: 'translateX(-50%)',
-      background: bg,
-      color: 'white',
-      padding: '14px 32px',
-      borderRadius: '24px',
-      fontSize: '16px',
-      fontWeight: '500',
-      boxShadow: '0 4px 16px rgba(0,0,0,0.15)',
-      zIndex: 9999,
-      opacity: 0.95,
-      display: 'flex',
-      alignItems: 'center',
-      gap: '12px',
-      animation: 'fadeInUp 0.3s',
-      minWidth: '220px',
-      maxWidth: '90vw',
-      wordBreak: 'break-all',
-    }}>
-      <span>{icon}</span>
-      <span>{message}</span>
-      <button onClick={onClose} style={{
-        background: 'none',
-        border: 'none',
-        color: 'white',
-        fontSize: '18px',
-        marginLeft: '12px',
-        cursor: 'pointer',
-        opacity: 0.7
-      }}>×</button>
-      <style jsx>{`
-        @keyframes fadeInUp {
-          from { opacity: 0; transform: translateY(30px) translateX(-50%); }
-          to { opacity: 0.95; transform: translateY(0) translateX(-50%); }
-        }
-      `}</style>
-    </div>
-  );
-};
+
 const HomePage = () => {
   const initialState = {
     trips: [],
@@ -309,56 +249,12 @@ const HomePage = () => {
 
   const [state, dispatch] = useReducer(reducer, initialState);
 
-  // 分頁狀態
-  const [pagination, setPagination] = React.useState({
-    currentPage: 1,
-    totalPages: 0,
-    total: 0,
-    limit: 10,
-    hasNextPage: false,
-    hasPrevPage: false
-  });
-
-  // 搜尋狀態
-  const [searchKeyword, setSearchKeyword] = React.useState('');
-  const [searchLoading, setSearchLoading] = React.useState(false);
-  const [searchResults, setSearchResults] = React.useState([]);
-  const [isSearchMode, setIsSearchMode] = React.useState(false);
-  const [searchHistory, setSearchHistory] = React.useState([]);
-  const [debouncedSearchKeyword, setDebouncedSearchKeyword] = React.useState('');
-  const [isTyping, setIsTyping] = React.useState(false);
-  // infinite scroll 狀態
-  const [searchOffset, setSearchOffset] = React.useState(0);
-  const [searchHasMore, setSearchHasMore] = React.useState(false);
+  // 保留一些需要的本地狀態
   const searchLimit = 20;
   const loaderRef = React.useRef();
 
-  // 收藏狀態
-  const [favorites, setFavorites] = React.useState(new Set());
-  const [favoriteLoading, setFavoriteLoading] = React.useState({});
-
-  // 分享狀態
+  // 分享狀態（不在 reducer 中）
   const [shareModalData, setShareModalData] = React.useState(null);
-  const [shareLoading, setShareLoading] = React.useState({});
-
-  // LIFF 狀態
-  const [liffReady, setLiffReady] = React.useState(false);
-  const [liffLoggedIn, setLiffLoggedIn] = React.useState(false);
-  const [userProfile, setUserProfile] = React.useState(null);
-  const [liffLoading, setLiffLoading] = React.useState(true);
-  const [liffError, setLiffError] = React.useState(null);
-  const [loginLoading, setLoginLoading] = React.useState(false);
-  const [showLoginModal, setShowLoginModal] = React.useState(false);
-
-  // 篩選狀態
-  const [filters, setFilters] = React.useState({
-    duration_type: '',
-    season: '',
-    area: ''
-  });
-
-  // 新增：排序狀態
-  const [sortBy, setSortBy] = React.useState('popularity');
   // 初始化
   React.useEffect(() => {
     dispatch({ type: 'SET_MOUNTED', value: true });
@@ -370,62 +266,62 @@ const HomePage = () => {
     if (state.mounted) {
       initializeData();
     }
-  }, [state.mounted, liffReady]);
+  }, [state.mounted, state.liffReady]);
 
   // 當分頁、篩選條件或排序改變時重新載入資料
   React.useEffect(() => {
     if (state.mounted && !state.isSearchMode) {
-      fetchTripRankings(pagination.currentPage);
+      fetchTripRankings(state.pagination.currentPage);
     }
-  }, [state.mounted, filters, pagination.currentPage, sortBy]);
+  }, [state.mounted, state.filters, state.pagination.currentPage, state.sortBy]);
 
   // 當篩選條件或排序改變時重置到第一頁
   React.useEffect(() => {
     if (state.mounted && !state.isSearchMode) {
-      setPagination(prev => ({ ...prev, currentPage: 1 }));
+      dispatch({ type: 'SET_PAGINATION', pagination: { ...state.pagination, currentPage: 1 } });
     }
-  }, [filters, sortBy]);
+  }, [state.filters, state.sortBy]);
 
   // Debounce 搜尋關鍵字
   React.useEffect(() => {
     const timer = setTimeout(() => {
-      setDebouncedSearchKeyword(searchKeyword);
-      setIsTyping(false);
+      dispatch({ type: 'SET_DEBOUNCED_SEARCH_KEYWORD', value: state.searchKeyword });
+      dispatch({ type: 'SET_IS_TYPING', value: false });
     }, 300);
 
-    if (searchKeyword.trim()) {
-      setIsTyping(true);
+    if (state.searchKeyword.trim()) {
+      dispatch({ type: 'SET_IS_TYPING', value: true });
     }
 
     return () => clearTimeout(timer);
-  }, [searchKeyword]);
+  }, [state.searchKeyword]);
 
   // 搜尋執行
   React.useEffect(() => {
-    if (debouncedSearchKeyword.trim().length > 0) {
+    if (state.debouncedSearchKeyword.trim().length > 0) {
       // 新搜尋，重設 offset
-      setSearchResults([]);
-      setSearchOffset(0);
-      setSearchHasMore(false);
-      performSearch(debouncedSearchKeyword.trim(), false, 0);
-    } else if (!debouncedSearchKeyword.trim() && state.isSearchMode) {
+      dispatch({ type: 'SET_SEARCH_RESULTS', searchResults: [] });
+      dispatch({ type: 'SET_SEARCH_OFFSET', value: 0 });
+      dispatch({ type: 'SET_SEARCH_HAS_MORE', value: false });
+      performSearch(state.debouncedSearchKeyword.trim(), false, 0);
+    } else if (!state.debouncedSearchKeyword.trim() && state.isSearchMode) {
       clearSearch();
     }
-  }, [debouncedSearchKeyword]);
+  }, [state.debouncedSearchKeyword]);
 
   // infinite scroll observer
   React.useEffect(() => {
-    if (!state.isSearchMode || !searchHasMore || searchLoading) return;
+    if (!state.isSearchMode || !state.searchHasMore || state.searchLoading) return;
     const observer = new window.IntersectionObserver(entries => {
       if (entries[0].isIntersecting) {
-        performSearch(searchKeyword, true, searchOffset);
+        performSearch(state.searchKeyword, true, state.searchOffset);
       }
     }, { threshold: 1 });
     if (loaderRef.current) observer.observe(loaderRef.current);
     return () => {
       if (loaderRef.current) observer.unobserve(loaderRef.current);
     };
-  }, [state.isSearchMode, searchHasMore, searchLoading, searchKeyword, searchOffset]);
+  }, [state.isSearchMode, state.searchHasMore, state.searchLoading, state.searchKeyword, state.searchOffset]);
 
   // 搜尋歷史管理
   const loadSearchHistory = () => {
@@ -433,7 +329,7 @@ const HomePage = () => {
       try {
         const history = localStorage.getItem('tripSearchHistory');
         if (history) {
-          setSearchHistory(JSON.parse(history));
+          dispatch({ type: 'SET_SEARCH_HISTORY', value: JSON.parse(history) });
         }
       } catch (e) {
         console.error('載入搜尋歷史失敗:', e);
@@ -444,8 +340,8 @@ const HomePage = () => {
   const saveSearchHistory = (keyword) => {
     if (typeof window !== 'undefined' && keyword.trim()) {
       try {
-        const newHistory = [keyword, ...searchHistory.filter(h => h !== keyword)].slice(0, 10);
-        setSearchHistory(newHistory);
+        const newHistory = [keyword, ...state.searchHistory.filter(h => h !== keyword)].slice(0, 10);
+        dispatch({ type: 'SET_SEARCH_HISTORY', value: newHistory });
         localStorage.setItem('tripSearchHistory', JSON.stringify(newHistory));
       } catch (e) {
         console.error('保存搜尋歷史失敗:', e);
@@ -454,7 +350,7 @@ const HomePage = () => {
   };
 
   const clearSearchHistory = () => {
-    setSearchHistory([]);
+    dispatch({ type: 'SET_SEARCH_HISTORY', value: [] });
     if (typeof window !== 'undefined') {
       try {
         localStorage.removeItem('tripSearchHistory');
@@ -469,7 +365,7 @@ const HomePage = () => {
     if (typeof window === 'undefined') return;
 
     try {
-      setLiffLoading(true);
+      dispatch({ type: 'SET_LIFF_LOADING', value: true });
 
       if (typeof window.liff === 'undefined') {
         const script = document.createElement('script');
@@ -488,8 +384,8 @@ const HomePage = () => {
       const liffId = process.env.NEXT_PUBLIC_LIFF_ID;
       if (!liffId) {
         console.warn('LIFF ID 未設定，使用訪客模式');
-        setLiffReady(true);
-        setLiffLoading(false);
+        dispatch({ type: 'SET_LIFF_READY', value: true });
+        dispatch({ type: 'SET_LIFF_LOADING', value: false });
         return;
       }
 
@@ -498,13 +394,13 @@ const HomePage = () => {
         withLoginOnExternalBrowser: true
       });
 
-      setLiffReady(true);
+      dispatch({ type: 'SET_LIFF_READY', value: true });
 
       const isLoggedIn = window.liff.isLoggedIn();
       if (isLoggedIn) {
-        setLiffLoggedIn(true);
+        dispatch({ type: 'SET_LIFF_LOGGED_IN', value: true });
         const profile = await window.liff.getProfile();
-        setUserProfile(profile);
+        dispatch({ type: 'SET_USER_PROFILE', value: profile });
         setTimeout(() => {
           fetchUserFavorites();
         }, 100);
@@ -512,10 +408,10 @@ const HomePage = () => {
 
     } catch (error) {
       console.error('LIFF 初始化失敗:', error);
-      setLiffError(error.message || 'LIFF 初始化失敗');
-      setLiffReady(true);
+      dispatch({ type: 'SET_LIFF_ERROR', value: error.message || 'LIFF 初始化失敗' });
+      dispatch({ type: 'SET_LIFF_READY', value: true });
     } finally {
-      setLiffLoading(false);
+      dispatch({ type: 'SET_LIFF_LOADING', value: false });
     }
   };
   // 資料初始化
@@ -586,21 +482,23 @@ const HomePage = () => {
         type: 'all',
         page: page,
         limit: 10,
-        sort_by: sortBy,
-        ...filters
+        sort_by: state.sortBy,
+        ...state.filters
       };
 
       const response = await getTripRankings(params);
 
       if (response.data.success) {
         dispatch({ type: 'SET_TRIPS', trips: response.data.data || [] });
-        setPagination(response.data.pagination || {
-          currentPage: 1,
-          totalPages: 0,
-          total: 0,
-          limit: 10,
-          hasNextPage: false,
-          hasPrevPage: false
+        dispatch({
+          type: 'SET_PAGINATION', pagination: response.data.pagination || {
+            currentPage: 1,
+            totalPages: 0,
+            total: 0,
+            limit: 10,
+            hasNextPage: false,
+            hasPrevPage: false
+          }
         });
       } else {
         throw new Error('API 回應格式錯誤');
@@ -617,7 +515,7 @@ const HomePage = () => {
   };
 
   const fetchUserFavorites = async () => {
-    if (!state.mounted || !liffLoggedIn || !userProfile) return;
+    if (!state.mounted || !state.liffLoggedIn || !state.userProfile) return;
 
     const userId = getCurrentUserId();
     if (!userId) return;
@@ -636,8 +534,8 @@ const HomePage = () => {
 
   // 工具函數
   const getCurrentUserId = () => {
-    if (liffLoggedIn && userProfile?.userId) {
-      return userProfile.userId;
+    if (state.liffLoggedIn && state.userProfile?.userId) {
+      return state.userProfile.userId;
     }
     // 開發環境下允許使用模擬用戶 ID，但不自動登入
     if (process.env.NODE_ENV === 'development') {
@@ -648,18 +546,10 @@ const HomePage = () => {
   };
 
   const isLineLoggedIn = () => {
-    return liffReady && liffLoggedIn && userProfile;
+    return state.liffReady && state.liffLoggedIn && state.userProfile;
   };
 
-  const formatDate = (dateString) => {
-    if (!state.mounted || !dateString) return '';
-    try {
-      const options = { year: 'numeric', month: 'short', day: 'numeric' };
-      return new Date(dateString).toLocaleDateString('zh-TW', options);
-    } catch (error) {
-      return dateString;
-    }
-  };
+
 
   // 新增：更新統計資料的函數
   const updateTripStatsWrapper = async (tripId, action) => {
@@ -673,33 +563,34 @@ const HomePage = () => {
 
   // 分頁處理
   const handlePageChange = React.useCallback((newPage) => {
-    if (newPage < 1 || newPage > pagination.totalPages || state.loading) return;
+    if (newPage < 1 || newPage > state.pagination.totalPages || state.loading) return;
 
     window.scrollTo({ top: 0, behavior: 'smooth' });
-    setPagination(prev => ({ ...prev, currentPage: newPage }));
-  }, [pagination.totalPages, state.loading]);
+    dispatch({ type: 'SET_PAGINATION', pagination: { ...state.pagination, currentPage: newPage } });
+  }, [state.pagination.totalPages, state.loading]);
 
   // 搜尋功能
   const performSearch = React.useCallback(async (keyword, append = false, offset = 0) => {
     if (!keyword.trim()) {
-      setIsSearchMode(false);
-      setSearchResults([]);
-      setSearchOffset(0);
-      setSearchHasMore(false);
+      dispatch({ type: 'SET_IS_SEARCH_MODE', value: false });
+      dispatch({ type: 'SET_SEARCH_RESULTS', searchResults: [] });
+      dispatch({ type: 'SET_SEARCH_OFFSET', value: 0 });
+      dispatch({ type: 'SET_SEARCH_HAS_MORE', value: false });
       return;
     }
-    setSearchLoading(true);
-    setIsSearchMode(true);
+    dispatch({ type: 'SET_SEARCH_LOADING', value: true });
+    dispatch({ type: 'SET_IS_SEARCH_MODE', value: true });
     try {
       const response = await searchTrips({ keyword: keyword.trim(), limit: searchLimit, offset });
       if (response.data?.success && response.data?.trips) {
-        dispatch({ type: 'SET_SEARCH_RESULTS', searchResults: prev => append ? [...prev, ...response.data.trips] : response.data.trips });
-        dispatch({ type: 'SET_SEARCH_HAS_MORE', searchHasMore: response.data.pagination?.hasMore || false });
-        dispatch({ type: 'SET_SEARCH_OFFSET', searchOffset: offset + response.data.trips.length });
+        const newResults = append ? [...state.searchResults, ...response.data.trips] : response.data.trips;
+        dispatch({ type: 'SET_SEARCH_RESULTS', searchResults: newResults });
+        dispatch({ type: 'SET_SEARCH_HAS_MORE', value: response.data.pagination?.hasMore || false });
+        dispatch({ type: 'SET_SEARCH_OFFSET', value: offset + response.data.trips.length });
       } else {
         dispatch({ type: 'SET_SEARCH_RESULTS', searchResults: [] });
-        dispatch({ type: 'SET_SEARCH_HAS_MORE', searchHasMore: false });
-        dispatch({ type: 'SET_SEARCH_OFFSET', searchOffset: 0 });
+        dispatch({ type: 'SET_SEARCH_HAS_MORE', value: false });
+        dispatch({ type: 'SET_SEARCH_OFFSET', value: 0 });
       }
       dispatch({ type: 'SET_ERROR', error: null });
       saveSearchHistory(keyword.trim());
@@ -707,17 +598,17 @@ const HomePage = () => {
       console.error('搜尋失敗:', error);
       dispatch({ type: 'SET_ERROR', error: '搜尋失敗，請稍後再試' });
       dispatch({ type: 'SET_SEARCH_RESULTS', searchResults: [] });
-      dispatch({ type: 'SET_SEARCH_HAS_MORE', searchHasMore: false });
-      dispatch({ type: 'SET_SEARCH_OFFSET', searchOffset: 0 });
+      dispatch({ type: 'SET_SEARCH_HAS_MORE', value: false });
+      dispatch({ type: 'SET_SEARCH_OFFSET', value: 0 });
       saveSearchHistory(keyword.trim());
     } finally {
-      setSearchLoading(false);
+      dispatch({ type: 'SET_SEARCH_LOADING', value: false });
     }
   }, []);
 
   const handleSearchInput = (e) => {
     const value = e.target.value;
-    setSearchKeyword(value);
+    dispatch({ type: 'SET_SEARCH_KEYWORD', value });
 
     if (!value.trim()) {
       clearSearch();
@@ -726,26 +617,26 @@ const HomePage = () => {
 
   const handleSearchSubmit = (e) => {
     e.preventDefault();
-    if (searchKeyword.trim()) {
-      if (!isSearchMode) {
-        performSearch(searchKeyword.trim());
+    if (state.searchKeyword.trim()) {
+      if (!state.isSearchMode) {
+        performSearch(state.searchKeyword.trim());
       }
     }
   };
 
   const clearSearch = () => {
-    setSearchKeyword('');
-    setDebouncedSearchKeyword('');
-    setIsSearchMode(false);
-    setSearchResults([]);
-    setSearchOffset(0);
-    setSearchHasMore(false);
+    dispatch({ type: 'SET_SEARCH_KEYWORD', value: '' });
+    dispatch({ type: 'SET_DEBOUNCED_SEARCH_KEYWORD', value: '' });
+    dispatch({ type: 'SET_IS_SEARCH_MODE', value: false });
+    dispatch({ type: 'SET_SEARCH_RESULTS', searchResults: [] });
+    dispatch({ type: 'SET_SEARCH_OFFSET', value: 0 });
+    dispatch({ type: 'SET_SEARCH_HAS_MORE', value: false });
     dispatch({ type: 'SET_ERROR', error: null });
-    setIsTyping(false);
+    dispatch({ type: 'SET_IS_TYPING', value: false });
   };
 
   const quickSearch = (keyword) => {
-    setSearchKeyword(keyword);
+    dispatch({ type: 'SET_SEARCH_KEYWORD', value: keyword });
   };
   // 收藏功能
   const updateFavoriteCount = (tripId, delta) => {
@@ -754,10 +645,10 @@ const HomePage = () => {
   };
   const toggleFavorite = async (tripId, event) => {
     event.stopPropagation();
-    if (favoriteLoading[tripId]) return;
+    if (state.favoriteLoading[tripId]) return;
     if (!isLineLoggedIn()) {
       const shouldLogin = confirm('需要登入 LINE 才能使用收藏功能，是否要立即登入？');
-      if (shouldLogin) setShowLoginModal(true);
+      if (shouldLogin) dispatch({ type: 'SET_SHOW_LOGIN_MODAL', value: true });
       return;
     }
     const userId = getCurrentUserId();
@@ -765,19 +656,17 @@ const HomePage = () => {
       alert('無法獲取用戶資訊，請重新登入');
       return;
     }
-    setFavoriteLoading(prev => ({ ...prev, [tripId]: true }));
-    const isFavorited = favorites.has(tripId);
+    dispatch({ type: 'SET_FAVORITE_LOADING', payload: { [tripId]: true } });
+    const isFavorited = state.favorites.has(tripId);
     // optimistic update
-    let rollback = false;
     if (isFavorited) {
-      setFavorites(prev => {
-        const newSet = new Set(prev);
-        newSet.delete(tripId);
-        return newSet;
-      });
+      const newSet = new Set(state.favorites);
+      newSet.delete(tripId);
+      dispatch({ type: 'SET_FAVORITES', favorites: newSet });
       updateFavoriteCount(tripId, -1);
     } else {
-      setFavorites(prev => new Set([...prev, tripId]));
+      const newSet = new Set([...state.favorites, tripId]);
+      dispatch({ type: 'SET_FAVORITES', favorites: newSet });
       updateFavoriteCount(tripId, 1);
     }
     try {
@@ -787,7 +676,6 @@ const HomePage = () => {
           await updateTripStatsWrapper(tripId, 'favorite_remove');
           showToast('已取消收藏', 'success');
         } else {
-          rollback = true;
           throw new Error(response.data.message || '取消收藏失敗');
         }
       } else {
@@ -796,18 +684,15 @@ const HomePage = () => {
           await updateTripStatsWrapper(tripId, 'favorite_add');
           showToast('已加入收藏', 'success');
         } else {
-          rollback = true;
           throw new Error(response.data.message || '新增收藏失敗');
         }
       }
     } catch (err) {
       // 回滾
-      setFavorites(prev => {
-        const newSet = new Set(prev);
-        if (isFavorited) newSet.add(tripId);
-        else newSet.delete(tripId);
-        return newSet;
-      });
+      const newSet = new Set(state.favorites);
+      if (isFavorited) newSet.add(tripId);
+      else newSet.delete(tripId);
+      dispatch({ type: 'SET_FAVORITES', favorites: newSet });
       updateFavoriteCount(tripId, isFavorited ? 1 : -1);
       let errorMessage = '操作失敗，請稍後再試';
       if (err.response) {
@@ -829,7 +714,7 @@ const HomePage = () => {
       }
       showToast(errorMessage, 'error');
     } finally {
-      setFavoriteLoading(prev => ({ ...prev, [tripId]: false }));
+      dispatch({ type: 'SET_FAVORITE_LOADING', payload: { [tripId]: false } });
     }
   };
 
@@ -837,7 +722,7 @@ const HomePage = () => {
   const handleDetailedShare = async (trip, e) => {
     e.stopPropagation();
 
-    setShareLoading(prev => ({ ...prev, [trip.trip_id]: true }));
+    dispatch({ type: 'SET_SHARE_LOADING', payload: { [trip.trip_id]: true } });
 
     try {
       const response = await getTripDetail(trip.trip_id);
@@ -863,7 +748,7 @@ const HomePage = () => {
         details: []
       });
     } finally {
-      setShareLoading(prev => ({ ...prev, [trip.trip_id]: false }));
+      dispatch({ type: 'SET_SHARE_LOADING', payload: { [trip.trip_id]: false } });
     }
   };
 
@@ -882,30 +767,30 @@ const HomePage = () => {
 
   // LINE 登入功能
   const handleLogin = async () => {
-    if (!liffReady) {
+    if (!state.liffReady) {
       alert('LINE 服務尚未準備就緒，請稍後再試');
       return;
     }
 
-    setLoginLoading(true);
+    dispatch({ type: 'SET_LOGIN_LOADING', value: true });
 
     try {
 
       if (typeof window !== 'undefined' && window.liff) {
         if (!window.liff.isLoggedIn()) {
-          setShowLoginModal(false);
+          dispatch({ type: 'SET_SHOW_LOGIN_MODAL', value: false });
 
           window.liff.login({
             redirectUri: window.location.href
           });
         } else {
-          setLiffLoggedIn(true);
+          dispatch({ type: 'SET_LIFF_LOGGED_IN', value: true });
           const profile = await window.liff.getProfile();
-          setUserProfile(profile);
+          dispatch({ type: 'SET_USER_PROFILE', value: profile });
           setTimeout(() => {
             fetchUserFavorites();
           }, 100);
-          setShowLoginModal(false);
+          dispatch({ type: 'SET_SHOW_LOGIN_MODAL', value: false });
           alert(`歡迎，${profile.displayName}！`);
         }
       }
@@ -913,7 +798,7 @@ const HomePage = () => {
       console.error('LINE 登入失敗:', error);
       alert(`登入失敗：${error.message}`);
     } finally {
-      setLoginLoading(false);
+      dispatch({ type: 'SET_LOGIN_LOADING', value: false });
     }
   };
 
@@ -922,9 +807,9 @@ const HomePage = () => {
       // 開發環境直接清除狀態
       if (process.env.NODE_ENV === 'development') {
         console.log('開發環境：模擬登出');
-        setLiffLoggedIn(false);
-        setUserProfile(null);
-        setFavorites(new Set());
+        dispatch({ type: 'SET_LIFF_LOGGED_IN', value: false });
+        dispatch({ type: 'SET_USER_PROFILE', value: null });
+        dispatch({ type: 'SET_FAVORITES', favorites: new Set() });
         alert('已成功登出');
         return;
       }
@@ -933,9 +818,9 @@ const HomePage = () => {
         window.liff.logout();
       }
 
-      setLiffLoggedIn(false);
-      setUserProfile(null);
-      setFavorites(new Set());
+      dispatch({ type: 'SET_LIFF_LOGGED_IN', value: false });
+      dispatch({ type: 'SET_USER_PROFILE', value: null });
+      dispatch({ type: 'SET_FAVORITES', favorites: new Set() });
       alert('已成功登出');
 
     } catch (error) {
@@ -948,7 +833,7 @@ const HomePage = () => {
     if (!isLineLoggedIn()) {
       const shouldLogin = confirm('需要登入 LINE 才能查看收藏列表，是否要立即登入？');
       if (shouldLogin) {
-        setShowLoginModal(true);
+        dispatch({ type: 'SET_SHOW_LOGIN_MODAL', value: true });
       }
       return;
     }
@@ -1053,7 +938,7 @@ const HomePage = () => {
 
           {/* 用戶資訊 */}
           <div style={{ marginBottom: '16px', color: 'white', textAlign: 'center' }}>
-            {liffError ? (
+            {state.liffError ? (
               <div>
                 <span>⚠️ LINE 服務連接失敗，使用訪客模式</span>
                 <button
@@ -1071,15 +956,15 @@ const HomePage = () => {
                   重新載入
                 </button>
               </div>
-            ) : liffLoading ? (
+            ) : state.liffLoading ? (
               <div>
               </div>
             ) : isLineLoggedIn() ? (
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
-                <span>👋 歡迎，{userProfile?.displayName || '用戶'}</span>
-                {userProfile?.pictureUrl && (
+                <span>👋 歡迎，{state.userProfile?.displayName || '用戶'}</span>
+                {state.userProfile?.pictureUrl && (
                   <img
-                    src={userProfile.pictureUrl}
+                    src={state.userProfile.pictureUrl}
                     alt="頭像"
                     style={{
                       width: '32px',
@@ -1109,7 +994,7 @@ const HomePage = () => {
               <div>
                 <span>👤 訪客模式</span>
                 <button
-                  onClick={() => setShowLoginModal(true)}
+                  onClick={() => dispatch({ type: 'SET_SHOW_LOGIN_MODAL', value: true })}
                   style={{
                     marginLeft: '8px',
                     padding: '4px 8px',
@@ -1190,7 +1075,7 @@ const HomePage = () => {
                   WebkitTextFillColor: 'transparent',
                   backgroundClip: 'text'
                 }}>
-                  {isLineLoggedIn() ? favorites.size : '--'}
+                  {isLineLoggedIn() ? state.favorites.size : '--'}
                 </div>
                 <div style={{
                   fontSize: '14px',
@@ -1238,19 +1123,19 @@ const HomePage = () => {
 
         {/* 搜尋功能區域 */}
         <SearchBar
-          searchKeyword={searchKeyword}
+          searchKeyword={state.searchKeyword}
           onInput={handleSearchInput}
           onSubmit={handleSearchSubmit}
-          isTyping={isTyping}
-          isSearchMode={isSearchMode}
+          isTyping={state.isTyping}
+          isSearchMode={state.isSearchMode}
           onClear={clearSearch}
-          searchHistory={searchHistory}
+          searchHistory={state.searchHistory}
           onQuickSearch={quickSearch}
           onClearHistory={clearSearchHistory}
         />
 
         {/* 排序選擇器 - 只在非搜尋模式顯示 */}
-        {!isSearchMode && (
+        {!state.isSearchMode && (
           <div style={{
             background: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)',
             borderRadius: typeof window !== 'undefined' && window.innerWidth <= 768 ? '16px' : '20px',
@@ -1337,33 +1222,33 @@ const HomePage = () => {
                 ].map(option => (
                   <button
                     key={option.key}
-                    onClick={() => setSortBy(option.key)}
+                    onClick={() => dispatch({ type: 'SET_SORT_BY', sortBy: option.key })}
                     style={{
                       padding: typeof window !== 'undefined' && window.innerWidth <= 768 ? '12px 16px' : '16px 20px',
-                      border: `2px solid ${sortBy === option.key ? option.color : '#e2e8f0'}`,
-                      background: sortBy === option.key
+                      border: `2px solid ${state.sortBy === option.key ? option.color : '#e2e8f0'}`,
+                      background: state.sortBy === option.key
                         ? `linear-gradient(135deg, ${option.color}15 0%, ${option.color}25 100%)`
                         : 'white',
-                      color: sortBy === option.key ? option.color : '#374151',
+                      color: state.sortBy === option.key ? option.color : '#374151',
                       borderRadius: typeof window !== 'undefined' && window.innerWidth <= 768 ? '12px' : '16px',
                       cursor: 'pointer',
                       fontSize: typeof window !== 'undefined' && window.innerWidth <= 768 ? '12px' : '14px',
-                      fontWeight: sortBy === option.key ? '700' : '600',
+                      fontWeight: state.sortBy === option.key ? '700' : '600',
                       transition: 'all 0.3s ease',
                       display: 'flex',
                       flexDirection: 'column',
                       alignItems: 'center',
                       minWidth: typeof window !== 'undefined' && window.innerWidth <= 768 ? '90px' : '120px',
-                      boxShadow: sortBy === option.key
+                      boxShadow: state.sortBy === option.key
                         ? `0 4px 12px ${option.color}30`
                         : '0 2px 4px rgba(0, 0, 0, 0.05)',
-                      transform: sortBy === option.key ? 'translateY(-2px)' : 'translateY(0)',
+                      transform: state.sortBy === option.key ? 'translateY(-2px)' : 'translateY(0)',
                       position: 'relative',
                       overflow: 'hidden'
                     }}
                     title={option.desc}
                     onMouseEnter={(e) => {
-                      if (sortBy !== option.key) {
+                      if (state.sortBy !== option.key) {
                         e.currentTarget.style.borderColor = option.color + '80';
                         e.currentTarget.style.background = option.color + '10';
                         e.currentTarget.style.transform = 'translateY(-2px)';
@@ -1371,7 +1256,7 @@ const HomePage = () => {
                       }
                     }}
                     onMouseLeave={(e) => {
-                      if (sortBy !== option.key) {
+                      if (state.sortBy !== option.key) {
                         e.currentTarget.style.borderColor = '#e2e8f0';
                         e.currentTarget.style.background = 'white';
                         e.currentTarget.style.transform = 'translateY(0)';
@@ -1382,7 +1267,7 @@ const HomePage = () => {
                     <div style={{
                       fontSize: typeof window !== 'undefined' && window.innerWidth <= 768 ? '16px' : '20px',
                       marginBottom: typeof window !== 'undefined' && window.innerWidth <= 768 ? '6px' : '8px',
-                      filter: sortBy === option.key ? 'none' : 'grayscale(0.3)'
+                      filter: state.sortBy === option.key ? 'none' : 'grayscale(0.3)'
                     }}>
                       {option.icon}
                     </div>
@@ -1397,7 +1282,7 @@ const HomePage = () => {
                       <span style={{
                         fontSize: '11px',
                         opacity: 0.8,
-                        color: sortBy === option.key ? option.color : '#6b7280',
+                        color: state.sortBy === option.key ? option.color : '#6b7280',
                         textAlign: 'center',
                         letterSpacing: '0.25px'
                       }}>
@@ -1412,7 +1297,7 @@ const HomePage = () => {
         )}
 
         {/* 篩選面板 - 只在非搜尋模式顯示 */}
-        {!isSearchMode && (
+        {!state.isSearchMode && (
           <div style={{
             background: 'white',
             borderRadius: '12px',
@@ -1432,8 +1317,8 @@ const HomePage = () => {
                   地區
                 </label>
                 <select
-                  value={filters.area}
-                  onChange={(e) => setFilters({ ...filters, area: e.target.value })}
+                  value={state.filters.area}
+                  onChange={(e) => dispatch({ type: 'SET_FILTERS', filters: { ...state.filters, area: e.target.value } })}
                   style={{
                     padding: '12px 16px',
                     border: '1px solid #d1d5db',
@@ -1455,8 +1340,8 @@ const HomePage = () => {
                   行程長度
                 </label>
                 <select
-                  value={filters.duration_type}
-                  onChange={(e) => setFilters({ ...filters, duration_type: e.target.value })}
+                  value={state.filters.duration_type}
+                  onChange={(e) => dispatch({ type: 'SET_FILTERS', filters: { ...state.filters, duration_type: e.target.value } })}
                   style={{
                     padding: '12px 16px',
                     border: '1px solid #d1d5db',
@@ -1479,8 +1364,8 @@ const HomePage = () => {
                   季節
                 </label>
                 <select
-                  value={filters.season}
-                  onChange={(e) => setFilters({ ...filters, season: e.target.value })}
+                  value={state.filters.season}
+                  onChange={(e) => dispatch({ type: 'SET_FILTERS', filters: { ...state.filters, season: e.target.value } })}
                   style={{
                     padding: '12px 16px',
                     border: '1px solid #d1d5db',
@@ -1500,7 +1385,7 @@ const HomePage = () => {
 
               <div>
                 <button
-                  onClick={() => setFilters({ duration_type: '', season: '', area: '' })}
+                  onClick={() => dispatch({ type: 'SET_FILTERS', filters: { duration_type: '', season: '', area: '' } })}
                   style={{
                     background: '#f3f4f6',
                     color: '#374151',
@@ -1520,7 +1405,7 @@ const HomePage = () => {
         )}
 
         {/* 標籤切換 - 只在非搜尋模式顯示 */}
-        {!isSearchMode && (
+        {!state.isSearchMode && (
           <div style={{
             display: 'flex',
             gap: '8px',
@@ -1552,7 +1437,7 @@ const HomePage = () => {
                 {tab.label}
                 {tab.key === 'favorites' && (
                   <>
-                    {isLineLoggedIn() && favorites.size > 0 && (
+                    {isLineLoggedIn() && state.favorites.size > 0 && (
                       <span style={{
                         marginLeft: '8px',
                         background: '#ef4444',
@@ -1561,7 +1446,7 @@ const HomePage = () => {
                         padding: '2px 6px',
                         fontSize: '12px'
                       }}>
-                        {favorites.size}
+                        {state.favorites.size}
                       </span>
                     )}
                     {!isLineLoggedIn() && (
@@ -1584,7 +1469,7 @@ const HomePage = () => {
         )}
 
         {/* 分頁資訊顯示 */}
-        {!isSearchMode && pagination.total > 0 && (
+        {!state.isSearchMode && state.pagination.total > 0 && (
           <div style={{
             background: 'white',
             borderRadius: '8px',
@@ -1599,8 +1484,8 @@ const HomePage = () => {
               color: '#64748b',
               fontWeight: '500'
             }}>
-              顯示第 {((pagination.currentPage - 1) * pagination.limit) + 1} - {Math.min(pagination.currentPage * pagination.limit, pagination.total)} 筆，
-              共 {pagination.total} 筆行程資料
+              顯示第 {((state.pagination.currentPage - 1) * state.pagination.limit) + 1} - {Math.min(state.pagination.currentPage * state.pagination.limit, state.pagination.total)} 筆，
+              共 {state.pagination.total} 筆行程資料
             </div>
           </div>
         )}
@@ -1608,7 +1493,7 @@ const HomePage = () => {
         {/* 載入指示器 */}
         {currentLoading && (
           <LoadingIndicator
-            message={isSearchMode ? "搜尋中..." : `載入第 ${pagination.currentPage} 頁資料中...`}
+            message={state.isSearchMode ? "搜尋中..." : `載入第 ${state.pagination.currentPage} 頁資料中...`}
           />
         )}
         {/* 行程列表 */}
@@ -1626,7 +1511,7 @@ const HomePage = () => {
                 <div style={{ fontSize: '18px', marginBottom: '8px' }}>❌ {isSearchMode ? '搜尋失敗' : '載入失敗'}</div>
                 <div style={{ fontSize: '14px', marginBottom: '16px' }}>{state.error}</div>
                 <button
-                  onClick={() => isSearchMode ? performSearch(searchKeyword) : fetchTripRankings(pagination.currentPage)}
+                  onClick={() => state.isSearchMode ? performSearch(state.searchKeyword) : fetchTripRankings(state.pagination.currentPage)}
                   style={{
                     background: '#ef4444',
                     color: 'white',
@@ -1648,15 +1533,15 @@ const HomePage = () => {
                 boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
               }}>
                 <div style={{ fontSize: '48px', marginBottom: '16px' }}>
-                  {isSearchMode ? '🔍' : '📍'}
+                  {state.isSearchMode ? '🔍' : '📍'}
                 </div>
                 <div style={{ fontSize: '18px', fontWeight: '600', color: '#374151', marginBottom: '8px' }}>
-                  {isSearchMode ? `沒有找到與「${searchKeyword}」相關的行程` : '沒有找到符合條件的行程'}
+                  {state.isSearchMode ? `沒有找到與「${state.searchKeyword}」相關的行程` : '沒有找到符合條件的行程'}
                 </div>
                 <div style={{ color: '#64748b', fontSize: '14px' }}>
-                  {isSearchMode ? '試試其他關鍵字或檢查拼寫' : '嘗試調整篩選條件或選擇其他分類'}
+                  {state.isSearchMode ? '試試其他關鍵字或檢查拼寫' : '嘗試調整篩選條件或選擇其他分類'}
                 </div>
-                {isSearchMode && (
+                {state.isSearchMode && (
                   <button
                     onClick={clearSearch}
                     style={{
@@ -1679,20 +1564,20 @@ const HomePage = () => {
                 {currentTrips.map((trip, index) => (
                   <TripCard
                     key={trip.trip_id}
-                    trip={{ ...trip, rank: isSearchMode ? '🔍' : ((pagination.currentPage - 1) * pagination.limit + index + 1) }}
-                    isFavorited={favorites.has(trip.trip_id)}
-                    favoriteLoading={favoriteLoading[trip.trip_id]}
+                    trip={{ ...trip, rank: state.isSearchMode ? '🔍' : ((state.pagination.currentPage - 1) * state.pagination.limit + index + 1) }}
+                    isFavorited={state.favorites.has(trip.trip_id)}
+                    favoriteLoading={state.favoriteLoading[trip.trip_id]}
                     onFavorite={e => toggleFavorite(trip.trip_id, e)}
                     onShare={e => handleDetailedShare(trip, e)}
                     isLineLoggedIn={isLineLoggedIn()}
-                    shareLoading={shareLoading[trip.trip_id]}
+                    shareLoading={state.shareLoading[trip.trip_id]}
                     onClick={() => handleTripClick(trip.trip_id)}
                   />
                 ))}
                 {/* infinite scroll 載入更多 */}
-                {isSearchMode && (
+                {state.isSearchMode && (
                   <div ref={loaderRef} style={{ minHeight: '32px', textAlign: 'center', margin: '16px 0' }}>
-                    {searchLoading ? '載入中...' : (searchHasMore ? '繼續下滑載入更多...' : '— 沒有更多結果 —')}
+                    {state.searchLoading ? '載入中...' : (state.searchHasMore ? '繼續下滑載入更多...' : '— 沒有更多結果 —')}
                   </div>
                 )}
               </div>
@@ -1701,9 +1586,9 @@ const HomePage = () => {
         )}
 
         {/* 分頁組件 - 只在非搜尋模式顯示 */}
-        {!isSearchMode && (
+        {!state.isSearchMode && (
           <Pagination
-            pagination={pagination}
+            pagination={state.pagination}
             onPageChange={handlePageChange}
             loading={state.loading}
           />
@@ -1730,10 +1615,10 @@ const HomePage = () => {
 
         {/* LINE 登入彈窗 */}
         <LineLoginModal
-          isOpen={showLoginModal}
-          onClose={() => setShowLoginModal(false)}
+          isOpen={state.showLoginModal}
+          onClose={() => dispatch({ type: 'SET_SHOW_LOGIN_MODAL', value: false })}
           onLogin={handleLogin}
-          isLoading={loginLoading}
+          isLoading={state.loginLoading}
         />
         {/* Toast 提示 */}
         {currentToast && (
