@@ -27,50 +27,71 @@ const TripCard = ({ trip, isFavorited, favoriteLoading, onFavorite, onShare, isL
         }, 3000);
     };
 
-    // 根據排名決定樣式
+    // 根據排名決定樣式 - 現代化設計
     const getRankStyle = (rank) => {
         if (typeof rank === 'string' && rank === '🔍') {
             return {
+                type: 'search',
                 background: 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)',
-                boxShadow: '0 4px 12px rgba(139, 92, 246, 0.3)',
-                fontSize: '20px'
+                boxShadow: '0 8px 25px rgba(139, 92, 246, 0.4)',
+                borderColor: '#a855f7',
+                glowColor: 'rgba(139, 92, 246, 0.6)',
+                icon: '🔍',
+                label: '搜尋'
             };
         }
 
         const numRank = parseInt(rank);
         if (numRank === 1) {
             return {
+                type: 'champion',
                 background: 'linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%)',
-                boxShadow: '0 6px 20px rgba(251, 191, 36, 0.4)',
-                border: '3px solid #fcd34d',
-                fontSize: '20px',
-                animation: 'pulse 2s infinite'
+                boxShadow: '0 12px 35px rgba(251, 191, 36, 0.5)',
+                borderColor: '#fcd34d',
+                glowColor: 'rgba(251, 191, 36, 0.8)',
+                icon: '👑',
+                label: '冠軍',
+                special: true
             };
         } else if (numRank === 2) {
             return {
-                background: 'linear-gradient(135deg, #9ca3af 0%, #6b7280 100%)',
-                boxShadow: '0 4px 16px rgba(156, 163, 175, 0.4)',
-                border: '2px solid #d1d5db',
-                fontSize: '18px'
+                type: 'silver',
+                background: 'linear-gradient(135deg, #e5e7eb 0%, #9ca3af 100%)',
+                boxShadow: '0 10px 30px rgba(156, 163, 175, 0.4)',
+                borderColor: '#d1d5db',
+                glowColor: 'rgba(156, 163, 175, 0.7)',
+                icon: '🥈',
+                label: '亞軍'
             };
         } else if (numRank === 3) {
             return {
-                background: 'linear-gradient(135deg, #cd7c2f 0%, #92400e 100%)',
-                boxShadow: '0 4px 16px rgba(205, 124, 47, 0.4)',
-                border: '2px solid #d97706',
-                fontSize: '18px'
+                type: 'bronze',
+                background: 'linear-gradient(135deg, #d97706 0%, #92400e 100%)',
+                boxShadow: '0 10px 30px rgba(217, 119, 6, 0.4)',
+                borderColor: '#f59e0b',
+                glowColor: 'rgba(217, 119, 6, 0.7)',
+                icon: '🥉',
+                label: '季軍'
             };
         } else if (numRank <= 10) {
             return {
+                type: 'top10',
                 background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
-                boxShadow: '0 4px 12px rgba(59, 130, 246, 0.3)',
-                fontSize: '16px'
+                boxShadow: '0 8px 25px rgba(59, 130, 246, 0.3)',
+                borderColor: '#60a5fa',
+                glowColor: 'rgba(59, 130, 246, 0.5)',
+                icon: '⭐',
+                label: 'TOP 10'
             };
         } else {
             return {
+                type: 'regular',
                 background: 'linear-gradient(135deg, #64748b 0%, #475569 100%)',
-                boxShadow: '0 2px 8px rgba(100, 116, 139, 0.2)',
-                fontSize: '14px'
+                boxShadow: '0 6px 20px rgba(100, 116, 139, 0.25)',
+                borderColor: '#94a3b8',
+                glowColor: 'rgba(100, 116, 139, 0.4)',
+                icon: '#',
+                label: `第${numRank}名`
             };
         }
     };
@@ -132,38 +153,74 @@ const TripCard = ({ trip, isFavorited, favoriteLoading, onFavorite, onShare, isL
                     gap: '12px',
                     marginBottom: '12px'
                 }}>
-                    {/* 排名徽章 - 手機版較小 */}
+                    {/* 現代化排名徽章 - 手機版 */}
                     <div style={{
-                        width: '48px',
-                        height: '48px',
-                        ...rankStyle,
-                        color: 'white',
-                        borderRadius: '50%',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontWeight: '700',
-                        flexShrink: '0',
                         position: 'relative',
-                        zIndex: 1,
-                        fontSize: '16px'
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        gap: '4px'
                     }}>
-                        {trip.rank || '🏷️'}
-                        {/* 添加光暈效果給前三名 */}
-                        {parseInt(trip.rank) <= 3 && typeof trip.rank !== 'string' && (
+                        {/* 主要排名圓圈 */}
+                        <div style={{
+                            width: '52px',
+                            height: '52px',
+                            background: rankStyle.background,
+                            border: `3px solid ${rankStyle.borderColor}`,
+                            borderRadius: '50%',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            color: 'white',
+                            fontWeight: '800',
+                            fontSize: '18px',
+                            boxShadow: rankStyle.boxShadow,
+                            position: 'relative',
+                            zIndex: 2,
+                            animation: rankStyle.special ? 'championPulse 2s ease-in-out infinite' : 'none'
+                        }}>
+                            {rankStyle.icon}
+
+                            {/* 發光效果 */}
                             <div style={{
                                 position: 'absolute',
-                                top: '-3px',
-                                left: '-3px',
-                                right: '-3px',
-                                bottom: '-3px',
+                                top: '-4px',
+                                left: '-4px',
+                                right: '-4px',
+                                bottom: '-4px',
                                 borderRadius: '50%',
-                                background: rankStyle.background,
-                                opacity: 0.3,
+                                background: rankStyle.glowColor,
+                                opacity: 0.4,
                                 zIndex: -1,
-                                animation: 'glow 2s ease-in-out infinite alternate'
+                                animation: 'breathe 3s ease-in-out infinite'
                             }} />
-                        )}
+
+                            {/* 內部光暈 */}
+                            <div style={{
+                                position: 'absolute',
+                                top: '6px',
+                                left: '6px',
+                                right: '6px',
+                                bottom: '6px',
+                                borderRadius: '50%',
+                                background: 'rgba(255, 255, 255, 0.2)',
+                                zIndex: -1
+                            }} />
+                        </div>
+
+                        {/* 排名標籤 */}
+                        <div style={{
+                            background: 'rgba(0, 0, 0, 0.8)',
+                            color: 'white',
+                            padding: '2px 8px',
+                            borderRadius: '12px',
+                            fontSize: '10px',
+                            fontWeight: '600',
+                            whiteSpace: 'nowrap',
+                            backdropFilter: 'blur(10px)'
+                        }}>
+                            {rankStyle.label}
+                        </div>
                     </div>
 
                     {/* 手機版標題 */}
@@ -245,38 +302,93 @@ const TripCard = ({ trip, isFavorited, favoriteLoading, onFavorite, onShare, isL
                 </div>
             )}
 
-            {/* 桌面版排名徽章 */}
+            {/* 現代化排名徽章 - 桌面版 */}
             {!isMobile && (
                 <div style={{
-                    width: '64px',
-                    height: '64px',
-                    ...rankStyle,
-                    color: 'white',
-                    borderRadius: '50%',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontWeight: '700',
-                    flexShrink: '0',
                     position: 'relative',
-                    zIndex: 1
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: '8px',
+                    flexShrink: 0
                 }}>
-                    {trip.rank || '🏷️'}
-                    {/* 添加光暈效果給前三名 */}
-                    {parseInt(trip.rank) <= 3 && typeof trip.rank !== 'string' && (
+                    {/* 主要排名圓圈 */}
+                    <div style={{
+                        width: '72px',
+                        height: '72px',
+                        background: rankStyle.background,
+                        border: `4px solid ${rankStyle.borderColor}`,
+                        borderRadius: '50%',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: 'white',
+                        fontWeight: '800',
+                        fontSize: '24px',
+                        boxShadow: rankStyle.boxShadow,
+                        position: 'relative',
+                        zIndex: 2,
+                        animation: rankStyle.special ? 'championPulse 2s ease-in-out infinite' : 'none',
+                        transition: 'all 0.3s ease'
+                    }}>
+                        {rankStyle.icon}
+
+                        {/* 外部發光效果 */}
                         <div style={{
                             position: 'absolute',
-                            top: '-4px',
-                            left: '-4px',
-                            right: '-4px',
-                            bottom: '-4px',
+                            top: '-6px',
+                            left: '-6px',
+                            right: '-6px',
+                            bottom: '-6px',
                             borderRadius: '50%',
-                            background: rankStyle.background,
-                            opacity: 0.3,
+                            background: rankStyle.glowColor,
+                            opacity: 0.5,
                             zIndex: -1,
-                            animation: 'glow 2s ease-in-out infinite alternate'
+                            animation: 'breathe 3s ease-in-out infinite'
                         }} />
-                    )}
+
+                        {/* 內部光暈 */}
+                        <div style={{
+                            position: 'absolute',
+                            top: '8px',
+                            left: '8px',
+                            right: '8px',
+                            bottom: '8px',
+                            borderRadius: '50%',
+                            background: 'rgba(255, 255, 255, 0.25)',
+                            zIndex: -1
+                        }} />
+
+                        {/* 閃光效果 */}
+                        {rankStyle.special && (
+                            <div style={{
+                                position: 'absolute',
+                                top: '12px',
+                                left: '12px',
+                                width: '8px',
+                                height: '8px',
+                                borderRadius: '50%',
+                                background: 'rgba(255, 255, 255, 0.8)',
+                                animation: 'sparkle 2s ease-in-out infinite'
+                            }} />
+                        )}
+                    </div>
+
+                    {/* 排名標籤 */}
+                    <div style={{
+                        background: 'rgba(0, 0, 0, 0.85)',
+                        color: 'white',
+                        padding: '4px 12px',
+                        borderRadius: '16px',
+                        fontSize: '12px',
+                        fontWeight: '700',
+                        whiteSpace: 'nowrap',
+                        backdropFilter: 'blur(10px)',
+                        border: '1px solid rgba(255, 255, 255, 0.1)',
+                        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)'
+                    }}>
+                        {rankStyle.label}
+                    </div>
                 </div>
             )}
             {/* 內容區域 */}
@@ -640,9 +752,37 @@ const TripCard = ({ trip, isFavorited, favoriteLoading, onFavorite, onShare, isL
 
             {/* 添加CSS動畫 */}
             <style jsx>{`
-                @keyframes pulse {
-                    0%, 100% { transform: scale(1); }
-                    50% { transform: scale(1.05); }
+                @keyframes championPulse {
+                    0%, 100% {
+                        transform: scale(1);
+                        filter: brightness(1);
+                    }
+                    50% {
+                        transform: scale(1.08);
+                        filter: brightness(1.2);
+                    }
+                }
+
+                @keyframes breathe {
+                    0%, 100% {
+                        opacity: 0.4;
+                        transform: scale(1);
+                    }
+                    50% {
+                        opacity: 0.7;
+                        transform: scale(1.1);
+                    }
+                }
+
+                @keyframes sparkle {
+                    0%, 100% {
+                        opacity: 0;
+                        transform: scale(0.5);
+                    }
+                    50% {
+                        opacity: 1;
+                        transform: scale(1);
+                    }
                 }
 
                 @keyframes glow {
