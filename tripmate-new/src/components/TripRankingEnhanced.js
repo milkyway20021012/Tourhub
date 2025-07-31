@@ -32,6 +32,12 @@ const TripRankingEnhanced = () => {
     }, [activeTab, filters]);
 
     const initializeData = async () => {
+        // 先嘗試從緩存載入收藏狀態
+        const cacheLoaded = loadFavoritesFromCache();
+        if (cacheLoaded) {
+            console.log('已從緩存載入收藏狀態，稍後將從 API 更新');
+        }
+
         await Promise.all([
             fetchStatistics(),
             fetchUserFavorites(),
@@ -50,14 +56,57 @@ const TripRankingEnhanced = () => {
         }
     };
 
+    // 從 localStorage 載入收藏緩存
+    const loadFavoritesFromCache = () => {
+        if (typeof window === 'undefined' || !lineUserId) return false;
+
+        try {
+            const cacheKey = `userFavorites_${lineUserId}`;
+            const cached = localStorage.getItem(cacheKey);
+
+            if (cached) {
+                const { favorites, timestamp, userId } = JSON.parse(cached);
+
+                // 檢查緩存是否有效（24小時內且用戶ID匹配）
+                const isValid = userId === lineUserId &&
+                    (Date.now() - timestamp) < 24 * 60 * 60 * 1000;
+
+                if (isValid && Array.isArray(favorites)) {
+                    const favIds = new Set(favorites);
+                    setFavorites(favIds);
+                    console.log('從緩存載入收藏狀態:', favorites.length, '個收藏');
+                    return true;
+                }
+            }
+        } catch (e) {
+            console.error('載入收藏緩存失敗:', e);
+        }
+        return false;
+    };
+
     const fetchUserFavorites = async () => {
         try {
             const response = await axios.get(`/api/user-favorites?line_user_id=${lineUserId}`);
             const favIds = new Set(response.data.favorites.map(f => f.trip_id));
             setFavorites(favIds);
             console.log('收藏資料載入成功:', favIds.size, '筆');
+
+            // 將收藏狀態保存到 localStorage 作為緩存
+            try {
+                const favoritesArray = Array.from(favIds);
+                localStorage.setItem(`userFavorites_${lineUserId}`, JSON.stringify({
+                    favorites: favoritesArray,
+                    timestamp: Date.now(),
+                    userId: lineUserId
+                }));
+            } catch (e) {
+                console.error('保存收藏緩存失敗:', e);
+            }
         } catch (err) {
             console.error('獲取收藏失敗:', err);
+
+            // 如果 API 失敗，嘗試從 localStorage 載入緩存
+            loadFavoritesFromCache();
         }
     };
 
@@ -101,6 +150,19 @@ const TripRankingEnhanced = () => {
                 setFavorites(prev => {
                     const newSet = new Set(prev);
                     newSet.delete(tripId);
+
+                    // 更新 localStorage 緩存
+                    try {
+                        const favoritesArray = Array.from(newSet);
+                        localStorage.setItem(`userFavorites_${lineUserId}`, JSON.stringify({
+                            favorites: favoritesArray,
+                            timestamp: Date.now(),
+                            userId: lineUserId
+                        }));
+                    } catch (e) {
+                        console.error('更新收藏緩存失敗:', e);
+                    }
+
                     return newSet;
                 });
                 console.log('取消收藏成功:', tripId);
@@ -110,7 +172,23 @@ const TripRankingEnhanced = () => {
                     line_user_id: lineUserId,
                     trip_id: tripId
                 });
-                setFavorites(prev => new Set([...prev, tripId]));
+                setFavorites(prev => {
+                    const newSet = new Set([...prev, tripId]);
+
+                    // 更新 localStorage 緩存
+                    try {
+                        const favoritesArray = Array.from(newSet);
+                        localStorage.setItem(`userFavorites_${lineUserId}`, JSON.stringify({
+                            favorites: favoritesArray,
+                            timestamp: Date.now(),
+                            userId: lineUserId
+                        }));
+                    } catch (e) {
+                        console.error('更新收藏緩存失敗:', e);
+                    }
+
+                    return newSet;
+                });
                 console.log('新增收藏成功:', tripId);
             }
         } catch (err) {

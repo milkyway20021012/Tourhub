@@ -268,6 +268,20 @@ const HomePage = () => {
     }
   }, [state.mounted, state.liffReady]);
 
+  // 當用戶登入狀態改變時，嘗試載入收藏緩存
+  React.useEffect(() => {
+    if (state.liffLoggedIn && state.userProfile && state.mounted) {
+      const userId = getCurrentUserId();
+      if (userId && state.favorites.size === 0) {
+        // 只有在收藏列表為空時才從緩存載入，避免覆蓋已載入的數據
+        const cacheLoaded = loadFavoritesFromCache(userId);
+        if (!cacheLoaded) {
+          console.log('無有效緩存，將從 API 載入收藏狀態');
+        }
+      }
+    }
+  }, [state.liffLoggedIn, state.userProfile, state.mounted]);
+
   // 當分頁、篩選條件或排序改變時重新載入資料
   React.useEffect(() => {
     if (state.mounted && !state.isSearchMode) {
@@ -401,6 +415,13 @@ const HomePage = () => {
         dispatch({ type: 'SET_LIFF_LOGGED_IN', value: true });
         const profile = await window.liff.getProfile();
         dispatch({ type: 'SET_USER_PROFILE', value: profile });
+
+        // 立即嘗試載入緩存的收藏狀態，然後再從 API 更新
+        const cacheLoaded = loadFavoritesFromCache(profile.userId);
+        if (cacheLoaded) {
+          console.log('已從緩存載入收藏狀態，稍後將從 API 更新');
+        }
+
         setTimeout(() => {
           fetchUserFavorites();
         }, 100);
@@ -526,10 +547,53 @@ const HomePage = () => {
       if (response.data.success) {
         const favIds = new Set(response.data.favorites.map(f => f.trip_id));
         dispatch({ type: 'SET_FAVORITES', favorites: favIds });
+
+        // 將收藏狀態保存到 localStorage 作為緩存
+        try {
+          const favoritesArray = Array.from(favIds);
+          localStorage.setItem(`userFavorites_${userId}`, JSON.stringify({
+            favorites: favoritesArray,
+            timestamp: Date.now(),
+            userId: userId
+          }));
+        } catch (e) {
+          console.error('保存收藏緩存失敗:', e);
+        }
       }
     } catch (err) {
       console.error('獲取收藏列表失敗:', err);
+
+      // 如果 API 失敗，嘗試從 localStorage 載入緩存
+      loadFavoritesFromCache(userId);
     }
+  };
+
+  // 從 localStorage 載入收藏緩存
+  const loadFavoritesFromCache = (userId) => {
+    if (typeof window === 'undefined' || !userId) return;
+
+    try {
+      const cacheKey = `userFavorites_${userId}`;
+      const cached = localStorage.getItem(cacheKey);
+
+      if (cached) {
+        const { favorites, timestamp, userId: cachedUserId } = JSON.parse(cached);
+
+        // 檢查緩存是否有效（24小時內且用戶ID匹配）
+        const isValid = cachedUserId === userId &&
+          (Date.now() - timestamp) < 24 * 60 * 60 * 1000;
+
+        if (isValid && Array.isArray(favorites)) {
+          const favIds = new Set(favorites);
+          dispatch({ type: 'SET_FAVORITES', favorites: favIds });
+          console.log('從緩存載入收藏狀態:', favorites.length, '個收藏');
+          return true;
+        }
+      }
+    } catch (e) {
+      console.error('載入收藏緩存失敗:', e);
+    }
+    return false;
   };
 
   // 工具函數
@@ -685,6 +749,22 @@ const HomePage = () => {
           throw new Error(response.data.message || '新增收藏失敗');
         }
       }
+
+      // 操作成功後更新 localStorage 緩存
+      try {
+        const currentFavorites = state.favorites;
+        const favoritesArray = Array.from(currentFavorites);
+        localStorage.setItem(`userFavorites_${userId}`, JSON.stringify({
+          favorites: favoritesArray,
+          timestamp: Date.now(),
+          userId: userId
+        }));
+      } catch (e) {
+        console.error('更新收藏緩存失敗:', e);
+      }
+
+      showToast(isFavorited ? '已取消收藏' : '已加入收藏', 'success');
+
     } catch (err) {
       // 回滾
       const newSet = new Set(state.favorites);
