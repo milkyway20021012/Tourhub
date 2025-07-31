@@ -292,39 +292,11 @@ const TripCard = ({ trip, isFavorited, favoriteLoading, onFavorite, onShare, isL
                             lineHeight: '1.3',
                             letterSpacing: '-0.025em'
                         }}>{trip.title}</h3>
-                        {(trip.start_date || trip.end_date) && (
-                            <div style={{
-                                color: '#64748b',
-                                fontSize: '14px',
-                                fontWeight: '500',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '4px'
-                            }}>
-                                📅 {trip.start_date && new Date(trip.start_date).toLocaleDateString('zh-TW')}
-                                {trip.start_date && trip.end_date && ' - '}
-                                {trip.end_date && new Date(trip.end_date).toLocaleDateString('zh-TW')}
-                            </div>
-                        )}
+
                     </div>
                 )}
 
-                {/* 手機版日期 */}
-                {isMobile && (trip.start_date || trip.end_date) && (
-                    <div style={{
-                        color: '#64748b',
-                        fontSize: '13px',
-                        fontWeight: '500',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '4px',
-                        marginBottom: '12px'
-                    }}>
-                        📅 {trip.start_date && new Date(trip.start_date).toLocaleDateString('zh-TW')}
-                        {trip.start_date && trip.end_date && ' - '}
-                        {trip.end_date && new Date(trip.end_date).toLocaleDateString('zh-TW')}
-                    </div>
-                )}
+
 
                 {/* 標籤區域 */}
                 <div style={{
