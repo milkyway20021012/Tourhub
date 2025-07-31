@@ -27,17 +27,18 @@ const TripCard = ({ trip, isFavorited, favoriteLoading, onFavorite, onShare, isL
         }, 3000);
     };
 
-    // 根據排名決定樣式 - 現代化設計
+    // 根據排名決定樣式 - 現代化設計優化版
     const getRankStyle = (rank) => {
         if (typeof rank === 'string' && rank === '🔍') {
             return {
                 type: 'search',
-                background: 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)',
-                boxShadow: '0 8px 25px rgba(139, 92, 246, 0.4)',
+                background: 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 50%, #6d28d9 100%)',
+                boxShadow: '0 12px 40px rgba(139, 92, 246, 0.5), 0 4px 12px rgba(139, 92, 246, 0.3)',
                 borderColor: '#a855f7',
-                glowColor: 'rgba(139, 92, 246, 0.6)',
+                glowColor: 'rgba(139, 92, 246, 0.8)',
                 icon: '🔍',
-                label: '搜尋'
+                label: '搜尋結果',
+                textShadow: '0 2px 4px rgba(0,0,0,0.3)'
             };
         }
 
@@ -45,53 +46,87 @@ const TripCard = ({ trip, isFavorited, favoriteLoading, onFavorite, onShare, isL
         if (numRank === 1) {
             return {
                 type: 'champion',
-                background: 'linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%)',
-                boxShadow: '0 12px 35px rgba(251, 191, 36, 0.5)',
+                background: 'linear-gradient(135deg, #fbbf24 0%, #f59e0b 50%, #d97706 100%)',
+                boxShadow: '0 16px 50px rgba(251, 191, 36, 0.6), 0 8px 20px rgba(251, 191, 36, 0.4)',
                 borderColor: '#fcd34d',
-                glowColor: 'rgba(251, 191, 36, 0.8)',
+                glowColor: 'rgba(251, 191, 36, 1)',
                 icon: '👑',
-                label: '冠軍',
-                special: true
+                label: '🏆 冠軍',
+                special: true,
+                textShadow: '0 2px 6px rgba(0,0,0,0.4)',
+                ringColor: '#fbbf24'
             };
         } else if (numRank === 2) {
             return {
                 type: 'silver',
-                background: 'linear-gradient(135deg, #e5e7eb 0%, #9ca3af 100%)',
-                boxShadow: '0 10px 30px rgba(156, 163, 175, 0.4)',
-                borderColor: '#d1d5db',
-                glowColor: 'rgba(156, 163, 175, 0.7)',
+                background: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 50%, #cbd5e1 100%)',
+                boxShadow: '0 14px 45px rgba(148, 163, 184, 0.5), 0 6px 18px rgba(148, 163, 184, 0.3)',
+                borderColor: '#e2e8f0',
+                glowColor: 'rgba(148, 163, 184, 0.9)',
                 icon: '🥈',
-                label: '亞軍'
+                label: '🥈 亞軍',
+                textShadow: '0 2px 4px rgba(0,0,0,0.3)',
+                ringColor: '#94a3b8'
             };
         } else if (numRank === 3) {
             return {
                 type: 'bronze',
-                background: 'linear-gradient(135deg, #d97706 0%, #92400e 100%)',
-                boxShadow: '0 10px 30px rgba(217, 119, 6, 0.4)',
-                borderColor: '#f59e0b',
-                glowColor: 'rgba(217, 119, 6, 0.7)',
+                background: 'linear-gradient(135deg, #fed7aa 0%, #fdba74 50%, #fb923c 100%)',
+                boxShadow: '0 14px 45px rgba(251, 146, 60, 0.5), 0 6px 18px rgba(251, 146, 60, 0.3)',
+                borderColor: '#fdba74',
+                glowColor: 'rgba(251, 146, 60, 0.9)',
                 icon: '🥉',
-                label: '季軍'
+                label: '🥉 季軍',
+                textShadow: '0 2px 4px rgba(0,0,0,0.3)',
+                ringColor: '#fb923c'
+            };
+        } else if (numRank <= 5) {
+            return {
+                type: 'top5',
+                background: 'linear-gradient(135deg, #ddd6fe 0%, #c4b5fd 50%, #a78bfa 100%)',
+                boxShadow: '0 12px 35px rgba(167, 139, 250, 0.4), 0 5px 15px rgba(167, 139, 250, 0.25)',
+                borderColor: '#c4b5fd',
+                glowColor: 'rgba(167, 139, 250, 0.7)',
+                icon: '🌟',
+                label: `✨ TOP ${numRank}`,
+                textShadow: '0 2px 4px rgba(0,0,0,0.2)',
+                ringColor: '#a78bfa'
             };
         } else if (numRank <= 10) {
             return {
                 type: 'top10',
-                background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
-                boxShadow: '0 8px 25px rgba(59, 130, 246, 0.3)',
-                borderColor: '#60a5fa',
-                glowColor: 'rgba(59, 130, 246, 0.5)',
+                background: 'linear-gradient(135deg, #dbeafe 0%, #93c5fd 50%, #60a5fa 100%)',
+                boxShadow: '0 10px 30px rgba(96, 165, 250, 0.35), 0 4px 12px rgba(96, 165, 250, 0.2)',
+                borderColor: '#93c5fd',
+                glowColor: 'rgba(96, 165, 250, 0.6)',
                 icon: '⭐',
-                label: 'TOP 10'
+                label: `⭐ TOP ${numRank}`,
+                textShadow: '0 2px 4px rgba(0,0,0,0.2)',
+                ringColor: '#60a5fa'
+            };
+        } else if (numRank <= 20) {
+            return {
+                type: 'top20',
+                background: 'linear-gradient(135deg, #d1fae5 0%, #86efac 50%, #4ade80 100%)',
+                boxShadow: '0 8px 25px rgba(74, 222, 128, 0.3), 0 3px 10px rgba(74, 222, 128, 0.15)',
+                borderColor: '#86efac',
+                glowColor: 'rgba(74, 222, 128, 0.5)',
+                icon: numRank,
+                label: `🎯 第${numRank}名`,
+                textShadow: '0 1px 3px rgba(0,0,0,0.2)',
+                ringColor: '#4ade80'
             };
         } else {
             return {
                 type: 'regular',
-                background: 'linear-gradient(135deg, #64748b 0%, #475569 100%)',
-                boxShadow: '0 6px 20px rgba(100, 116, 139, 0.25)',
-                borderColor: '#94a3b8',
+                background: 'linear-gradient(135deg, #f1f5f9 0%, #cbd5e1 50%, #94a3b8 100%)',
+                boxShadow: '0 6px 20px rgba(100, 116, 139, 0.25), 0 2px 8px rgba(100, 116, 139, 0.15)',
+                borderColor: '#cbd5e1',
                 glowColor: 'rgba(100, 116, 139, 0.4)',
-                icon: '#',
-                label: `第${numRank}名`
+                icon: numRank,
+                label: `第${numRank}名`,
+                textShadow: '0 1px 2px rgba(0,0,0,0.2)',
+                ringColor: '#94a3b8'
             };
         }
     };
@@ -153,18 +188,18 @@ const TripCard = ({ trip, isFavorited, favoriteLoading, onFavorite, onShare, isL
                     gap: '12px',
                     marginBottom: '12px'
                 }}>
-                    {/* 現代化排名徽章 - 手機版 */}
+                    {/* 現代化排名徽章 - 手機版優化 */}
                     <div style={{
                         position: 'relative',
                         display: 'flex',
                         flexDirection: 'column',
                         alignItems: 'center',
-                        gap: '4px'
+                        gap: '6px'
                     }}>
                         {/* 主要排名圓圈 */}
                         <div style={{
-                            width: '52px',
-                            height: '52px',
+                            width: '56px',
+                            height: '56px',
                             background: rankStyle.background,
                             border: `3px solid ${rankStyle.borderColor}`,
                             borderRadius: '50%',
@@ -173,24 +208,41 @@ const TripCard = ({ trip, isFavorited, favoriteLoading, onFavorite, onShare, isL
                             justifyContent: 'center',
                             color: 'white',
                             fontWeight: '800',
-                            fontSize: '18px',
+                            fontSize: typeof rankStyle.icon === 'number' ? '16px' : '20px',
                             boxShadow: rankStyle.boxShadow,
                             position: 'relative',
                             zIndex: 2,
-                            animation: rankStyle.special ? 'championPulse 2s ease-in-out infinite' : 'none'
+                            animation: rankStyle.special ? 'championPulse 2s ease-in-out infinite' : 'none',
+                            textShadow: rankStyle.textShadow || '0 2px 4px rgba(0,0,0,0.3)'
                         }}>
                             {rankStyle.icon}
+
+                            {/* 外環裝飾 */}
+                            {rankStyle.ringColor && (
+                                <div style={{
+                                    position: 'absolute',
+                                    top: '-6px',
+                                    left: '-6px',
+                                    right: '-6px',
+                                    bottom: '-6px',
+                                    borderRadius: '50%',
+                                    border: `2px solid ${rankStyle.ringColor}`,
+                                    opacity: 0.3,
+                                    zIndex: -2,
+                                    animation: 'ringPulse 3s ease-in-out infinite'
+                                }} />
+                            )}
 
                             {/* 發光效果 */}
                             <div style={{
                                 position: 'absolute',
-                                top: '-4px',
-                                left: '-4px',
-                                right: '-4px',
-                                bottom: '-4px',
+                                top: '-5px',
+                                left: '-5px',
+                                right: '-5px',
+                                bottom: '-5px',
                                 borderRadius: '50%',
                                 background: rankStyle.glowColor,
-                                opacity: 0.4,
+                                opacity: 0.5,
                                 zIndex: -1,
                                 animation: 'breathe 3s ease-in-out infinite'
                             }} />
@@ -198,26 +250,44 @@ const TripCard = ({ trip, isFavorited, favoriteLoading, onFavorite, onShare, isL
                             {/* 內部光暈 */}
                             <div style={{
                                 position: 'absolute',
-                                top: '6px',
-                                left: '6px',
-                                right: '6px',
-                                bottom: '6px',
+                                top: '8px',
+                                left: '8px',
+                                right: '8px',
+                                bottom: '8px',
                                 borderRadius: '50%',
-                                background: 'rgba(255, 255, 255, 0.2)',
+                                background: 'rgba(255, 255, 255, 0.25)',
                                 zIndex: -1
                             }} />
+
+                            {/* 特殊效果 - 閃光 */}
+                            {rankStyle.special && (
+                                <div style={{
+                                    position: 'absolute',
+                                    top: '10px',
+                                    left: '10px',
+                                    width: '6px',
+                                    height: '6px',
+                                    borderRadius: '50%',
+                                    background: 'rgba(255, 255, 255, 0.9)',
+                                    animation: 'sparkle 2s ease-in-out infinite'
+                                }} />
+                            )}
                         </div>
 
-                        {/* 排名標籤 */}
+                        {/* 排名標籤 - 優化版 */}
                         <div style={{
-                            background: 'rgba(0, 0, 0, 0.8)',
+                            background: 'linear-gradient(135deg, rgba(0, 0, 0, 0.85) 0%, rgba(0, 0, 0, 0.95) 100%)',
                             color: 'white',
-                            padding: '2px 8px',
-                            borderRadius: '12px',
+                            padding: '3px 10px',
+                            borderRadius: '14px',
                             fontSize: '10px',
-                            fontWeight: '600',
+                            fontWeight: '700',
                             whiteSpace: 'nowrap',
-                            backdropFilter: 'blur(10px)'
+                            backdropFilter: 'blur(12px)',
+                            border: '1px solid rgba(255, 255, 255, 0.15)',
+                            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.4)',
+                            textShadow: '0 1px 2px rgba(0,0,0,0.5)',
+                            letterSpacing: '0.5px'
                         }}>
                             {rankStyle.label}
                         </div>
@@ -302,20 +372,20 @@ const TripCard = ({ trip, isFavorited, favoriteLoading, onFavorite, onShare, isL
                 </div>
             )}
 
-            {/* 現代化排名徽章 - 桌面版 */}
+            {/* 現代化排名徽章 - 桌面版優化 */}
             {!isMobile && (
                 <div style={{
                     position: 'relative',
                     display: 'flex',
                     flexDirection: 'column',
                     alignItems: 'center',
-                    gap: '8px',
+                    gap: '10px',
                     flexShrink: 0
                 }}>
                     {/* 主要排名圓圈 */}
                     <div style={{
-                        width: '72px',
-                        height: '72px',
+                        width: '80px',
+                        height: '80px',
                         background: rankStyle.background,
                         border: `4px solid ${rankStyle.borderColor}`,
                         borderRadius: '50%',
@@ -324,25 +394,42 @@ const TripCard = ({ trip, isFavorited, favoriteLoading, onFavorite, onShare, isL
                         justifyContent: 'center',
                         color: 'white',
                         fontWeight: '800',
-                        fontSize: '24px',
+                        fontSize: typeof rankStyle.icon === 'number' ? '20px' : '28px',
                         boxShadow: rankStyle.boxShadow,
                         position: 'relative',
                         zIndex: 2,
                         animation: rankStyle.special ? 'championPulse 2s ease-in-out infinite' : 'none',
-                        transition: 'all 0.3s ease'
+                        transition: 'all 0.3s ease',
+                        textShadow: rankStyle.textShadow || '0 2px 4px rgba(0,0,0,0.3)'
                     }}>
                         {rankStyle.icon}
+
+                        {/* 外環裝飾 */}
+                        {rankStyle.ringColor && (
+                            <div style={{
+                                position: 'absolute',
+                                top: '-8px',
+                                left: '-8px',
+                                right: '-8px',
+                                bottom: '-8px',
+                                borderRadius: '50%',
+                                border: `3px solid ${rankStyle.ringColor}`,
+                                opacity: 0.4,
+                                zIndex: -2,
+                                animation: 'ringPulse 3s ease-in-out infinite'
+                            }} />
+                        )}
 
                         {/* 外部發光效果 */}
                         <div style={{
                             position: 'absolute',
-                            top: '-6px',
-                            left: '-6px',
-                            right: '-6px',
-                            bottom: '-6px',
+                            top: '-8px',
+                            left: '-8px',
+                            right: '-8px',
+                            bottom: '-8px',
                             borderRadius: '50%',
                             background: rankStyle.glowColor,
-                            opacity: 0.5,
+                            opacity: 0.6,
                             zIndex: -1,
                             animation: 'breathe 3s ease-in-out infinite'
                         }} />
@@ -350,42 +437,58 @@ const TripCard = ({ trip, isFavorited, favoriteLoading, onFavorite, onShare, isL
                         {/* 內部光暈 */}
                         <div style={{
                             position: 'absolute',
-                            top: '8px',
-                            left: '8px',
-                            right: '8px',
-                            bottom: '8px',
+                            top: '10px',
+                            left: '10px',
+                            right: '10px',
+                            bottom: '10px',
                             borderRadius: '50%',
-                            background: 'rgba(255, 255, 255, 0.25)',
+                            background: 'rgba(255, 255, 255, 0.3)',
                             zIndex: -1
                         }} />
 
-                        {/* 閃光效果 */}
+                        {/* 特殊效果 - 閃光 */}
                         {rankStyle.special && (
-                            <div style={{
-                                position: 'absolute',
-                                top: '12px',
-                                left: '12px',
-                                width: '8px',
-                                height: '8px',
-                                borderRadius: '50%',
-                                background: 'rgba(255, 255, 255, 0.8)',
-                                animation: 'sparkle 2s ease-in-out infinite'
-                            }} />
+                            <>
+                                <div style={{
+                                    position: 'absolute',
+                                    top: '14px',
+                                    left: '14px',
+                                    width: '10px',
+                                    height: '10px',
+                                    borderRadius: '50%',
+                                    background: 'rgba(255, 255, 255, 0.9)',
+                                    animation: 'sparkle 2s ease-in-out infinite'
+                                }} />
+                                <div style={{
+                                    position: 'absolute',
+                                    top: '20px',
+                                    right: '16px',
+                                    width: '6px',
+                                    height: '6px',
+                                    borderRadius: '50%',
+                                    background: 'rgba(255, 255, 255, 0.7)',
+                                    animation: 'sparkle 2s ease-in-out infinite 0.5s'
+                                }} />
+                            </>
                         )}
                     </div>
 
-                    {/* 排名標籤 */}
+                    {/* 排名標籤 - 優化版 */}
                     <div style={{
-                        background: 'rgba(0, 0, 0, 0.85)',
+                        background: 'linear-gradient(135deg, rgba(0, 0, 0, 0.9) 0%, rgba(0, 0, 0, 0.95) 100%)',
                         color: 'white',
-                        padding: '4px 12px',
-                        borderRadius: '16px',
-                        fontSize: '12px',
+                        padding: '6px 16px',
+                        borderRadius: '20px',
+                        fontSize: '13px',
                         fontWeight: '700',
                         whiteSpace: 'nowrap',
-                        backdropFilter: 'blur(10px)',
-                        border: '1px solid rgba(255, 255, 255, 0.1)',
-                        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)'
+                        backdropFilter: 'blur(15px)',
+                        border: '1px solid rgba(255, 255, 255, 0.2)',
+                        boxShadow: '0 6px 20px rgba(0, 0, 0, 0.4), 0 2px 6px rgba(0, 0, 0, 0.2)',
+                        textShadow: '0 1px 3px rgba(0,0,0,0.6)',
+                        letterSpacing: '0.5px',
+                        minWidth: '80px',
+                        textAlign: 'center'
                     }}>
                         {rankStyle.label}
                     </div>
@@ -750,49 +853,83 @@ const TripCard = ({ trip, isFavorited, favoriteLoading, onFavorite, onShare, isL
                 </div>
             )}
 
-            {/* 添加CSS動畫 */}
+            {/* 添加CSS動畫 - 優化版 */}
             <style jsx>{`
                 @keyframes championPulse {
                     0%, 100% {
                         transform: scale(1);
-                        filter: brightness(1);
+                        filter: brightness(1) saturate(1);
                     }
                     50% {
-                        transform: scale(1.08);
-                        filter: brightness(1.2);
+                        transform: scale(1.05);
+                        filter: brightness(1.15) saturate(1.1);
                     }
                 }
 
                 @keyframes breathe {
                     0%, 100% {
-                        opacity: 0.4;
+                        opacity: 0.5;
                         transform: scale(1);
                     }
                     50% {
-                        opacity: 0.7;
-                        transform: scale(1.1);
+                        opacity: 0.8;
+                        transform: scale(1.15);
                     }
                 }
 
                 @keyframes sparkle {
                     0%, 100% {
                         opacity: 0;
-                        transform: scale(0.5);
+                        transform: scale(0.3) rotate(0deg);
+                    }
+                    25% {
+                        opacity: 0.8;
+                        transform: scale(1.2) rotate(90deg);
                     }
                     50% {
                         opacity: 1;
+                        transform: scale(1) rotate(180deg);
+                    }
+                    75% {
+                        opacity: 0.8;
+                        transform: scale(1.2) rotate(270deg);
+                    }
+                }
+
+                @keyframes ringPulse {
+                    0%, 100% {
+                        opacity: 0.3;
                         transform: scale(1);
+                    }
+                    50% {
+                        opacity: 0.6;
+                        transform: scale(1.1);
                     }
                 }
 
                 @keyframes glow {
-                    0% { opacity: 0.3; }
-                    100% { opacity: 0.6; }
+                    0% { opacity: 0.4; }
+                    100% { opacity: 0.8; }
                 }
 
                 @keyframes shimmer {
                     0% { transform: translateX(-100%); }
                     100% { transform: translateX(100%); }
+                }
+
+                @keyframes floatUp {
+                    0% {
+                        opacity: 0;
+                        transform: translateY(20px) scale(0.8);
+                    }
+                    50% {
+                        opacity: 1;
+                        transform: translateY(-5px) scale(1.05);
+                    }
+                    100% {
+                        opacity: 1;
+                        transform: translateY(0) scale(1);
+                    }
                 }
 
                 .rank-shimmer::before {
@@ -802,8 +939,8 @@ const TripCard = ({ trip, isFavorited, favoriteLoading, onFavorite, onShare, isL
                     left: -100%;
                     width: 100%;
                     height: 100%;
-                    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
-                    animation: shimmer 2s infinite;
+                    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.5), transparent);
+                    animation: shimmer 3s infinite;
                 }
 
                 /* 收藏提示動畫 */
