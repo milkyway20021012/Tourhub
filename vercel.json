@@ -1,0 +1,23 @@
+{
+  "buildCommand": "cd tripmate-new && npm run build",
+  "devCommand": "cd tripmate-new && npm run dev",
+  "installCommand": "cd tripmate-new && npm install",
+  "outputDirectory": "tripmate-new/.next",
+  "functions": {
+    "tripmate-new/src/pages/api/**/*.js": {
+      "runtime": "nodejs20.x"
+    }
+  },
+  "builds": [
+    {
+      "src": "tripmate-new/package.json",
+      "use": "@vercel/next",
+      "config": {
+        "runtime": "nodejs20.x"
+      }
+    }
+  ],
+  "env": {
+    "NODE_VERSION": "20"
+  }
+}
