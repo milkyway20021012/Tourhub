@@ -290,7 +290,7 @@ const styles = {
     tripRank: {
         width: typeof window !== 'undefined' && window.innerWidth <= 768 ? '48px' : '64px',
         height: typeof window !== 'undefined' && window.innerWidth <= 768 ? '48px' : '64px',
-        background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+        background: 'linear-gradient(135deg, #fca5a5 0%, #f87171 100%)',
         color: 'white',
         borderRadius: '50%',
         display: 'flex',
@@ -299,7 +299,7 @@ const styles = {
         fontWeight: '700',
         fontSize: typeof window !== 'undefined' && window.innerWidth <= 768 ? '16px' : '18px',
         flexShrink: '0',
-        boxShadow: '0 4px 12px rgba(239, 68, 68, 0.3)',
+        boxShadow: '0 4px 12px rgba(252, 165, 165, 0.4)',
         position: 'relative'
     },
     tripContent: {
@@ -708,7 +708,7 @@ const FavoritesContent = ({
                                     right: '-4px',
                                     bottom: '-4px',
                                     borderRadius: '50%',
-                                    background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+                                    background: 'linear-gradient(135deg, #fca5a5 0%, #f87171 100%)',
                                     opacity: 0.3,
                                     zIndex: -1,
                                     animation: 'glow 2s ease-in-out infinite alternate'
