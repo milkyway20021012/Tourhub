@@ -218,17 +218,20 @@ const styles = {
     container: {
         maxWidth: '1200px',
         margin: '0 auto',
-        padding: '20px',
+        padding: typeof window !== 'undefined' && window.innerWidth <= 768 ? '12px' : '20px',
         minHeight: '100vh',
         background: '#f8fafc'
     },
     header: {
         textAlign: 'center',
-        marginBottom: '32px',
-        padding: '32px 24px',
+        marginBottom: typeof window !== 'undefined' && window.innerWidth <= 768 ? '24px' : '32px',
+        padding: typeof window !== 'undefined' && window.innerWidth <= 768 ? '24px 16px' : '40px 32px',
         background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-        borderRadius: '16px',
-        color: 'white'
+        borderRadius: typeof window !== 'undefined' && window.innerWidth <= 768 ? '16px' : '20px',
+        color: 'white',
+        position: 'relative',
+        overflow: 'hidden',
+        boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)'
     },
     loading: {
         textAlign: 'center',
@@ -273,29 +276,31 @@ const styles = {
     },
     tripCard: {
         background: 'white',
-        borderRadius: '12px',
-        padding: '20px',
-        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+        borderRadius: typeof window !== 'undefined' && window.innerWidth <= 768 ? '12px' : '16px',
+        padding: typeof window !== 'undefined' && window.innerWidth <= 768 ? '16px' : '24px',
+        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
         border: '1px solid #e2e8f0',
         cursor: 'pointer',
-        transition: 'all 0.2s ease',
+        transition: 'all 0.3s ease',
         display: 'flex',
         alignItems: 'flex-start',
-        gap: '20px',
+        gap: typeof window !== 'undefined' && window.innerWidth <= 768 ? '16px' : '20px',
         position: 'relative'
     },
     tripRank: {
-        width: '48px',
-        height: '48px',
-        background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
+        width: typeof window !== 'undefined' && window.innerWidth <= 768 ? '48px' : '64px',
+        height: typeof window !== 'undefined' && window.innerWidth <= 768 ? '48px' : '64px',
+        background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
         color: 'white',
         borderRadius: '50%',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
         fontWeight: '700',
-        fontSize: '18px',
-        flexShrink: '0'
+        fontSize: typeof window !== 'undefined' && window.innerWidth <= 768 ? '16px' : '18px',
+        flexShrink: '0',
+        boxShadow: '0 4px 12px rgba(239, 68, 68, 0.3)',
+        position: 'relative'
     },
     tripContent: {
         flex: '1',
@@ -317,32 +322,37 @@ const styles = {
     tripArea: {
         display: 'inline-flex',
         alignItems: 'center',
-        background: '#e0e7ff',
+        background: 'linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%)',
         color: '#3730a3',
-        padding: '4px 12px',
-        borderRadius: '20px',
-        fontSize: '13px',
-        fontWeight: '500'
+        padding: typeof window !== 'undefined' && window.innerWidth <= 768 ? '4px 10px' : '6px 14px',
+        borderRadius: typeof window !== 'undefined' && window.innerWidth <= 768 ? '16px' : '20px',
+        fontSize: typeof window !== 'undefined' && window.innerWidth <= 768 ? '11px' : '13px',
+        fontWeight: '600',
+        border: '1px solid #a5b4fc',
+        boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)'
     },
     tripDate: {
         color: '#64748b',
-        fontSize: '14px',
+        fontSize: typeof window !== 'undefined' && window.innerWidth <= 768 ? '12px' : '14px',
         fontWeight: '500'
     },
     tripTags: {
         display: 'flex',
-        gap: '8px',
+        gap: typeof window !== 'undefined' && window.innerWidth <= 768 ? '6px' : '8px',
         marginBottom: '12px',
         flexWrap: 'wrap'
     },
     tag: {
-        background: '#f1f5f9',
+        background: 'linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%)',
         color: '#475569',
-        padding: '4px 10px',
+        padding: typeof window !== 'undefined' && window.innerWidth <= 768 ? '4px 8px' : '6px 12px',
         borderRadius: '16px',
-        fontSize: '12px',
-        fontWeight: '500',
-        border: '1px solid #e2e8f0'
+        fontSize: typeof window !== 'undefined' && window.innerWidth <= 768 ? '10px' : '12px',
+        fontWeight: '600',
+        border: '1px solid #cbd5e1',
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: '4px'
     },
     tripDescription: {
         margin: '0',
@@ -385,18 +395,53 @@ const FavoritesContent = ({
     const renderHeader = () => {
         return (
             <div style={styles.header}>
-                <h1 style={{
-                    margin: '0 0 24px 0',
-                    fontSize: '32px',
-                    fontWeight: '700'
-                }}>
-                    我的收藏
-                </h1>
+                {/* 背景裝飾 */}
+                <div style={{
+                    position: 'absolute',
+                    top: '-50%',
+                    left: '-50%',
+                    width: '200%',
+                    height: '200%',
+                    background: 'radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%)',
+                    animation: 'float 6s ease-in-out infinite'
+                }} />
+
+                {/* 收藏圖標和標題 */}
+                <div style={{ position: 'relative', zIndex: 1 }}>
+                    <div style={{
+                        fontSize: typeof window !== 'undefined' && window.innerWidth <= 768 ? '36px' : '48px',
+                        marginBottom: typeof window !== 'undefined' && window.innerWidth <= 768 ? '12px' : '16px',
+                        display: 'inline-block',
+                        animation: 'bounce 2s infinite'
+                    }}>
+                        ❤️
+                    </div>
+                    <h1 style={{
+                        margin: '0 0 12px 0',
+                        fontSize: typeof window !== 'undefined' && window.innerWidth <= 768 ? '24px' : '36px',
+                        fontWeight: '800',
+                        letterSpacing: '-0.025em',
+                        textShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                        lineHeight: '1.2'
+                    }}>
+                        我的收藏
+                    </h1>
+                    <p style={{
+                        margin: typeof window !== 'undefined' && window.innerWidth <= 768 ? '0 0 20px 0' : '0 0 32px 0',
+                        fontSize: typeof window !== 'undefined' && window.innerWidth <= 768 ? '14px' : '16px',
+                        opacity: '0.9',
+                        fontWeight: '500',
+                        letterSpacing: '0.025em',
+                        lineHeight: '1.4'
+                    }}>
+                        {getDisplayName()}的專屬收藏，共收藏了 {favorites.length} 個精彩行程
+                    </p>
+                </div>
 
                 {/* 用戶資訊 */}
                 <div style={{ marginBottom: '16px', color: 'white', textAlign: 'center' }}>
-                    <div>
-                        <span>{getDisplayName()}的專屬收藏</span>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                        <span>👋 {getDisplayName()}</span>
                         {userProfile?.pictureUrl && (
                             <img
                                 src={userProfile.pictureUrl}
@@ -405,27 +450,36 @@ const FavoritesContent = ({
                                     width: '32px',
                                     height: '32px',
                                     borderRadius: '50%',
-                                    marginLeft: '8px',
                                     verticalAlign: 'middle'
                                 }}
                             />
                         )}
                     </div>
-                    <div style={{
-                        fontSize: '14px',
-                        opacity: '0.9',
-                        marginTop: '8px'
-                    }}>
-                        共收藏了 {favorites.length} 個精彩行程
-                    </div>
                 </div>
+
+                {/* 添加動畫樣式 */}
+                <style jsx>{`
+                    @keyframes float {
+                        0%, 100% { transform: translateY(0px) rotate(0deg); }
+                        50% { transform: translateY(-20px) rotate(180deg); }
+                    }
+                    @keyframes bounce {
+                        0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+                        40% { transform: translateY(-10px); }
+                        60% { transform: translateY(-5px); }
+                    }
+                    @keyframes glow {
+                        from { opacity: 0.3; transform: scale(1); }
+                        to { opacity: 0.6; transform: scale(1.05); }
+                    }
+                `}</style>
             </div>
         );
     };
 
     const renderBackButton = () => {
         return (
-            <div style={{ marginBottom: '20px' }}>
+            <div style={{ marginBottom: typeof window !== 'undefined' && window.innerWidth <= 768 ? '16px' : '20px' }}>
                 <button
                     onClick={() => {
                         if (typeof window !== 'undefined') {
@@ -433,15 +487,27 @@ const FavoritesContent = ({
                         }
                     }}
                     style={{
-                        background: '#f7fafc',
+                        background: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)',
                         border: '1px solid #e2e8f0',
-                        borderRadius: '8px',
-                        padding: '8px 16px',
+                        borderRadius: '12px',
+                        padding: '12px 20px',
                         cursor: 'pointer',
                         fontSize: '14px',
+                        fontWeight: '500',
                         display: 'flex',
                         alignItems: 'center',
-                        gap: '8px'
+                        gap: '8px',
+                        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+                        transition: 'all 0.2s ease',
+                        color: '#374151'
+                    }}
+                    onMouseEnter={(e) => {
+                        e.currentTarget.style.transform = 'translateY(-2px)';
+                        e.currentTarget.style.boxShadow = '0 10px 15px -3px rgba(0, 0, 0, 0.1)';
+                    }}
+                    onMouseLeave={(e) => {
+                        e.currentTarget.style.transform = 'translateY(0)';
+                        e.currentTarget.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.1)';
                     }}
                 >
                     ← 返回首頁
@@ -578,50 +644,76 @@ const FavoritesContent = ({
                                 }
                             }}
                             onMouseEnter={(e) => {
-                                e.currentTarget.style.boxShadow = '0 10px 15px -3px rgba(0, 0, 0, 0.1)';
-                                e.currentTarget.style.transform = 'translateY(-2px)';
-                                e.currentTarget.style.borderColor = '#3b82f6';
+                                if (typeof window !== 'undefined' && window.innerWidth > 768) {
+                                    e.currentTarget.style.transform = 'translateY(-4px)';
+                                    e.currentTarget.style.boxShadow = '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)';
+                                    e.currentTarget.style.borderColor = '#3b82f6';
+                                }
                             }}
                             onMouseLeave={(e) => {
-                                e.currentTarget.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.1)';
-                                e.currentTarget.style.transform = 'translateY(0)';
-                                e.currentTarget.style.borderColor = '#e2e8f0';
+                                if (typeof window !== 'undefined' && window.innerWidth > 768) {
+                                    e.currentTarget.style.transform = 'translateY(0)';
+                                    e.currentTarget.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)';
+                                    e.currentTarget.style.borderColor = '#e2e8f0';
+                                }
                             }}
                         >
                             <button
                                 onClick={() => onRemoveFavorite(favorite.trip_id)}
                                 style={{
                                     position: 'absolute',
-                                    top: '12px',
-                                    right: '12px',
-                                    background: 'rgba(239, 68, 68, 0.1)',
-                                    border: '1px solid #f87171',
-                                    borderRadius: '50%',
-                                    width: '32px',
-                                    height: '32px',
+                                    top: typeof window !== 'undefined' && window.innerWidth <= 768 ? '12px' : '16px',
+                                    right: typeof window !== 'undefined' && window.innerWidth <= 768 ? '12px' : '16px',
+                                    background: 'linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%)',
+                                    border: '2px solid #ef4444',
+                                    borderRadius: '12px',
+                                    width: typeof window !== 'undefined' && window.innerWidth <= 768 ? '36px' : '44px',
+                                    height: typeof window !== 'undefined' && window.innerWidth <= 768 ? '36px' : '44px',
                                     display: 'flex',
                                     alignItems: 'center',
                                     justifyContent: 'center',
                                     cursor: 'pointer',
-                                    fontSize: '14px',
+                                    fontSize: typeof window !== 'undefined' && window.innerWidth <= 768 ? '16px' : '18px',
                                     color: '#ef4444',
-                                    transition: 'all 0.2s ease'
+                                    transition: 'all 0.3s ease',
+                                    boxShadow: '0 2px 8px rgba(239, 68, 68, 0.3)',
+                                    fontWeight: '600'
                                 }}
                                 title="移除收藏"
                                 onMouseEnter={(e) => {
-                                    e.currentTarget.style.background = 'rgba(239, 68, 68, 0.2)';
+                                    e.currentTarget.style.background = 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)';
+                                    e.currentTarget.style.color = 'white';
                                     e.currentTarget.style.transform = 'scale(1.1)';
+                                    e.currentTarget.style.boxShadow = '0 6px 16px rgba(239, 68, 68, 0.4)';
                                 }}
                                 onMouseLeave={(e) => {
-                                    e.currentTarget.style.background = 'rgba(239, 68, 68, 0.1)';
+                                    e.currentTarget.style.background = 'linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%)';
+                                    e.currentTarget.style.color = '#ef4444';
                                     e.currentTarget.style.transform = 'scale(1)';
+                                    e.currentTarget.style.boxShadow = '0 2px 8px rgba(239, 68, 68, 0.3)';
                                 }}
                             >
                                 ❌
                             </button>
 
-                            <div style={styles.tripRank}>
-                                {index + 1}
+                            <div style={{
+                                ...styles.tripRank,
+                                position: 'relative'
+                            }}>
+                                {/* 發光效果 */}
+                                <div style={{
+                                    position: 'absolute',
+                                    top: '-4px',
+                                    left: '-4px',
+                                    right: '-4px',
+                                    bottom: '-4px',
+                                    borderRadius: '50%',
+                                    background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+                                    opacity: 0.3,
+                                    zIndex: -1,
+                                    animation: 'glow 2s ease-in-out infinite alternate'
+                                }} />
+                                ❤️
                             </div>
 
                             <div
@@ -652,7 +744,13 @@ const FavoritesContent = ({
                                                 favorite.status === '即將出發' ? '🎯' : '✅'} {favorite.status}
                                         </span>
                                     )}
-                                    <span style={{ ...styles.tag, background: '#fef3c7', color: '#92400e' }}>
+                                    <span style={{
+                                        ...styles.tag,
+                                        background: 'linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%)',
+                                        color: '#dc2626',
+                                        border: '1px solid #fecaca',
+                                        boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)'
+                                    }}>
                                         ❤️ 已收藏
                                     </span>
                                 </div>
@@ -882,7 +980,7 @@ const FavoritesPage = () => {
                 const favoritesData = response.data.favorites || [];
                 setFavorites(favoritesData);
                 console.log('收藏載入成功，數量:', favoritesData.length);
-                
+
                 // 如果沒有收藏，顯示友好訊息
                 if (favoritesData.length === 0) {
                     setError('您還沒有收藏任何行程，快去首頁收藏喜歡的行程吧！');
