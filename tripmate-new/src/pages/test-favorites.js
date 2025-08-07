@@ -12,14 +12,59 @@ const TestFavorites = () => {
         console.log(message);
     };
 
-    const userId = 'dev_user_123';
+    // 使用與主頁相同的用戶 ID 邏輯
+    const getCurrentUserId = () => {
+        // 1. 優先使用 LINE 用戶 ID（如果在 LINE 環境中）
+        if (typeof window !== 'undefined' && window.liff) {
+            try {
+                if (window.liff.isLoggedIn()) {
+                    // 這裡需要異步獲取，但為了簡化測試，我們檢查 localStorage
+                    const lineProfile = localStorage.getItem('line_profile');
+                    if (lineProfile) {
+                        const profile = JSON.parse(lineProfile);
+                        return profile.userId;
+                    }
+                }
+            } catch (e) {
+                console.log('LINE 環境檢查失敗:', e);
+            }
+        }
+
+        // 2. 使用瀏覽器指紋作為用戶 ID
+        let browserId = localStorage.getItem('browser_user_id');
+        if (!browserId) {
+            // 創建基於瀏覽器特徵的 ID
+            const userAgent = navigator.userAgent;
+            const screenRes = `${screen.width}x${screen.height}`;
+            const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+            const language = navigator.language;
+
+            // 簡單的哈希函數
+            const hash = (str) => {
+                let hash = 0;
+                for (let i = 0; i < str.length; i++) {
+                    const char = str.charCodeAt(i);
+                    hash = ((hash << 5) - hash) + char;
+                    hash = hash & hash; // 轉換為 32 位整數
+                }
+                return Math.abs(hash).toString(36);
+            };
+
+            browserId = `browser_${hash(userAgent + screenRes + timezone + language)}_${Date.now()}`;
+            localStorage.setItem('browser_user_id', browserId);
+            addLog(`創建新的瀏覽器用戶 ID: ${browserId}`);
+        }
+        return browserId;
+    };
+
+    const userId = getCurrentUserId();
 
     // 檢查緩存
     const checkCache = () => {
         try {
             const cacheKey = `userFavorites_${userId}`;
             const cached = localStorage.getItem(cacheKey);
-            
+
             if (cached) {
                 const data = JSON.parse(cached);
                 setCacheInfo(data);
@@ -62,7 +107,7 @@ const TestFavorites = () => {
             });
             const data = await response.json();
             addLog(`添加收藏結果: ${data.success ? '成功' : '失敗'} - ${data.message}`);
-            
+
             if (data.success) {
                 setFavorites(prev => new Set([...prev, tripId]));
                 // 更新緩存
@@ -90,7 +135,7 @@ const TestFavorites = () => {
             });
             const data = await response.json();
             addLog(`移除收藏結果: ${data.success ? '成功' : '失敗'} - ${data.message}`);
-            
+
             if (data.success) {
                 setFavorites(prev => {
                     const newSet = new Set(prev);
@@ -127,8 +172,24 @@ const TestFavorites = () => {
         }
     };
 
+    // 檢查用戶狀態
+    const checkUserStatus = () => {
+        addLog(`當前用戶 ID: ${userId}`);
+        addLog(`瀏覽器 ID: ${localStorage.getItem('browser_user_id')}`);
+        addLog(`LINE 環境: ${typeof window !== 'undefined' && window.liff ? '是' : '否'}`);
+
+        if (typeof window !== 'undefined' && window.liff) {
+            try {
+                addLog(`LIFF 已登入: ${window.liff.isLoggedIn() ? '是' : '否'}`);
+            } catch (e) {
+                addLog(`LIFF 狀態檢查失敗: ${e.message}`);
+            }
+        }
+    };
+
     useEffect(() => {
         addLog('頁面載入');
+        checkUserStatus();
         checkCache();
         testAPI();
     }, []);
@@ -136,7 +197,7 @@ const TestFavorites = () => {
     return (
         <div style={{ padding: '20px', maxWidth: '800px', margin: '0 auto' }}>
             <h1>收藏功能測試頁面</h1>
-            
+
             <div style={{ marginBottom: '20px' }}>
                 <h2>當前狀態</h2>
                 <p><strong>用戶ID:</strong> {userId}</p>
@@ -171,6 +232,7 @@ const TestFavorites = () => {
             <div style={{ marginBottom: '20px' }}>
                 <h2>操作</h2>
                 <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                    <button onClick={checkUserStatus}>檢查用戶狀態</button>
                     <button onClick={() => addTestFavorite(1)}>添加收藏 1</button>
                     <button onClick={() => addTestFavorite(2)}>添加收藏 2</button>
                     <button onClick={() => addTestFavorite(3)}>添加收藏 3</button>
@@ -186,11 +248,11 @@ const TestFavorites = () => {
 
             <div>
                 <h2>操作日誌</h2>
-                <div style={{ 
-                    background: '#f5f5f5', 
-                    padding: '10px', 
-                    borderRadius: '4px', 
-                    height: '300px', 
+                <div style={{
+                    background: '#f5f5f5',
+                    padding: '10px',
+                    borderRadius: '4px',
+                    height: '300px',
                     overflowY: 'scroll',
                     fontFamily: 'monospace',
                     fontSize: '12px'

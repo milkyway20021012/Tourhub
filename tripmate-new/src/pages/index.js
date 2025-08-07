@@ -261,18 +261,20 @@ const HomePage = () => {
     initializeLiff();
     loadSearchHistory();
 
-    // 開發環境下立即嘗試載入收藏狀態
-    if (process.env.NODE_ENV === 'development') {
-      setTimeout(() => {
-        const userId = 'dev_user_123';
-        console.log('開發環境：嘗試載入收藏狀態');
+    // 延遲載入收藏狀態，確保用戶 ID 已準備好
+    setTimeout(() => {
+      const userId = getCurrentUserId();
+      if (userId) {
+        console.log('初始化：嘗試載入收藏狀態，用戶 ID:', userId);
         const cacheLoaded = loadFavoritesFromCache(userId);
         if (!cacheLoaded) {
-          console.log('開發環境：無緩存，從 API 載入');
+          console.log('初始化：無緩存，從 API 載入');
           fetchUserFavorites();
         }
-      }, 500);
-    }
+      } else {
+        console.log('初始化：無用戶 ID，跳過收藏載入');
+      }
+    }, 1000); // 增加延遲時間確保 LIFF 初始化完成
   }, []);
 
   React.useEffect(() => {
@@ -285,19 +287,44 @@ const HomePage = () => {
   React.useEffect(() => {
     if (state.mounted) {
       const userId = getCurrentUserId();
+      console.log('登入狀態變化檢查:', {
+        mounted: state.mounted,
+        liffLoggedIn: state.liffLoggedIn,
+        userProfile: !!state.userProfile,
+        userId,
+        favoritesSize: state.favorites.size
+      });
+
       if (userId && state.favorites.size === 0) {
         // 只有在收藏列表為空時才從緩存載入，避免覆蓋已載入的數據
+        console.log('嘗試載入收藏狀態，用戶 ID:', userId);
         const cacheLoaded = loadFavoritesFromCache(userId);
         if (!cacheLoaded) {
           console.log('無有效緩存，將從 API 載入收藏狀態');
-          // 開發環境下也嘗試從 API 載入
-          if (process.env.NODE_ENV === 'development' || (state.liffLoggedIn && state.userProfile)) {
-            fetchUserFavorites();
-          }
+          fetchUserFavorites();
         }
       }
     }
   }, [state.liffLoggedIn, state.userProfile, state.mounted]);
+
+  // 額外的收藏狀態載入檢查 - 確保在所有情況下都能載入
+  React.useEffect(() => {
+    if (state.mounted && state.favorites.size === 0) {
+      const userId = getCurrentUserId();
+      if (userId) {
+        console.log('額外檢查：嘗試載入收藏狀態');
+        setTimeout(() => {
+          if (state.favorites.size === 0) { // 再次檢查是否仍為空
+            const cacheLoaded = loadFavoritesFromCache(userId);
+            if (!cacheLoaded) {
+              console.log('額外檢查：從 API 載入收藏狀態');
+              fetchUserFavorites();
+            }
+          }
+        }, 2000); // 2秒後檢查
+      }
+    }
+  }, [state.mounted]);
 
   // 當分頁、篩選條件或排序改變時重新載入資料
   React.useEffect(() => {
@@ -556,12 +583,12 @@ const HomePage = () => {
     if (!state.mounted) return;
 
     const userId = getCurrentUserId();
-    if (!userId) return;
-
-    // 開發環境下或正式環境已登入時才執行
-    if (process.env.NODE_ENV !== 'development' && (!state.liffLoggedIn || !state.userProfile)) {
+    if (!userId) {
+      console.log('fetchUserFavorites: 無用戶 ID，跳過');
       return;
     }
+
+    console.log('fetchUserFavorites: 開始，用戶 ID:', userId);
 
     try {
       console.log('fetchUserFavorites: 開始獲取收藏列表', { userId });
@@ -645,23 +672,61 @@ const HomePage = () => {
 
   // 工具函數
   const getCurrentUserId = () => {
+    // 1. 優先使用 LINE 用戶 ID
     if (state.liffLoggedIn && state.userProfile?.userId) {
+      console.log('使用 LINE 用戶 ID:', state.userProfile.userId);
       return state.userProfile.userId;
     }
-    // 開發環境下提供模擬用戶 ID 以便測試收藏功能
-    if (process.env.NODE_ENV === 'development') {
-      console.log('開發環境：使用模擬用戶 ID 進行測試');
-      return 'dev_user_123'; // 開發環境模擬用戶 ID
+
+    // 2. 開發環境或非 LINE 環境使用瀏覽器指紋作為用戶 ID
+    if (typeof window !== 'undefined') {
+      // 生成基於瀏覽器的唯一 ID
+      let browserId = localStorage.getItem('browser_user_id');
+      if (!browserId) {
+        // 創建基於瀏覽器特徵的 ID
+        const userAgent = navigator.userAgent;
+        const screenRes = `${screen.width}x${screen.height}`;
+        const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        const language = navigator.language;
+
+        // 簡單的哈希函數
+        const hash = (str) => {
+          let hash = 0;
+          for (let i = 0; i < str.length; i++) {
+            const char = str.charCodeAt(i);
+            hash = ((hash << 5) - hash) + char;
+            hash = hash & hash; // 轉換為 32 位整數
+          }
+          return Math.abs(hash).toString(36);
+        };
+
+        browserId = `browser_${hash(userAgent + screenRes + timezone + language)}_${Date.now()}`;
+        localStorage.setItem('browser_user_id', browserId);
+        console.log('創建新的瀏覽器用戶 ID:', browserId);
+      } else {
+        console.log('使用現有瀏覽器用戶 ID:', browserId);
+      }
+      return browserId;
     }
+
     return null;
   };
 
   const isLineLoggedIn = () => {
-    // 開發環境下允許模擬登入狀態
-    if (process.env.NODE_ENV === 'development') {
-      return true; // 開發環境模擬已登入狀態
+    // 1. 真正的 LINE 登入狀態
+    if (state.liffReady && state.liffLoggedIn && state.userProfile) {
+      return true;
     }
-    return state.liffReady && state.liffLoggedIn && state.userProfile;
+
+    // 2. 非 LINE 環境但有瀏覽器 ID 也視為"登入"狀態
+    if (typeof window !== 'undefined') {
+      const browserId = localStorage.getItem('browser_user_id');
+      if (browserId) {
+        return true;
+      }
+    }
+
+    return false;
   };
 
 
@@ -1008,8 +1073,10 @@ const HomePage = () => {
       liffLoggedIn: state.liffLoggedIn,
       userProfile: state.userProfile,
       favoritesSize: state.favorites.size,
+      favoritesList: Array.from(state.favorites),
       isLineLoggedIn: isLineLoggedIn(),
-      currentUserId: getCurrentUserId()
+      currentUserId: getCurrentUserId(),
+      browserUserId: typeof window !== 'undefined' ? localStorage.getItem('browser_user_id') : null
     });
   }
 
@@ -1017,6 +1084,41 @@ const HomePage = () => {
   const currentLoading = state.isSearchMode ? state.searchLoading : state.loading;
   return (
     <ClientOnly>
+      {/* 開發環境調試面板 */}
+      {process.env.NODE_ENV === 'development' && (
+        <div style={{
+          position: 'fixed',
+          top: '10px',
+          right: '10px',
+          background: 'rgba(0,0,0,0.8)',
+          color: 'white',
+          padding: '10px',
+          borderRadius: '8px',
+          fontSize: '12px',
+          zIndex: 9999,
+          maxWidth: '300px'
+        }}>
+          <div><strong>調試信息</strong></div>
+          <div>用戶ID: {getCurrentUserId()}</div>
+          <div>登入狀態: {isLineLoggedIn() ? '是' : '否'}</div>
+          <div>收藏數量: {state.favorites.size}</div>
+          <div>收藏列表: {Array.from(state.favorites).join(', ') || '無'}</div>
+          <div>LIFF狀態: {state.liffReady ? '就緒' : '未就緒'}</div>
+          <button
+            onClick={() => {
+              const userId = getCurrentUserId();
+              if (userId) {
+                loadFavoritesFromCache(userId);
+                fetchUserFavorites();
+              }
+            }}
+            style={{ marginTop: '5px', padding: '2px 5px', fontSize: '10px' }}
+          >
+            重新載入收藏
+          </button>
+        </div>
+      )}
+
       <div className="main" style={{
         maxWidth: '1200px',
         margin: '0 auto',
