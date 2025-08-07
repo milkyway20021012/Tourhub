@@ -33,46 +33,55 @@ export default async function handler(req, res) {
 
         // 獲取行程長度分布
         const durationDistributionResult = await query(`
-            SELECT 
-                CASE 
-                    WHEN DATEDIFF(end_date, start_date) + 1 <= 2 THEN '週末遊'
-                    WHEN DATEDIFF(end_date, start_date) + 1 <= 5 THEN '短期旅行'
-                    WHEN DATEDIFF(end_date, start_date) + 1 <= 10 THEN '長假期'
-                    ELSE '深度旅行'
-                END as duration_type,
+            SELECT
+                duration_type,
                 COUNT(*) as count,
-                AVG(DATEDIFF(end_date, start_date) + 1) as avg_days
-            FROM line_trips 
-            WHERE start_date IS NOT NULL AND end_date IS NOT NULL
+                AVG(duration_days) as avg_days
+            FROM (
+                SELECT
+                    CASE
+                        WHEN DATEDIFF(end_date, start_date) + 1 <= 2 THEN '週末遊'
+                        WHEN DATEDIFF(end_date, start_date) + 1 <= 5 THEN '短期旅行'
+                        WHEN DATEDIFF(end_date, start_date) + 1 <= 10 THEN '長假期'
+                        ELSE '深度旅行'
+                    END as duration_type,
+                    DATEDIFF(end_date, start_date) + 1 as duration_days
+                FROM line_trips
+                WHERE start_date IS NOT NULL AND end_date IS NOT NULL
+            ) as subquery
             GROUP BY duration_type
-            ORDER BY 
-                CASE 
-                    WHEN DATEDIFF(end_date, start_date) + 1 <= 2 THEN 1
-                    WHEN DATEDIFF(end_date, start_date) + 1 <= 5 THEN 2
-                    WHEN DATEDIFF(end_date, start_date) + 1 <= 10 THEN 3
-                    ELSE 4
+            ORDER BY
+                CASE duration_type
+                    WHEN '週末遊' THEN 1
+                    WHEN '短期旅行' THEN 2
+                    WHEN '長假期' THEN 3
+                    WHEN '深度旅行' THEN 4
                 END
         `);
 
         // 獲取季節分布
         const seasonDistributionResult = await query(`
-            SELECT 
-                CASE 
-                    WHEN MONTH(start_date) IN (3,4,5) THEN '春季'
-                    WHEN MONTH(start_date) IN (6,7,8) THEN '夏季'
-                    WHEN MONTH(start_date) IN (9,10,11) THEN '秋季'
-                    ELSE '冬季'
-                END as season,
+            SELECT
+                season,
                 COUNT(*) as count
-            FROM line_trips 
-            WHERE start_date IS NOT NULL
+            FROM (
+                SELECT
+                    CASE
+                        WHEN MONTH(start_date) IN (3,4,5) THEN '春季'
+                        WHEN MONTH(start_date) IN (6,7,8) THEN '夏季'
+                        WHEN MONTH(start_date) IN (9,10,11) THEN '秋季'
+                        ELSE '冬季'
+                    END as season
+                FROM line_trips
+                WHERE start_date IS NOT NULL
+            ) as subquery
             GROUP BY season
-            ORDER BY 
-                CASE 
-                    WHEN MONTH(start_date) IN (3,4,5) THEN 1
-                    WHEN MONTH(start_date) IN (6,7,8) THEN 2
-                    WHEN MONTH(start_date) IN (9,10,11) THEN 3
-                    ELSE 4
+            ORDER BY
+                CASE season
+                    WHEN '春季' THEN 1
+                    WHEN '夏季' THEN 2
+                    WHEN '秋季' THEN 3
+                    WHEN '冬季' THEN 4
                 END
         `);
 
