@@ -639,4 +639,39 @@ const TripCard = ({ trip, isFavorited, favoriteLoading, onFavorite, onShare, isL
     );
 };
 
-export default React.memo(TripCard);
+// 自定義比較函數，確保收藏狀態變化時重新渲染
+const areEqual = (prevProps, nextProps) => {
+    // 如果收藏狀態發生變化，強制重新渲染
+    if (prevProps.isFavorited !== nextProps.isFavorited) {
+        return false;
+    }
+
+    // 如果載入狀態發生變化，強制重新渲染
+    if (prevProps.favoriteLoading !== nextProps.favoriteLoading) {
+        return false;
+    }
+
+    // 如果分享載入狀態發生變化，強制重新渲染
+    if (prevProps.shareLoading !== nextProps.shareLoading) {
+        return false;
+    }
+
+    // 如果登入狀態發生變化，強制重新渲染
+    if (prevProps.isLineLoggedIn !== nextProps.isLineLoggedIn) {
+        return false;
+    }
+
+    // 檢查 trip 對象的關鍵屬性
+    if (prevProps.trip.trip_id !== nextProps.trip.trip_id ||
+        prevProps.trip.title !== nextProps.trip.title ||
+        prevProps.trip.favorite_count !== nextProps.trip.favorite_count ||
+        prevProps.trip.share_count !== nextProps.trip.share_count ||
+        prevProps.trip.view_count !== nextProps.trip.view_count) {
+        return false;
+    }
+
+    // 其他情況下認為相等，不重新渲染
+    return true;
+};
+
+export default React.memo(TripCard, areEqual);

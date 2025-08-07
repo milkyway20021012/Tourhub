@@ -861,17 +861,20 @@ const HomePage = () => {
     }
     dispatch({ type: 'SET_FAVORITE_LOADING', payload: { [tripId]: true } });
     const isFavorited = state.favorites.has(tripId);
-    // optimistic update
+
+    // 創建新的收藏狀態
+    let newFavorites;
     if (isFavorited) {
-      const newSet = new Set(state.favorites);
-      newSet.delete(tripId);
-      dispatch({ type: 'SET_FAVORITES', favorites: newSet });
+      newFavorites = new Set(state.favorites);
+      newFavorites.delete(tripId);
       updateFavoriteCount(tripId, -1);
     } else {
-      const newSet = new Set([...state.favorites, tripId]);
-      dispatch({ type: 'SET_FAVORITES', favorites: newSet });
+      newFavorites = new Set([...state.favorites, tripId]);
       updateFavoriteCount(tripId, 1);
     }
+
+    // optimistic update
+    dispatch({ type: 'SET_FAVORITES', favorites: newFavorites });
     try {
       if (isFavorited) {
         const response = await removeFavorite(userId, tripId);
@@ -890,39 +893,42 @@ const HomePage = () => {
       }
 
       // 操作成功後立即更新緩存
-      setTimeout(() => {
-        try {
-          const currentFavorites = state.favorites;
-          const favoritesArray = Array.from(currentFavorites);
-          const cacheData = {
-            favorites: favoritesArray,
-            timestamp: Date.now(),
-            userId: userId
-          };
-          safeLocalStorage.setItem(`userFavorites_${userId}`, JSON.stringify(cacheData));
-          console.log('收藏緩存已更新:', {
-            userId,
-            favoritesCount: favoritesArray.length,
-            favorites: favoritesArray,
-            action: isFavorited ? 'remove' : 'add',
-            tripId
-          });
-        } catch (e) {
-          console.error('更新收藏緩存失敗:', e);
-        }
-      }, 100);
+      try {
+        const favoritesArray = Array.from(newFavorites);
+        const cacheData = {
+          favorites: favoritesArray,
+          timestamp: Date.now(),
+          userId: userId
+        };
+        safeLocalStorage.setItem(`userFavorites_${userId}`, JSON.stringify(cacheData));
+        console.log('收藏緩存已更新:', {
+          userId,
+          favoritesCount: favoritesArray.length,
+          favorites: favoritesArray,
+          action: isFavorited ? 'remove' : 'add',
+          tripId
+        });
+      } catch (e) {
+        console.error('更新收藏緩存失敗:', e);
+      }
 
       // 顯示收藏操作提示
       showToast(isFavorited ? '取消收藏成功' : '收藏成功', 'success');
 
     } catch (err) {
-      // 回滾
-      const newSet = new Set(state.favorites);
-      if (isFavorited) newSet.add(tripId);
-      else newSet.delete(tripId);
-      dispatch({ type: 'SET_FAVORITES', favorites: newSet });
-      updateFavoriteCount(tripId, isFavorited ? 1 : -1);
+      // 回滾到原始狀態
+      const rollbackFavorites = new Set(state.favorites);
+      if (isFavorited) {
+        rollbackFavorites.add(tripId);
+        updateFavoriteCount(tripId, 1);
+      } else {
+        rollbackFavorites.delete(tripId);
+        updateFavoriteCount(tripId, -1);
+      }
+      dispatch({ type: 'SET_FAVORITES', favorites: rollbackFavorites });
+
       // 靜默處理錯誤，不顯示提示
+      console.error('收藏操作失敗:', err);
     } finally {
       dispatch({ type: 'SET_FAVORITE_LOADING', payload: { [tripId]: false } });
     }
@@ -1317,120 +1323,7 @@ const HomePage = () => {
             )}
           </div>
 
-          {/* 統計面板 */}
-          {state.statistics && (
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: typeof window !== 'undefined' && window.innerWidth <= 768
-                ? 'repeat(auto-fit, minmax(100px, 1fr))'
-                : 'repeat(auto-fit, minmax(140px, 1fr))',
-              gap: typeof window !== 'undefined' && window.innerWidth <= 768 ? '12px' : '20px',
-              marginTop: typeof window !== 'undefined' && window.innerWidth <= 768 ? '20px' : '32px',
-              position: 'relative',
-              zIndex: 1
-            }}>
-              <div style={{
-                textAlign: 'center',
-                background: 'rgba(255, 255, 255, 0.15)',
-                borderRadius: '16px',
-                padding: '20px 16px',
-                backdropFilter: 'blur(10px)',
-                border: '1px solid rgba(255, 255, 255, 0.2)',
-                transition: 'all 0.3s ease'
-              }}>
-                <div style={{
-                  fontSize: typeof window !== 'undefined' && window.innerWidth <= 768 ? '24px' : '32px',
-                  fontWeight: '800',
-                  marginBottom: '8px',
-                  textShadow: '0 2px 4px rgba(0,0,0,0.1)',
-                  background: 'linear-gradient(45deg, #fbbf24, #f59e0b)',
-                  WebkitBackgroundClip: 'text',
-                  WebkitTextFillColor: 'transparent',
-                  backgroundClip: 'text'
-                }}>
-                  {state.statistics.overview?.totalTrips || 0}
-                </div>
-                <div style={{
-                  fontSize: typeof window !== 'undefined' && window.innerWidth <= 768 ? '12px' : '14px',
-                  opacity: '0.95',
-                  fontWeight: '600',
-                  letterSpacing: '0.5px'
-                }}>
-                  📊 總行程數
-                </div>
-              </div>
 
-              <div style={{
-                textAlign: 'center',
-                background: 'rgba(255, 255, 255, 0.15)',
-                borderRadius: '16px',
-                padding: '20px 16px',
-                backdropFilter: 'blur(10px)',
-                border: '1px solid rgba(255, 255, 255, 0.2)',
-                transition: 'all 0.3s ease'
-              }}>
-                <div style={{
-                  fontSize: '32px',
-                  fontWeight: '800',
-                  marginBottom: '8px',
-                  textShadow: '0 2px 4px rgba(0,0,0,0.1)',
-                  background: (state.liffReady && state.liffLoggedIn && state.userProfile)
-                    ? 'linear-gradient(45deg, #ef4444, #dc2626)'
-                    : 'linear-gradient(45deg, #9ca3af, #6b7280)',
-                  WebkitBackgroundClip: 'text',
-                  WebkitTextFillColor: 'transparent',
-                  backgroundClip: 'text'
-                }}>
-                  {(state.liffReady && state.liffLoggedIn && state.userProfile) ? state.favorites.size : '--'}
-                  {/* 開發環境調試信息 */}
-                  {process.env.NODE_ENV === 'development' && (
-                    <div style={{ fontSize: '10px', color: '#666', marginTop: '4px' }}>
-                      Debug: {state.favorites.size} favorites
-                    </div>
-                  )}
-                </div>
-                <div style={{
-                  fontSize: '14px',
-                  opacity: '0.95',
-                  fontWeight: '600',
-                  letterSpacing: '0.5px'
-                }}>
-                  ❤️ 我的收藏 {!(state.liffReady && state.liffLoggedIn && state.userProfile) && '(需登入)'}
-                </div>
-              </div>
-
-              <div style={{
-                textAlign: 'center',
-                background: 'rgba(255, 255, 255, 0.15)',
-                borderRadius: '16px',
-                padding: '20px 16px',
-                backdropFilter: 'blur(10px)',
-                border: '1px solid rgba(255, 255, 255, 0.2)',
-                transition: 'all 0.3s ease'
-              }}>
-                <div style={{
-                  fontSize: '32px',
-                  fontWeight: '800',
-                  marginBottom: '8px',
-                  textShadow: '0 2px 4px rgba(0,0,0,0.1)',
-                  background: 'linear-gradient(45deg, #10b981, #059669)',
-                  WebkitBackgroundClip: 'text',
-                  WebkitTextFillColor: 'transparent',
-                  backgroundClip: 'text'
-                }}>
-                  {state.statistics.overview?.avgDuration || 0}
-                </div>
-                <div style={{
-                  fontSize: '14px',
-                  opacity: '0.95',
-                  fontWeight: '600',
-                  letterSpacing: '0.5px'
-                }}>
-                  ⏰ 平均天數
-                </div>
-              </div>
-            </div>
-          )}
         </div>
 
         {/* 搜尋功能區域 */}
