@@ -1140,69 +1140,78 @@ const HomePage = () => {
               <div>
               </div>
             ) : (state.liffReady && state.liffLoggedIn && state.userProfile) ? (
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
-                  <span>👋 歡迎，{state.userProfile?.displayName || '用戶'}</span>
-                  {state.userProfile?.pictureUrl && (
-                    <img
-                      src={state.userProfile.pictureUrl}
-                      alt="頭像"
-                      style={{
-                        width: '32px',
-                        height: '32px',
-                        borderRadius: '50%',
-                        verticalAlign: 'middle'
-                      }}
-                    />
-                  )}
-                  <button
-                    onClick={handleLogout}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                <span>👋 歡迎，{state.userProfile?.displayName || '用戶'}</span>
+                {state.userProfile?.pictureUrl && (
+                  <img
+                    src={state.userProfile.pictureUrl}
+                    alt="頭像"
                     style={{
-                      marginLeft: '8px',
-                      padding: '4px 8px',
-                      background: 'rgba(255,255,255,0.2)',
-                      border: '1px solid rgba(255,255,255,0.3)',
-                      borderRadius: '4px',
-                      color: 'white',
-                      cursor: 'pointer',
-                      fontSize: '12px'
+                      width: '32px',
+                      height: '32px',
+                      borderRadius: '50%',
+                      verticalAlign: 'middle'
                     }}
-                  >
-                    登出
-                  </button>
-                </div>
+                  />
+                )}
 
-                {/* 收藏統計 */}
-                <div style={{
-                  background: 'rgba(255, 255, 255, 0.15)',
-                  borderRadius: '12px',
-                  padding: '8px 16px',
-                  backdropFilter: 'blur(10px)',
-                  border: '1px solid rgba(255, 255, 255, 0.2)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  fontSize: '14px',
-                  fontWeight: '600'
-                }}>
+                {/* 我的收藏按鈕 */}
+                <button
+                  onClick={handleFavoritesNavigation}
+                  style={{
+                    background: 'rgba(255, 255, 255, 0.15)',
+                    borderRadius: '8px',
+                    padding: '6px 12px',
+                    backdropFilter: 'blur(10px)',
+                    border: '1px solid rgba(255, 255, 255, 0.3)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    color: 'white',
+                    cursor: 'pointer',
+                    transition: 'all 0.3s ease'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = 'rgba(255, 255, 255, 0.25)';
+                    e.currentTarget.style.transform = 'scale(1.05)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = 'rgba(255, 255, 255, 0.15)';
+                    e.currentTarget.style.transform = 'scale(1)';
+                  }}
+                >
                   <span>❤️</span>
-                  <span>已收藏 {state.totalFavorites} 個行程</span>
-                  <button
-                    onClick={handleFavoritesNavigation}
-                    style={{
-                      background: 'rgba(255,255,255,0.2)',
-                      border: '1px solid rgba(255,255,255,0.3)',
-                      borderRadius: '6px',
-                      color: 'white',
-                      cursor: 'pointer',
-                      fontSize: '11px',
-                      padding: '2px 6px',
-                      marginLeft: '4px'
-                    }}
-                  >
-                    查看
-                  </button>
-                </div>
+                  <span>我的收藏</span>
+                  <span style={{
+                    background: 'rgba(255, 255, 255, 0.3)',
+                    borderRadius: '12px',
+                    padding: '2px 8px',
+                    fontSize: '12px',
+                    fontWeight: '700',
+                    minWidth: '20px',
+                    textAlign: 'center'
+                  }}>
+                    {state.totalFavorites}
+                  </span>
+                </button>
+
+                <button
+                  onClick={handleLogout}
+                  style={{
+                    marginLeft: '8px',
+                    padding: '4px 8px',
+                    background: 'rgba(255,255,255,0.2)',
+                    border: '1px solid rgba(255,255,255,0.3)',
+                    borderRadius: '4px',
+                    color: 'white',
+                    cursor: 'pointer',
+                    fontSize: '12px'
+                  }}
+                >
+                  登出
+                </button>
               </div>
             ) : (
               <div>
