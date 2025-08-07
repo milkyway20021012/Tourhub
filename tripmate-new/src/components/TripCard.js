@@ -1,30 +1,11 @@
 import React from 'react';
 
 const TripCard = ({ trip, isFavorited, favoriteLoading, onFavorite, onShare, isLineLoggedIn, shareLoading, onClick }) => {
-    // 收藏狀態提示
-    const [favoriteToast, setFavoriteToast] = React.useState(null);
-
     // 處理收藏點擊
     const handleFavoriteClick = async (e) => {
         e.stopPropagation();
-
-        // 記錄點擊前的狀態
-        const wasCurrentlyFavorited = isFavorited;
-
         // 執行原本的收藏邏輯
         await onFavorite(e);
-
-        // 顯示提示動畫（基於點擊前的狀態）
-        setFavoriteToast({
-            type: wasCurrentlyFavorited ? 'removed' : 'added',
-            message: wasCurrentlyFavorited ? '已取消收藏' : '已加入收藏',
-            icon: wasCurrentlyFavorited ? '💔' : '❤️'
-        });
-
-        // 3秒後隱藏提示
-        setTimeout(() => {
-            setFavoriteToast(null);
-        }, 3000);
     };
 
     // 根據排名決定樣式 - 簡化版本
@@ -624,94 +605,10 @@ const TripCard = ({ trip, isFavorited, favoriteLoading, onFavorite, onShare, isL
                 </div>
             )}
 
-            {/* 收藏提示動畫 */}
-            {favoriteToast && (
-                <div style={{
-                    position: 'fixed',
-                    top: '50%',
-                    left: '50%',
-                    transform: 'translate(-50%, -50%)',
-                    zIndex: 9999,
-                    background: favoriteToast.type === 'added'
-                        ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)'
-                        : 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
-                    color: 'white',
-                    padding: '20px 32px',
-                    borderRadius: '16px',
-                    boxShadow: favoriteToast.type === 'added'
-                        ? '0 20px 25px -5px rgba(16, 185, 129, 0.4), 0 10px 10px -5px rgba(16, 185, 129, 0.2)'
-                        : '0 20px 25px -5px rgba(239, 68, 68, 0.4), 0 10px 10px -5px rgba(239, 68, 68, 0.2)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '12px',
-                    fontSize: '16px',
-                    fontWeight: '600',
-                    animation: 'favoriteToastIn 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55)',
-                    backdropFilter: 'blur(10px)',
-                    border: `2px solid ${favoriteToast.type === 'added' ? 'rgba(16, 185, 129, 0.3)' : 'rgba(239, 68, 68, 0.3)'}`,
-                    minWidth: '200px',
-                    justifyContent: 'center'
-                }}>
-                    <div style={{
-                        fontSize: '24px',
-                        animation: 'heartBeat 0.8s ease-in-out'
-                    }}>
-                        {favoriteToast.icon}
-                    </div>
-                    <span>{favoriteToast.message}</span>
 
-                    {/* 進度條 */}
-                    <div style={{
-                        position: 'absolute',
-                        bottom: '0',
-                        left: '0',
-                        height: '3px',
-                        background: 'rgba(255, 255, 255, 0.3)',
-                        borderRadius: '0 0 16px 16px',
-                        width: '100%',
-                        overflow: 'hidden'
-                    }}>
-                        <div style={{
-                            height: '100%',
-                            background: 'rgba(255, 255, 255, 0.8)',
-                            animation: 'progressBar 3s linear',
-                            borderRadius: '0 0 16px 16px'
-                        }} />
-                    </div>
-                </div>
-            )}
 
-            {/* 簡化CSS動畫 */}
+            {/* CSS樣式 */}
             <style jsx>{`
-
-                /* 收藏提示動畫 */
-                @keyframes favoriteToastIn {
-                    0% {
-                        opacity: 0;
-                        transform: translate(-50%, -50%) scale(0.3) rotate(-10deg);
-                    }
-                    50% {
-                        opacity: 1;
-                        transform: translate(-50%, -50%) scale(1.1) rotate(5deg);
-                    }
-                    100% {
-                        opacity: 1;
-                        transform: translate(-50%, -50%) scale(1) rotate(0deg);
-                    }
-                }
-
-                @keyframes heartBeat {
-                    0% { transform: scale(1); }
-                    25% { transform: scale(1.3); }
-                    50% { transform: scale(1); }
-                    75% { transform: scale(1.2); }
-                    100% { transform: scale(1); }
-                }
-
-                @keyframes progressBar {
-                    0% { width: 100%; }
-                    100% { width: 0%; }
-                }
 
                 /* 手機端優化 */
                 @media (max-width: 768px) {

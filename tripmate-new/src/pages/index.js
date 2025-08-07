@@ -1,7 +1,6 @@
 import React, { useReducer } from 'react';
 import dynamic from 'next/dynamic';
 import TripCard from '../components/TripCard';
-import CustomToast from '../components/CustomToast';
 import Pagination from '../components/Pagination';
 import LoadingIndicator from '../components/LoadingIndicator';
 import SearchBar from '../components/SearchBar';
@@ -918,7 +917,7 @@ const HomePage = () => {
         console.error('更新收藏緩存失敗:', e);
       }
 
-      showToast(isFavorited ? '已取消收藏' : '已加入收藏', 'success');
+      // 收藏操作完成，不顯示提示
 
     } catch (err) {
       // 回滾
@@ -927,25 +926,7 @@ const HomePage = () => {
       else newSet.delete(tripId);
       dispatch({ type: 'SET_FAVORITES', favorites: newSet });
       updateFavoriteCount(tripId, isFavorited ? 1 : -1);
-      let errorMessage = '操作失敗，請稍後再試';
-      if (err.response) {
-        const status = err.response.status;
-        const serverMessage = err.response.data?.message || '';
-        switch (status) {
-          case 400: errorMessage = '請求參數錯誤'; break;
-          case 404: errorMessage = '行程不存在'; break;
-          case 409: errorMessage = '已經收藏此行程'; break;
-          case 500: errorMessage = `伺服器錯誤：${serverMessage}`; break;
-          default: errorMessage = `操作失敗 (${status})：${serverMessage}`;
-        }
-      } else if (err.request) {
-        errorMessage = '網路連接失敗，請檢查網路連接';
-      } else if (err.code === 'ECONNABORTED') {
-        errorMessage = '請求超時，請稍後再試';
-      } else {
-        errorMessage = err.message || '發生未知錯誤';
-      }
-      showToast(errorMessage, 'error');
+      // 靜默處理錯誤，不顯示提示
     } finally {
       dispatch({ type: 'SET_FAVORITE_LOADING', payload: { [tripId]: false } });
     }
@@ -1074,25 +1055,7 @@ const HomePage = () => {
     window.location.href = '/favorites';
   };
 
-  // HomePage 內 Toast 狀態與 showToast 優化
-  const [toastQueue, setToastQueue] = React.useState([]); // [{message, type, id}]
-  const [currentToast, setCurrentToast] = React.useState(null);
-
-  const showToast = (msg, type = 'info') => {
-    const id = Date.now() + Math.random();
-    setToastQueue(q => [...q, { message: msg, type, id }]);
-  };
-
-  React.useEffect(() => {
-    if (!currentToast && toastQueue.length > 0) {
-      setCurrentToast(toastQueue[0]);
-      const timer = setTimeout(() => {
-        setCurrentToast(null);
-        setToastQueue(q => q.slice(1));
-      }, 1000);
-      return () => { clearTimeout(timer); };
-    }
-  }, [toastQueue, currentToast]);
+  // 移除 Toast 功能
 
   if (!state.mounted) {
     return null;
@@ -1904,10 +1867,7 @@ const HomePage = () => {
           onLogin={handleLogin}
           isLoading={state.loginLoading}
         />
-        {/* Toast 提示 */}
-        {currentToast && (
-          <CustomToast message={currentToast.message} type={currentToast.type} onClose={() => { setCurrentToast(null); setToastQueue(q => q.slice(1)); }} />
-        )}
+
 
         {/* 添加CSS動畫 */}
         <style jsx>{`
