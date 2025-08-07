@@ -3,7 +3,6 @@ import dynamic from 'next/dynamic';
 import TripCard from '../components/TripCard';
 import CustomToast from '../components/CustomToast';
 import Pagination from '../components/Pagination';
-import favoriteStorage from '../utils/favoriteStorage';
 import LoadingIndicator from '../components/LoadingIndicator';
 import SearchBar from '../components/SearchBar';
 import { getStatistics, getAreas, getTripRankings, getTripDetail, searchTrips, updateTripStats } from '../services/tripService';
@@ -262,20 +261,20 @@ const HomePage = () => {
     initializeLiff();
     loadSearchHistory();
 
-    // 延遲載入收藏狀態，確保用戶 ID 已準備好
-    setTimeout(async () => {
+    // 延遲載入收藏狀態
+    setTimeout(() => {
       const userId = getCurrentUserId();
       if (userId) {
         console.log('初始化：嘗試載入收藏狀態，用戶 ID:', userId);
-        const storageLoaded = await loadFavoritesFromStorage(userId);
-        if (!storageLoaded) {
-          console.log('初始化：無存儲資料，從 API 載入');
+        const cacheLoaded = loadFavoritesFromCache(userId);
+        if (!cacheLoaded) {
+          console.log('初始化：無緩存，從 API 載入');
           fetchUserFavorites();
         }
       } else {
         console.log('初始化：無用戶 ID，跳過收藏載入');
       }
-    }, 1000); // 增加延遲時間確保 LIFF 初始化完成
+    }, 1000);
   }, []);
 
   React.useEffect(() => {
@@ -284,7 +283,7 @@ const HomePage = () => {
     }
   }, [state.mounted, state.liffReady]);
 
-  // 當用戶登入狀態改變時，嘗試載入收藏緩存
+  // 當用戶登入狀態改變時，載入收藏
   React.useEffect(() => {
     if (state.mounted) {
       const userId = getCurrentUserId();
@@ -296,41 +295,31 @@ const HomePage = () => {
         favoritesSize: state.favorites.size
       });
 
-      if (userId) {
-        console.log('嘗試載入收藏狀態，用戶 ID:', userId, '當前收藏數量:', state.favorites.size);
-
-        // 先嘗試從存儲載入
-        loadFavoritesFromStorage(userId).then(storageLoaded => {
-          // 如果存儲載入失敗或收藏數量仍為 0，則從 API 載入
-          if (!storageLoaded || state.favorites.size === 0) {
-            console.log('從 API 載入收藏狀態');
-            fetchUserFavorites();
-          }
-        });
+      if (userId && state.favorites.size === 0) {
+        console.log('登入狀態變化：載入收藏');
+        const cacheLoaded = loadFavoritesFromCache(userId);
+        if (!cacheLoaded) {
+          fetchUserFavorites();
+        }
       }
     }
   }, [state.liffLoggedIn, state.userProfile, state.mounted]);
 
-  // 額外的收藏狀態載入檢查 - 確保在所有情況下都能載入
+  // 備用檢查：確保收藏狀態載入
   React.useEffect(() => {
     if (state.mounted) {
-      const userId = getCurrentUserId();
-      if (userId) {
-        console.log('額外檢查：嘗試載入收藏狀態，當前收藏數量:', state.favorites.size);
-
-        // 延遲檢查，確保其他初始化完成
-        setTimeout(async () => {
-          console.log('延遲檢查：當前收藏數量:', state.favorites.size);
-          if (state.favorites.size === 0) {
-            console.log('收藏數量為 0，嘗試重新載入');
-            const storageLoaded = await loadFavoritesFromStorage(userId);
-            if (!storageLoaded) {
-              console.log('額外檢查：從 API 載入收藏狀態');
-              fetchUserFavorites();
-            }
+      const timer = setTimeout(() => {
+        const userId = getCurrentUserId();
+        if (userId && state.favorites.size === 0) {
+          console.log('備用檢查：嘗試載入收藏');
+          const cacheLoaded = loadFavoritesFromCache(userId);
+          if (!cacheLoaded) {
+            fetchUserFavorites();
           }
-        }, 3000); // 3秒後檢查
-      }
+        }
+      }, 3000);
+
+      return () => clearTimeout(timer);
     }
   }, [state.mounted]);
 
@@ -468,15 +457,13 @@ const HomePage = () => {
         const profile = await window.liff.getProfile();
         dispatch({ type: 'SET_USER_PROFILE', value: profile });
 
-        // 立即嘗試載入存儲的收藏狀態，然後再從 API 更新
-        loadFavoritesFromStorage(profile.userId).then(storageLoaded => {
-          if (storageLoaded) {
-            console.log('已從存儲載入收藏狀態，稍後將從 API 更新');
-          }
-        });
-
+        // LIFF 登入成功後載入收藏
+        console.log('LIFF 登入成功，載入收藏狀態');
         setTimeout(() => {
-          fetchUserFavorites();
+          const cacheLoaded = loadFavoritesFromCache(profile.userId);
+          if (!cacheLoaded) {
+            fetchUserFavorites();
+          }
         }, 100);
       }
 
@@ -588,7 +575,7 @@ const HomePage = () => {
     }
   };
 
-  // 防止重複載入的標記
+  // 收藏管理狀態
   const [favoritesLoading, setFavoritesLoading] = React.useState(false);
 
   const fetchUserFavorites = async () => {
@@ -615,12 +602,18 @@ const HomePage = () => {
           favorites: Array.from(favIds)
         });
 
-        // 將收藏狀態保存到存儲
+        // 將收藏狀態保存到 localStorage
         try {
-          await favoriteStorage.saveFavorites(userId, favIds);
-          console.log('fetchUserFavorites: 存儲已保存');
+          const favoritesArray = Array.from(favIds);
+          const cacheData = {
+            favorites: favoritesArray,
+            timestamp: Date.now(),
+            userId: userId
+          };
+          safeLocalStorage.setItem(`userFavorites_${userId}`, JSON.stringify(cacheData));
+          console.log('fetchUserFavorites: 緩存已保存');
         } catch (e) {
-          console.error('保存收藏存儲失敗:', e);
+          console.error('保存收藏緩存失敗:', e);
         }
       } else {
         console.log('fetchUserFavorites: API 回應失敗', response.data);
@@ -628,37 +621,46 @@ const HomePage = () => {
     } catch (err) {
       console.error('獲取收藏列表失敗:', err);
 
-      // 如果 API 失敗，嘗試從存儲載入
-      console.log('fetchUserFavorites: API 失敗，嘗試從存儲載入');
-      loadFavoritesFromStorage(userId);
+      // 如果 API 失敗，嘗試從緩存載入
+      console.log('fetchUserFavorites: API 失敗，嘗試從緩存載入');
+      loadFavoritesFromCache(userId);
     } finally {
       setFavoritesLoading(false);
     }
   };
 
-  // 從存儲載入收藏
-  const loadFavoritesFromStorage = async (userId) => {
+  // 簡化的收藏載入函數
+  const loadFavoritesFromCache = (userId) => {
     if (typeof window === 'undefined' || !userId || !state.mounted) {
-      console.log('loadFavoritesFromStorage: 無效的參數', { window: typeof window, userId, mounted: state.mounted });
+      console.log('loadFavoritesFromCache: 無效的參數');
       return false;
     }
 
     try {
-      console.log('loadFavoritesFromStorage: 開始載入收藏', { userId });
-      const favorites = await favoriteStorage.loadFavorites(userId);
+      const cacheKey = `userFavorites_${userId}`;
+      const cached = safeLocalStorage.getItem(cacheKey);
 
-      if (favorites && favorites.size > 0) {
-        dispatch({ type: 'SET_FAVORITES', favorites });
-        console.log('從存儲載入收藏狀態:', favorites.size, '個收藏');
-        return true;
-      } else {
-        console.log('存儲中無收藏資料');
-        return false;
+      if (cached) {
+        const { favorites, timestamp, userId: cachedUserId } = JSON.parse(cached);
+
+        // 檢查緩存是否有效（7天內且用戶ID匹配）
+        const isValid = cachedUserId === userId &&
+          (Date.now() - timestamp) < 7 * 24 * 60 * 60 * 1000;
+
+        if (isValid && Array.isArray(favorites)) {
+          const favIds = new Set(favorites);
+          dispatch({ type: 'SET_FAVORITES', favorites: favIds });
+          console.log('從緩存載入收藏狀態:', favorites.length, '個收藏');
+          return true;
+        } else {
+          console.log('緩存無效或過期，清除舊緩存');
+          safeLocalStorage.removeItem(cacheKey);
+        }
       }
     } catch (e) {
-      console.error('載入收藏存儲失敗:', e);
-      return false;
+      console.error('載入收藏緩存失敗:', e);
     }
+    return false;
   };
 
   // 安全的 localStorage 訪問函數
@@ -890,17 +892,23 @@ const HomePage = () => {
         }
       }
 
-      // 操作成功後更新存儲
+      // 操作成功後更新緩存
       try {
         const currentFavorites = state.favorites;
-        await favoriteStorage.saveFavorites(userId, currentFavorites);
-        console.log('收藏存儲已更新:', {
+        const favoritesArray = Array.from(currentFavorites);
+        const cacheData = {
+          favorites: favoritesArray,
+          timestamp: Date.now(),
+          userId: userId
+        };
+        safeLocalStorage.setItem(`userFavorites_${userId}`, JSON.stringify(cacheData));
+        console.log('收藏緩存已更新:', {
           userId,
-          favoritesCount: currentFavorites.size,
-          favorites: Array.from(currentFavorites)
+          favoritesCount: favoritesArray.length,
+          favorites: favoritesArray
         });
       } catch (e) {
-        console.error('更新收藏存儲失敗:', e);
+        console.error('更新收藏緩存失敗:', e);
       }
 
       // 顯示收藏操作提示
@@ -1106,14 +1114,17 @@ const HomePage = () => {
           <div>收藏列表: {Array.from(state.favorites).join(', ') || '無'}</div>
           <div>LIFF狀態: {state.liffReady ? '就緒' : '未就緒'}</div>
           <div>收藏載入中: {favoritesLoading ? '是' : '否'}</div>
+
           <div style={{ marginTop: '5px', display: 'flex', gap: '5px', flexWrap: 'wrap' }}>
             <button
               onClick={() => {
                 const userId = getCurrentUserId();
                 if (userId) {
                   console.log('手動重新載入收藏');
-                  loadFavoritesFromStorage(userId);
-                  fetchUserFavorites();
+                  const cacheLoaded = loadFavoritesFromCache(userId);
+                  if (!cacheLoaded) {
+                    fetchUserFavorites();
+                  }
                 }
               }}
               style={{ padding: '2px 5px', fontSize: '10px' }}
@@ -1121,30 +1132,30 @@ const HomePage = () => {
               重新載入收藏
             </button>
             <button
-              onClick={async () => {
+              onClick={() => {
                 const userId = getCurrentUserId();
                 if (userId) {
-                  console.log('清除收藏存儲');
-                  await favoriteStorage.clearFavorites(userId);
+                  console.log('清除收藏緩存');
+                  safeLocalStorage.removeItem(`userFavorites_${userId}`);
                   dispatch({ type: 'SET_FAVORITES', favorites: new Set() });
                 }
               }}
               style={{ padding: '2px 5px', fontSize: '10px' }}
             >
-              清除存儲
+              清除緩存
             </button>
             <button
-              onClick={async () => {
+              onClick={() => {
                 const userId = getCurrentUserId();
                 if (userId) {
-                  const info = await favoriteStorage.getStorageInfo(userId);
-                  console.log('存儲信息:', info);
-                  alert(`存儲信息已輸出到控制台`);
+                  const cached = safeLocalStorage.getItem(`userFavorites_${userId}`);
+                  console.log('緩存信息:', cached ? JSON.parse(cached) : '無緩存');
+                  alert(`緩存信息已輸出到控制台`);
                 }
               }}
               style={{ padding: '2px 5px', fontSize: '10px' }}
             >
-              檢查存儲
+              檢查緩存
             </button>
           </div>
         </div>
