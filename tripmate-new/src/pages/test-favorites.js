@@ -1,6 +1,13 @@
 import React, { useState, useEffect } from 'react';
+import dynamic from 'next/dynamic';
 
-const TestFavorites = () => {
+// 動態導入以避免 SSR 問題
+const TestFavoritesClient = dynamic(() => Promise.resolve(TestFavoritesClientComponent), {
+    ssr: false,
+    loading: () => <div>載入中...</div>
+});
+
+const TestFavoritesClientComponent = () => {
     const [favorites, setFavorites] = useState(new Set());
     const [cacheInfo, setCacheInfo] = useState(null);
     const [apiResponse, setApiResponse] = useState(null);
@@ -14,8 +21,9 @@ const TestFavorites = () => {
 
     // 使用與主頁相同的用戶 ID 邏輯
     const getCurrentUserId = () => {
+
         // 1. 優先使用 LINE 用戶 ID（如果在 LINE 環境中）
-        if (typeof window !== 'undefined' && window.liff) {
+        if (window.liff) {
             try {
                 if (window.liff.isLoggedIn()) {
                     // 這裡需要異步獲取，但為了簡化測試，我們檢查 localStorage
@@ -61,6 +69,11 @@ const TestFavorites = () => {
 
     // 檢查緩存
     const checkCache = () => {
+        if (!userId) {
+            addLog('無法檢查緩存：無用戶ID');
+            return null;
+        }
+
         try {
             const cacheKey = `userFavorites_${userId}`;
             const cached = localStorage.getItem(cacheKey);
@@ -176,9 +189,9 @@ const TestFavorites = () => {
     const checkUserStatus = () => {
         addLog(`當前用戶 ID: ${userId}`);
         addLog(`瀏覽器 ID: ${localStorage.getItem('browser_user_id')}`);
-        addLog(`LINE 環境: ${typeof window !== 'undefined' && window.liff ? '是' : '否'}`);
+        addLog(`LINE 環境: ${window.liff ? '是' : '否'}`);
 
-        if (typeof window !== 'undefined' && window.liff) {
+        if (window.liff) {
             try {
                 addLog(`LIFF 已登入: ${window.liff.isLoggedIn() ? '是' : '否'}`);
             } catch (e) {
@@ -188,7 +201,7 @@ const TestFavorites = () => {
     };
 
     useEffect(() => {
-        addLog('頁面載入');
+        addLog('頁面載入完成');
         checkUserStatus();
         checkCache();
         testAPI();
@@ -264,6 +277,10 @@ const TestFavorites = () => {
             </div>
         </div>
     );
+};
+
+const TestFavorites = () => {
+    return <TestFavoritesClient />;
 };
 
 export default TestFavorites;

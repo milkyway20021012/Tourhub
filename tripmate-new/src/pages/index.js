@@ -383,9 +383,9 @@ const HomePage = () => {
 
   // 搜尋歷史管理
   const loadSearchHistory = () => {
-    if (typeof window !== 'undefined') {
+    if (typeof window !== 'undefined' && state.mounted) {
       try {
-        const history = localStorage.getItem('tripSearchHistory');
+        const history = safeLocalStorage.getItem('tripSearchHistory');
         if (history) {
           dispatch({ type: 'SET_SEARCH_HISTORY', value: JSON.parse(history) });
         }
@@ -396,11 +396,11 @@ const HomePage = () => {
   };
 
   const saveSearchHistory = (keyword) => {
-    if (typeof window !== 'undefined' && keyword.trim()) {
+    if (typeof window !== 'undefined' && state.mounted && keyword.trim()) {
       try {
         const newHistory = [keyword, ...state.searchHistory.filter(h => h !== keyword)].slice(0, 10);
         dispatch({ type: 'SET_SEARCH_HISTORY', value: newHistory });
-        localStorage.setItem('tripSearchHistory', JSON.stringify(newHistory));
+        safeLocalStorage.setItem('tripSearchHistory', JSON.stringify(newHistory));
       } catch (e) {
         console.error('保存搜尋歷史失敗:', e);
       }
@@ -409,9 +409,9 @@ const HomePage = () => {
 
   const clearSearchHistory = () => {
     dispatch({ type: 'SET_SEARCH_HISTORY', value: [] });
-    if (typeof window !== 'undefined') {
+    if (typeof window !== 'undefined' && state.mounted) {
       try {
-        localStorage.removeItem('tripSearchHistory');
+        safeLocalStorage.removeItem('tripSearchHistory');
       } catch (e) {
         console.error('清除搜尋歷史失敗:', e);
       }
@@ -494,7 +494,7 @@ const HomePage = () => {
     if (!state.mounted) return;
     // localStorage 快取
     try {
-      const cache = localStorage.getItem('tripStatisticsCache');
+      const cache = safeLocalStorage.getItem('tripStatisticsCache');
       if (cache) {
         const { data, ts } = JSON.parse(cache);
         if (Date.now() - ts < 3600 * 1000) {
@@ -507,7 +507,7 @@ const HomePage = () => {
       const response = await getStatistics();
       dispatch({ type: 'SET_STATISTICS', statistics: response.data });
       try {
-        localStorage.setItem('tripStatisticsCache', JSON.stringify({ data: response.data, ts: Date.now() }));
+        safeLocalStorage.setItem('tripStatisticsCache', JSON.stringify({ data: response.data, ts: Date.now() }));
       } catch (e) { }
     } catch (err) {
       console.error('獲取統計資料失敗:', err);
@@ -518,7 +518,7 @@ const HomePage = () => {
     if (!state.mounted) return;
     // localStorage 快取
     try {
-      const cache = localStorage.getItem('tripAreasCache');
+      const cache = safeLocalStorage.getItem('tripAreasCache');
       if (cache) {
         const { data, ts } = JSON.parse(cache);
         if (Date.now() - ts < 3600 * 1000) {
@@ -531,7 +531,7 @@ const HomePage = () => {
       const response = await getAreas();
       dispatch({ type: 'SET_AREAS', areas: response.data.areas || [] });
       try {
-        localStorage.setItem('tripAreasCache', JSON.stringify({ data: response.data.areas || [], ts: Date.now() }));
+        safeLocalStorage.setItem('tripAreasCache', JSON.stringify({ data: response.data.areas || [], ts: Date.now() }));
       } catch (e) { }
     } catch (err) {
       console.error('獲取地區失敗:', err);
@@ -610,7 +610,7 @@ const HomePage = () => {
             timestamp: Date.now(),
             userId: userId
           };
-          localStorage.setItem(`userFavorites_${userId}`, JSON.stringify(cacheData));
+          safeLocalStorage.setItem(`userFavorites_${userId}`, JSON.stringify(cacheData));
           console.log('fetchUserFavorites: 緩存已保存', cacheData);
         } catch (e) {
           console.error('保存收藏緩存失敗:', e);
@@ -629,14 +629,14 @@ const HomePage = () => {
 
   // 從 localStorage 載入收藏緩存
   const loadFavoritesFromCache = (userId) => {
-    if (typeof window === 'undefined' || !userId) {
-      console.log('loadFavoritesFromCache: 無效的參數', { window: typeof window, userId });
+    if (typeof window === 'undefined' || !userId || !state.mounted) {
+      console.log('loadFavoritesFromCache: 無效的參數', { window: typeof window, userId, mounted: state.mounted });
       return false;
     }
 
     try {
       const cacheKey = `userFavorites_${userId}`;
-      const cached = localStorage.getItem(cacheKey);
+      const cached = safeLocalStorage.getItem(cacheKey);
       console.log('loadFavoritesFromCache: 嘗試載入緩存', { cacheKey, hasCached: !!cached });
 
       if (cached) {
@@ -661,13 +661,46 @@ const HomePage = () => {
           return true;
         } else {
           console.log('緩存無效或過期，清除舊緩存');
-          localStorage.removeItem(cacheKey);
+          safeLocalStorage.removeItem(cacheKey);
         }
       }
     } catch (e) {
       console.error('載入收藏緩存失敗:', e);
     }
     return false;
+  };
+
+  // 安全的 localStorage 訪問函數
+  const safeLocalStorage = {
+    getItem: (key) => {
+      if (typeof window === 'undefined' || !state.mounted) return null;
+      try {
+        return localStorage.getItem(key);
+      } catch (e) {
+        console.error('localStorage.getItem 失敗:', e);
+        return null;
+      }
+    },
+    setItem: (key, value) => {
+      if (typeof window === 'undefined' || !state.mounted) return false;
+      try {
+        localStorage.setItem(key, value);
+        return true;
+      } catch (e) {
+        console.error('localStorage.setItem 失敗:', e);
+        return false;
+      }
+    },
+    removeItem: (key) => {
+      if (typeof window === 'undefined' || !state.mounted) return false;
+      try {
+        localStorage.removeItem(key);
+        return true;
+      } catch (e) {
+        console.error('localStorage.removeItem 失敗:', e);
+        return false;
+      }
+    }
   };
 
   // 工具函數
@@ -679,9 +712,9 @@ const HomePage = () => {
     }
 
     // 2. 開發環境或非 LINE 環境使用瀏覽器指紋作為用戶 ID
-    if (typeof window !== 'undefined') {
+    if (typeof window !== 'undefined' && state.mounted) {
       // 生成基於瀏覽器的唯一 ID
-      let browserId = localStorage.getItem('browser_user_id');
+      let browserId = safeLocalStorage.getItem('browser_user_id');
       if (!browserId) {
         // 創建基於瀏覽器特徵的 ID
         const userAgent = navigator.userAgent;
@@ -701,7 +734,7 @@ const HomePage = () => {
         };
 
         browserId = `browser_${hash(userAgent + screenRes + timezone + language)}_${Date.now()}`;
-        localStorage.setItem('browser_user_id', browserId);
+        safeLocalStorage.setItem('browser_user_id', browserId);
         console.log('創建新的瀏覽器用戶 ID:', browserId);
       } else {
         console.log('使用現有瀏覽器用戶 ID:', browserId);
@@ -719,8 +752,8 @@ const HomePage = () => {
     }
 
     // 2. 非 LINE 環境但有瀏覽器 ID 也視為"登入"狀態
-    if (typeof window !== 'undefined') {
-      const browserId = localStorage.getItem('browser_user_id');
+    if (typeof window !== 'undefined' && state.mounted) {
+      const browserId = safeLocalStorage.getItem('browser_user_id');
       if (browserId) {
         return true;
       }
@@ -875,7 +908,7 @@ const HomePage = () => {
           timestamp: Date.now(),
           userId: userId
         };
-        localStorage.setItem(`userFavorites_${userId}`, JSON.stringify(cacheData));
+        safeLocalStorage.setItem(`userFavorites_${userId}`, JSON.stringify(cacheData));
         console.log('收藏緩存已更新:', {
           userId,
           favoritesCount: favoritesArray.length,
@@ -1076,7 +1109,7 @@ const HomePage = () => {
       favoritesList: Array.from(state.favorites),
       isLineLoggedIn: isLineLoggedIn(),
       currentUserId: getCurrentUserId(),
-      browserUserId: typeof window !== 'undefined' ? localStorage.getItem('browser_user_id') : null
+      browserUserId: typeof window !== 'undefined' && state.mounted ? safeLocalStorage.getItem('browser_user_id') : null
     });
   }
 
@@ -1085,7 +1118,7 @@ const HomePage = () => {
   return (
     <ClientOnly>
       {/* 開發環境調試面板 */}
-      {process.env.NODE_ENV === 'development' && (
+      {process.env.NODE_ENV === 'development' && state.mounted && (
         <div style={{
           position: 'fixed',
           top: '10px',
