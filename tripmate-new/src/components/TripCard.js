@@ -1,6 +1,6 @@
 import React from 'react';
 
-const TripCard = ({ trip, isFavorited, favoriteLoading, onFavorite, onShare, isLineLoggedIn, shareLoading, onClick }) => {
+const TripCard = ({ trip, favoriteLoading, onFavorite, onShare, isLineLoggedIn, shareLoading, onClick }) => {
     // 處理收藏點擊
     const handleFavoriteClick = async (e) => {
         e.stopPropagation();
@@ -204,13 +204,10 @@ const TripCard = ({ trip, isFavorited, favoriteLoading, onFavorite, onShare, isL
                             disabled={favoriteLoading}
                             style={{
                                 background: isLineLoggedIn
-                                    ? (isFavorited
-                                        ? 'linear-gradient(135deg, #fecaca 0%, #fca5a5 100%)'
-                                        : 'linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%)'
-                                    )
+                                    ? 'linear-gradient(135deg, #fecaca 0%, #fca5a5 100%)'
                                     : 'linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%)',
                                 border: isLineLoggedIn
-                                    ? `2px solid ${isFavorited ? '#ef4444' : '#9ca3af'}`
+                                    ? '2px solid #ef4444'
                                     : '2px solid #3b82f6',
                                 borderRadius: '12px',
                                 width: '44px',
@@ -222,13 +219,11 @@ const TripCard = ({ trip, isFavorited, favoriteLoading, onFavorite, onShare, isL
                                 fontSize: '18px',
                                 transition: 'all 0.3s ease',
                                 opacity: favoriteLoading ? 0.7 : 1,
-                                boxShadow: isFavorited
-                                    ? '0 2px 8px rgba(239, 68, 68, 0.3)'
-                                    : '0 1px 4px rgba(0, 0, 0, 0.1)'
+                                boxShadow: '0 2px 8px rgba(239, 68, 68, 0.3)'
                             }}
-                            title={!isLineLoggedIn ? '點擊登入 LINE 使用收藏功能' : favoriteLoading ? '處理中...' : (isFavorited ? '取消收藏' : '加入收藏')}
+                            title={!isLineLoggedIn ? '點擊登入 LINE 使用收藏功能' : favoriteLoading ? '處理中...' : '加入收藏'}
                         >
-                            {favoriteLoading ? '⏳' : !isLineLoggedIn ? '💙' : (isFavorited ? '❤️' : '🤍')}
+                            {favoriteLoading ? '⏳' : !isLineLoggedIn ? '💙' : '❤️'}
                         </button>
 
                         {/* 分享按鈕 - 手機版 */}
@@ -496,13 +491,10 @@ const TripCard = ({ trip, isFavorited, favoriteLoading, onFavorite, onShare, isL
                         disabled={favoriteLoading}
                         style={{
                             background: isLineLoggedIn
-                                ? (isFavorited
-                                    ? 'linear-gradient(135deg, #fecaca 0%, #fca5a5 100%)'
-                                    : 'linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%)'
-                                )
+                                ? 'linear-gradient(135deg, #fecaca 0%, #fca5a5 100%)'
                                 : 'linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%)',
                             border: isLineLoggedIn
-                                ? `2px solid ${isFavorited ? '#ef4444' : '#9ca3af'}`
+                                ? '2px solid #ef4444'
                                 : '2px solid #3b82f6',
                             borderRadius: '16px',
                             width: '56px',
@@ -515,41 +507,35 @@ const TripCard = ({ trip, isFavorited, favoriteLoading, onFavorite, onShare, isL
                             fontSize: '20px',
                             transition: 'all 0.3s ease',
                             opacity: favoriteLoading ? 0.7 : 1,
-                            boxShadow: isFavorited
-                                ? '0 4px 12px rgba(239, 68, 68, 0.3)'
-                                : '0 2px 8px rgba(0, 0, 0, 0.1)',
-                            transform: isFavorited ? 'scale(1.05)' : 'scale(1)',
+                            boxShadow: '0 4px 12px rgba(239, 68, 68, 0.3)',
+                            transform: 'scale(1)',
                             position: 'relative',
                             overflow: 'hidden'
                         }}
-                        title={!isLineLoggedIn ? '點擊登入 LINE 使用收藏功能' : favoriteLoading ? '處理中...' : (isFavorited ? '取消收藏' : '加入收藏')}
+                        title={!isLineLoggedIn ? '點擊登入 LINE 使用收藏功能' : favoriteLoading ? '處理中...' : '加入收藏'}
                         onMouseEnter={(e) => {
                             if (!favoriteLoading) {
                                 e.currentTarget.style.transform = 'scale(1.1)';
-                                e.currentTarget.style.boxShadow = '0 6px 16px rgba(0, 0, 0, 0.15)';
+                                e.currentTarget.style.boxShadow = '0 6px 16px rgba(239, 68, 68, 0.4)';
                             }
                         }}
                         onMouseLeave={(e) => {
                             if (!favoriteLoading) {
-                                e.currentTarget.style.transform = isFavorited ? 'scale(1.05)' : 'scale(1)';
-                                e.currentTarget.style.boxShadow = isFavorited
-                                    ? '0 4px 12px rgba(239, 68, 68, 0.3)'
-                                    : '0 2px 8px rgba(0, 0, 0, 0.1)';
+                                e.currentTarget.style.transform = 'scale(1)';
+                                e.currentTarget.style.boxShadow = '0 4px 12px rgba(239, 68, 68, 0.3)';
                             }
                         }}
                     >
                         <div style={{ fontSize: '20px', marginBottom: '2px' }}>
-                            {favoriteLoading ? '⏳' : !isLineLoggedIn ? '💙' : (isFavorited ? '❤️' : '🤍')}
+                            {favoriteLoading ? '⏳' : !isLineLoggedIn ? '💙' : '❤️'}
                         </div>
                         <div style={{
                             fontSize: '10px',
                             fontWeight: '600',
-                            color: isLineLoggedIn
-                                ? (isFavorited ? '#dc2626' : '#6b7280')
-                                : '#2563eb',
+                            color: isLineLoggedIn ? '#dc2626' : '#2563eb',
                             letterSpacing: '0.5px'
                         }}>
-                            {favoriteLoading ? '...' : (isFavorited ? '已收藏' : '收藏')}
+                            {favoriteLoading ? '...' : '收藏'}
                         </div>
                     </button>
 
@@ -639,13 +625,8 @@ const TripCard = ({ trip, isFavorited, favoriteLoading, onFavorite, onShare, isL
     );
 };
 
-// 自定義比較函數，確保收藏狀態變化時重新渲染
+// 自定義比較函數，確保必要時重新渲染
 const areEqual = (prevProps, nextProps) => {
-    // 如果收藏狀態發生變化，強制重新渲染
-    if (prevProps.isFavorited !== nextProps.isFavorited) {
-        return false;
-    }
-
     // 如果載入狀態發生變化，強制重新渲染
     if (prevProps.favoriteLoading !== nextProps.favoriteLoading) {
         return false;

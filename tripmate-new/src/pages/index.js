@@ -6,7 +6,7 @@ import Pagination from '../components/Pagination';
 import LoadingIndicator from '../components/LoadingIndicator';
 import SearchBar from '../components/SearchBar';
 import { getStatistics, getAreas, getTripRankings, getTripDetail, searchTrips, updateTripStats } from '../services/tripService';
-import { getUserFavorites, addFavorite, removeFavorite } from '../services/userService';
+import { getUserFavorites, addFavorite } from '../services/userService';
 
 // 動態載入組件
 const TripDetail = dynamic(() => import('../components/TripDetail'), {
@@ -167,6 +167,7 @@ const HomePage = () => {
     searchHasMore: false,
     favorites: new Set(),
     favoriteLoading: {},
+    totalFavorites: 0,
     shareModalData: null,
     shareLoading: {},
     liffReady: false,
@@ -210,6 +211,8 @@ const HomePage = () => {
         return { ...state, favorites: action.favorites };
       case 'SET_FAVORITE_LOADING':
         return { ...state, favoriteLoading: { ...state.favoriteLoading, ...action.payload } };
+      case 'SET_TOTAL_FAVORITES':
+        return { ...state, totalFavorites: action.totalFavorites };
       case 'SET_SHARE_LOADING':
         return { ...state, shareLoading: { ...state.shareLoading, ...action.payload } };
       case 'SET_SELECTED_TRIP':
@@ -268,11 +271,8 @@ const HomePage = () => {
 
       if (userId && isReallyLoggedIn) {
         console.log('初始化：嘗試載入收藏狀態，用戶 ID:', userId);
-        const cacheLoaded = loadFavoritesFromCache(userId);
-        if (!cacheLoaded) {
-          console.log('初始化：無緩存，從 API 載入');
-          fetchUserFavorites();
-        }
+        console.log('初始化：載入收藏總數');
+        fetchUserFavoritesCount();
       } else {
         console.log('初始化：用戶未登入或 LIFF 未就緒，跳過收藏載入');
       }
@@ -300,11 +300,8 @@ const HomePage = () => {
       // 只要有用戶ID且是真正的LINE登入，就載入收藏
       const isReallyLoggedIn = state.liffReady && state.liffLoggedIn && state.userProfile;
       if (userId && isReallyLoggedIn && state.favorites.size === 0) {
-        console.log('登入狀態變化：載入收藏');
-        const cacheLoaded = loadFavoritesFromCache(userId);
-        if (!cacheLoaded) {
-          fetchUserFavorites();
-        }
+        console.log('登入狀態變化：載入收藏總數');
+        fetchUserFavoritesCount();
       } else if (!isReallyLoggedIn) {
         // 如果用戶登出，清除收藏狀態
         console.log('用戶已登出，清除收藏狀態');
@@ -322,11 +319,8 @@ const HomePage = () => {
 
         // 只有在真正登入且沒有收藏數據時才載入
         if (userId && isReallyLoggedIn && state.favorites.size === 0) {
-          console.log('備用檢查：嘗試載入收藏');
-          const cacheLoaded = loadFavoritesFromCache(userId);
-          if (!cacheLoaded) {
-            fetchUserFavorites();
-          }
+          console.log('備用檢查：載入收藏總數');
+          fetchUserFavoritesCount();
         } else if (!isReallyLoggedIn) {
           console.log('備用檢查：用戶未登入，跳過');
         }
@@ -473,13 +467,8 @@ const HomePage = () => {
         // LIFF 登入成功後立即載入收藏
         console.log('LIFF 登入成功，載入收藏狀態，用戶ID:', profile.userId);
         setTimeout(() => {
-          const cacheLoaded = loadFavoritesFromCache(profile.userId);
-          if (!cacheLoaded) {
-            console.log('無緩存，從 API 載入收藏');
-            fetchUserFavorites();
-          } else {
-            console.log('從緩存載入收藏成功');
-          }
+          console.log('LIFF 登入成功，載入收藏總數');
+          fetchUserFavoritesCount();
         }, 100);
       }
 
@@ -591,99 +580,31 @@ const HomePage = () => {
     }
   };
 
-  // 收藏管理狀態
-  const [favoritesLoading, setFavoritesLoading] = React.useState(false);
-
-  const fetchUserFavorites = async () => {
-    if (!state.mounted || favoritesLoading) return;
-
+  // 獲取用戶收藏總數
+  const fetchUserFavoritesCount = async () => {
     const userId = getCurrentUserId();
     if (!userId) {
-      console.log('fetchUserFavorites: 無用戶 ID，跳過');
+      console.log('fetchUserFavoritesCount: 無用戶 ID，跳過');
       return;
     }
 
-    console.log('fetchUserFavorites: 開始，用戶 ID:', userId);
-    setFavoritesLoading(true);
-
     try {
-      console.log('fetchUserFavorites: 開始獲取收藏列表', { userId });
+      console.log('fetchUserFavoritesCount: 開始獲取收藏總數', { userId });
       const response = await getUserFavorites(userId);
 
       if (response.data.success) {
-        const favIds = new Set(response.data.favorites.map(f => f.trip_id));
-        dispatch({ type: 'SET_FAVORITES', favorites: favIds });
-        console.log('fetchUserFavorites: 收藏列表載入成功', {
-          count: favIds.size,
-          favorites: Array.from(favIds)
-        });
-
-        // 將收藏狀態保存到 localStorage
-        try {
-          const favoritesArray = Array.from(favIds);
-          const cacheData = {
-            favorites: favoritesArray,
-            timestamp: Date.now(),
-            userId: userId
-          };
-          safeLocalStorage.setItem(`userFavorites_${userId}`, JSON.stringify(cacheData));
-          console.log('fetchUserFavorites: 緩存已保存', {
-            userId,
-            count: favoritesArray.length,
-            favorites: favoritesArray
-          });
-        } catch (e) {
-          console.error('保存收藏緩存失敗:', e);
-        }
+        const totalCount = response.data.favorites.length;
+        dispatch({ type: 'SET_TOTAL_FAVORITES', totalFavorites: totalCount });
+        console.log('fetchUserFavoritesCount: 收藏總數載入成功', { totalCount });
       } else {
-        console.log('fetchUserFavorites: API 回應失敗', response.data);
+        console.log('fetchUserFavoritesCount: API 回應失敗', response.data);
       }
     } catch (err) {
-      console.error('獲取收藏列表失敗:', err);
-
-      // 如果 API 失敗，嘗試從緩存載入
-      console.log('fetchUserFavorites: API 失敗，嘗試從緩存載入');
-      loadFavoritesFromCache(userId);
-    } finally {
-      setFavoritesLoading(false);
+      console.error('獲取收藏總數失敗:', err);
     }
   };
 
-  // 簡化的收藏載入函數
-  const loadFavoritesFromCache = (userId) => {
-    if (typeof window === 'undefined' || !userId || !state.mounted) {
-      console.log('loadFavoritesFromCache: 無效的參數');
-      return false;
-    }
 
-    try {
-      const cacheKey = `userFavorites_${userId}`;
-      const cached = safeLocalStorage.getItem(cacheKey);
-
-      if (cached) {
-        const { favorites, timestamp, userId: cachedUserId } = JSON.parse(cached);
-
-        // 檢查緩存是否有效（7天內且用戶ID匹配）
-        const isValid = cachedUserId === userId &&
-          (Date.now() - timestamp) < 7 * 24 * 60 * 60 * 1000;
-
-        if (isValid && Array.isArray(favorites)) {
-          const favIds = new Set(favorites);
-          dispatch({ type: 'SET_FAVORITES', favorites: favIds });
-          console.log('從緩存載入收藏狀態:', favorites.length, '個收藏', favorites);
-          return true;
-        } else {
-          console.log('緩存無效或過期，清除舊緩存');
-          safeLocalStorage.removeItem(cacheKey);
-        }
-      } else {
-        console.log('無收藏緩存');
-      }
-    } catch (e) {
-      console.error('載入收藏緩存失敗:', e);
-    }
-    return false;
-  };
 
   // 安全的 localStorage 訪問函數
   const safeLocalStorage = {
@@ -859,76 +780,26 @@ const HomePage = () => {
       alert('無法獲取用戶資訊，請重新登入');
       return;
     }
+
     dispatch({ type: 'SET_FAVORITE_LOADING', payload: { [tripId]: true } });
-    const isFavorited = state.favorites.has(tripId);
 
-    // 創建新的收藏狀態
-    let newFavorites;
-    if (isFavorited) {
-      newFavorites = new Set(state.favorites);
-      newFavorites.delete(tripId);
-      updateFavoriteCount(tripId, -1);
-    } else {
-      newFavorites = new Set([...state.favorites, tripId]);
-      updateFavoriteCount(tripId, 1);
-    }
-
-    // optimistic update
-    dispatch({ type: 'SET_FAVORITES', favorites: newFavorites });
     try {
-      if (isFavorited) {
-        const response = await removeFavorite(userId, tripId);
-        if (response.data.success) {
-          await updateTripStatsWrapper(tripId, 'favorite_remove');
-        } else {
-          throw new Error(response.data.message || '取消收藏失敗');
-        }
-      } else {
-        const response = await addFavorite(userId, tripId);
-        if (response.data.success) {
-          await updateTripStatsWrapper(tripId, 'favorite_add');
-        } else {
-          throw new Error(response.data.message || '新增收藏失敗');
-        }
-      }
-
-      // 操作成功後立即更新緩存
-      try {
-        const favoritesArray = Array.from(newFavorites);
-        const cacheData = {
-          favorites: favoritesArray,
-          timestamp: Date.now(),
-          userId: userId
-        };
-        safeLocalStorage.setItem(`userFavorites_${userId}`, JSON.stringify(cacheData));
-        console.log('收藏緩存已更新:', {
-          userId,
-          favoritesCount: favoritesArray.length,
-          favorites: favoritesArray,
-          action: isFavorited ? 'remove' : 'add',
-          tripId
-        });
-      } catch (e) {
-        console.error('更新收藏緩存失敗:', e);
-      }
-
-      // 顯示收藏操作提示
-      showToast(isFavorited ? '取消收藏成功' : '收藏成功', 'success');
-
-    } catch (err) {
-      // 回滾到原始狀態
-      const rollbackFavorites = new Set(state.favorites);
-      if (isFavorited) {
-        rollbackFavorites.add(tripId);
+      const response = await addFavorite(userId, tripId);
+      if (response.data.success) {
+        await updateTripStatsWrapper(tripId, 'favorite_add');
         updateFavoriteCount(tripId, 1);
-      } else {
-        rollbackFavorites.delete(tripId);
-        updateFavoriteCount(tripId, -1);
-      }
-      dispatch({ type: 'SET_FAVORITES', favorites: rollbackFavorites });
 
-      // 靜默處理錯誤，不顯示提示
+        // 更新收藏總數
+        dispatch({ type: 'SET_TOTAL_FAVORITES', totalFavorites: state.totalFavorites + 1 });
+
+        // 顯示收藏操作提示
+        showToast('收藏成功', 'success');
+      } else {
+        throw new Error(response.data.message || '收藏失敗');
+      }
+    } catch (err) {
       console.error('收藏操作失敗:', err);
+      showToast('收藏失敗，請稍後再試', 'error');
     } finally {
       dispatch({ type: 'SET_FAVORITE_LOADING', payload: { [tripId]: false } });
     }
@@ -1004,7 +875,7 @@ const HomePage = () => {
           const profile = await window.liff.getProfile();
           dispatch({ type: 'SET_USER_PROFILE', value: profile });
           setTimeout(() => {
-            fetchUserFavorites();
+            fetchUserFavoritesCount();
           }, 100);
           dispatch({ type: 'SET_SHOW_LOGIN_MODAL', value: false });
           alert(`歡迎，${profile.displayName}！`);
@@ -1145,11 +1016,8 @@ const HomePage = () => {
               onClick={() => {
                 const userId = getCurrentUserId();
                 if (userId) {
-                  console.log('手動重新載入收藏');
-                  const cacheLoaded = loadFavoritesFromCache(userId);
-                  if (!cacheLoaded) {
-                    fetchUserFavorites();
-                  }
+                  console.log('手動重新載入收藏總數');
+                  fetchUserFavoritesCount();
                 }
               }}
               style={{ padding: '2px 5px', fontSize: '10px' }}
@@ -1272,35 +1140,69 @@ const HomePage = () => {
               <div>
               </div>
             ) : (state.liffReady && state.liffLoggedIn && state.userProfile) ? (
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
-                <span>👋 歡迎，{state.userProfile?.displayName || '用戶'}</span>
-                {state.userProfile?.pictureUrl && (
-                  <img
-                    src={state.userProfile.pictureUrl}
-                    alt="頭像"
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                  <span>👋 歡迎，{state.userProfile?.displayName || '用戶'}</span>
+                  {state.userProfile?.pictureUrl && (
+                    <img
+                      src={state.userProfile.pictureUrl}
+                      alt="頭像"
+                      style={{
+                        width: '32px',
+                        height: '32px',
+                        borderRadius: '50%',
+                        verticalAlign: 'middle'
+                      }}
+                    />
+                  )}
+                  <button
+                    onClick={handleLogout}
                     style={{
-                      width: '32px',
-                      height: '32px',
-                      borderRadius: '50%',
-                      verticalAlign: 'middle'
+                      marginLeft: '8px',
+                      padding: '4px 8px',
+                      background: 'rgba(255,255,255,0.2)',
+                      border: '1px solid rgba(255,255,255,0.3)',
+                      borderRadius: '4px',
+                      color: 'white',
+                      cursor: 'pointer',
+                      fontSize: '12px'
                     }}
-                  />
-                )}
-                <button
-                  onClick={handleLogout}
-                  style={{
-                    marginLeft: '8px',
-                    padding: '4px 8px',
-                    background: 'rgba(255,255,255,0.2)',
-                    border: '1px solid rgba(255,255,255,0.3)',
-                    borderRadius: '4px',
-                    color: 'white',
-                    cursor: 'pointer',
-                    fontSize: '12px'
-                  }}
-                >
-                  登出
-                </button>
+                  >
+                    登出
+                  </button>
+                </div>
+
+                {/* 收藏統計 */}
+                <div style={{
+                  background: 'rgba(255, 255, 255, 0.15)',
+                  borderRadius: '12px',
+                  padding: '8px 16px',
+                  backdropFilter: 'blur(10px)',
+                  border: '1px solid rgba(255, 255, 255, 0.2)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  fontSize: '14px',
+                  fontWeight: '600'
+                }}>
+                  <span>❤️</span>
+                  <span>已收藏 {state.totalFavorites} 個行程</span>
+                  <button
+                    onClick={handleFavoritesNavigation}
+                    style={{
+                      background: 'rgba(255,255,255,0.2)',
+                      border: '1px solid rgba(255,255,255,0.3)',
+                      borderRadius: '6px',
+                      color: 'white',
+                      cursor: 'pointer',
+                      fontSize: '11px',
+                      padding: '2px 6px',
+                      marginLeft: '4px'
+                    }}
+                  >
+                    查看
+                  </button>
+                </div>
               </div>
             ) : (
               <div>
@@ -1771,7 +1673,6 @@ const HomePage = () => {
                   <TripCard
                     key={trip.trip_id}
                     trip={{ ...trip, rank: state.isSearchMode ? '🔍' : ((state.pagination.currentPage - 1) * state.pagination.limit + index + 1) }}
-                    isFavorited={state.favorites.has(trip.trip_id)}
                     favoriteLoading={state.favoriteLoading[trip.trip_id]}
                     onFavorite={e => toggleFavorite(trip.trip_id, e)}
                     onShare={e => handleDetailedShare(trip, e)}
