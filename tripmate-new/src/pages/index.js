@@ -260,6 +260,19 @@ const HomePage = () => {
     dispatch({ type: 'SET_MOUNTED', value: true });
     initializeLiff();
     loadSearchHistory();
+
+    // 開發環境下立即嘗試載入收藏狀態
+    if (process.env.NODE_ENV === 'development') {
+      setTimeout(() => {
+        const userId = 'dev_user_123';
+        console.log('開發環境：嘗試載入收藏狀態');
+        const cacheLoaded = loadFavoritesFromCache(userId);
+        if (!cacheLoaded) {
+          console.log('開發環境：無緩存，從 API 載入');
+          fetchUserFavorites();
+        }
+      }, 500);
+    }
   }, []);
 
   React.useEffect(() => {
@@ -270,13 +283,17 @@ const HomePage = () => {
 
   // 當用戶登入狀態改變時，嘗試載入收藏緩存
   React.useEffect(() => {
-    if (state.liffLoggedIn && state.userProfile && state.mounted) {
+    if (state.mounted) {
       const userId = getCurrentUserId();
       if (userId && state.favorites.size === 0) {
         // 只有在收藏列表為空時才從緩存載入，避免覆蓋已載入的數據
         const cacheLoaded = loadFavoritesFromCache(userId);
         if (!cacheLoaded) {
           console.log('無有效緩存，將從 API 載入收藏狀態');
+          // 開發環境下也嘗試從 API 載入
+          if (process.env.NODE_ENV === 'development' || (state.liffLoggedIn && state.userProfile)) {
+            fetchUserFavorites();
+          }
         }
       }
     }
@@ -536,45 +553,64 @@ const HomePage = () => {
   };
 
   const fetchUserFavorites = async () => {
-    if (!state.mounted || !state.liffLoggedIn || !state.userProfile) return;
+    if (!state.mounted) return;
 
     const userId = getCurrentUserId();
     if (!userId) return;
 
+    // 開發環境下或正式環境已登入時才執行
+    if (process.env.NODE_ENV !== 'development' && (!state.liffLoggedIn || !state.userProfile)) {
+      return;
+    }
+
     try {
+      console.log('fetchUserFavorites: 開始獲取收藏列表', { userId });
       const response = await getUserFavorites(userId);
 
       if (response.data.success) {
         const favIds = new Set(response.data.favorites.map(f => f.trip_id));
         dispatch({ type: 'SET_FAVORITES', favorites: favIds });
+        console.log('fetchUserFavorites: 收藏列表載入成功', {
+          count: favIds.size,
+          favorites: Array.from(favIds)
+        });
 
         // 將收藏狀態保存到 localStorage 作為緩存
         try {
           const favoritesArray = Array.from(favIds);
-          localStorage.setItem(`userFavorites_${userId}`, JSON.stringify({
+          const cacheData = {
             favorites: favoritesArray,
             timestamp: Date.now(),
             userId: userId
-          }));
+          };
+          localStorage.setItem(`userFavorites_${userId}`, JSON.stringify(cacheData));
+          console.log('fetchUserFavorites: 緩存已保存', cacheData);
         } catch (e) {
           console.error('保存收藏緩存失敗:', e);
         }
+      } else {
+        console.log('fetchUserFavorites: API 回應失敗', response.data);
       }
     } catch (err) {
       console.error('獲取收藏列表失敗:', err);
 
       // 如果 API 失敗，嘗試從 localStorage 載入緩存
+      console.log('fetchUserFavorites: API 失敗，嘗試從緩存載入');
       loadFavoritesFromCache(userId);
     }
   };
 
   // 從 localStorage 載入收藏緩存
   const loadFavoritesFromCache = (userId) => {
-    if (typeof window === 'undefined' || !userId) return;
+    if (typeof window === 'undefined' || !userId) {
+      console.log('loadFavoritesFromCache: 無效的參數', { window: typeof window, userId });
+      return false;
+    }
 
     try {
       const cacheKey = `userFavorites_${userId}`;
       const cached = localStorage.getItem(cacheKey);
+      console.log('loadFavoritesFromCache: 嘗試載入緩存', { cacheKey, hasCached: !!cached });
 
       if (cached) {
         const { favorites, timestamp, userId: cachedUserId } = JSON.parse(cached);
@@ -583,11 +619,22 @@ const HomePage = () => {
         const isValid = cachedUserId === userId &&
           (Date.now() - timestamp) < 24 * 60 * 60 * 1000;
 
+        console.log('loadFavoritesFromCache: 緩存驗證', {
+          cachedUserId,
+          userId,
+          age: Date.now() - timestamp,
+          isValid,
+          favoritesCount: favorites?.length
+        });
+
         if (isValid && Array.isArray(favorites)) {
           const favIds = new Set(favorites);
           dispatch({ type: 'SET_FAVORITES', favorites: favIds });
           console.log('從緩存載入收藏狀態:', favorites.length, '個收藏');
           return true;
+        } else {
+          console.log('緩存無效或過期，清除舊緩存');
+          localStorage.removeItem(cacheKey);
         }
       }
     } catch (e) {
@@ -601,15 +648,19 @@ const HomePage = () => {
     if (state.liffLoggedIn && state.userProfile?.userId) {
       return state.userProfile.userId;
     }
-    // 開發環境下允許使用模擬用戶 ID，但不自動登入
+    // 開發環境下提供模擬用戶 ID 以便測試收藏功能
     if (process.env.NODE_ENV === 'development') {
-      console.log('開發環境：訪客模式，未提供用戶 ID');
-      return null;
+      console.log('開發環境：使用模擬用戶 ID 進行測試');
+      return 'dev_user_123'; // 開發環境模擬用戶 ID
     }
     return null;
   };
 
   const isLineLoggedIn = () => {
+    // 開發環境下允許模擬登入狀態
+    if (process.env.NODE_ENV === 'development') {
+      return true; // 開發環境模擬已登入狀態
+    }
     return state.liffReady && state.liffLoggedIn && state.userProfile;
   };
 
@@ -754,11 +805,17 @@ const HomePage = () => {
       try {
         const currentFavorites = state.favorites;
         const favoritesArray = Array.from(currentFavorites);
-        localStorage.setItem(`userFavorites_${userId}`, JSON.stringify({
+        const cacheData = {
           favorites: favoritesArray,
           timestamp: Date.now(),
           userId: userId
-        }));
+        };
+        localStorage.setItem(`userFavorites_${userId}`, JSON.stringify(cacheData));
+        console.log('收藏緩存已更新:', {
+          userId,
+          favoritesCount: favoritesArray.length,
+          favorites: favoritesArray
+        });
       } catch (e) {
         console.error('更新收藏緩存失敗:', e);
       }
@@ -941,6 +998,19 @@ const HomePage = () => {
 
   if (!state.mounted) {
     return null;
+  }
+
+  // 開發環境調試信息
+  if (process.env.NODE_ENV === 'development') {
+    console.log('HomePage 渲染狀態:', {
+      mounted: state.mounted,
+      liffReady: state.liffReady,
+      liffLoggedIn: state.liffLoggedIn,
+      userProfile: state.userProfile,
+      favoritesSize: state.favorites.size,
+      isLineLoggedIn: isLineLoggedIn(),
+      currentUserId: getCurrentUserId()
+    });
   }
 
   const currentTrips = state.isSearchMode ? state.searchResults : state.trips;
@@ -1149,6 +1219,12 @@ const HomePage = () => {
                   backgroundClip: 'text'
                 }}>
                   {isLineLoggedIn() ? state.favorites.size : '--'}
+                  {/* 開發環境調試信息 */}
+                  {process.env.NODE_ENV === 'development' && (
+                    <div style={{ fontSize: '10px', color: '#666', marginTop: '4px' }}>
+                      Debug: {state.favorites.size} favorites
+                    </div>
+                  )}
                 </div>
                 <div style={{
                   fontSize: '14px',
