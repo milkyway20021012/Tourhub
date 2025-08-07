@@ -204,10 +204,10 @@ const TripCard = ({ trip, favoriteLoading, onFavorite, onShare, isLineLoggedIn, 
                             disabled={favoriteLoading}
                             style={{
                                 background: isLineLoggedIn
-                                    ? 'linear-gradient(135deg, #fecaca 0%, #fca5a5 100%)'
+                                    ? 'linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%)'
                                     : 'linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%)',
                                 border: isLineLoggedIn
-                                    ? '2px solid #ef4444'
+                                    ? '2px solid #d97706'
                                     : '2px solid #3b82f6',
                                 borderRadius: '12px',
                                 width: '44px',
@@ -219,11 +219,11 @@ const TripCard = ({ trip, favoriteLoading, onFavorite, onShare, isLineLoggedIn, 
                                 fontSize: '18px',
                                 transition: 'all 0.3s ease',
                                 opacity: favoriteLoading ? 0.7 : 1,
-                                boxShadow: '0 2px 8px rgba(239, 68, 68, 0.3)'
+                                boxShadow: '0 2px 8px rgba(217, 119, 6, 0.3)'
                             }}
                             title={!isLineLoggedIn ? '點擊登入 LINE 使用收藏功能' : favoriteLoading ? '處理中...' : '加入收藏'}
                         >
-                            {favoriteLoading ? '⏳' : !isLineLoggedIn ? '💙' : '❤️'}
+                            {favoriteLoading ? '⏳' : !isLineLoggedIn ? '💙' : '⭐'}
                         </button>
 
                         {/* 分享按鈕 - 手機版 */}
@@ -491,10 +491,10 @@ const TripCard = ({ trip, favoriteLoading, onFavorite, onShare, isLineLoggedIn, 
                         disabled={favoriteLoading}
                         style={{
                             background: isLineLoggedIn
-                                ? 'linear-gradient(135deg, #fecaca 0%, #fca5a5 100%)'
+                                ? 'linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%)'
                                 : 'linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%)',
                             border: isLineLoggedIn
-                                ? '2px solid #ef4444'
+                                ? '2px solid #d97706'
                                 : '2px solid #3b82f6',
                             borderRadius: '16px',
                             width: '56px',
@@ -507,7 +507,7 @@ const TripCard = ({ trip, favoriteLoading, onFavorite, onShare, isLineLoggedIn, 
                             fontSize: '20px',
                             transition: 'all 0.3s ease',
                             opacity: favoriteLoading ? 0.7 : 1,
-                            boxShadow: '0 4px 12px rgba(239, 68, 68, 0.3)',
+                            boxShadow: '0 4px 12px rgba(217, 119, 6, 0.3)',
                             transform: 'scale(1)',
                             position: 'relative',
                             overflow: 'hidden'
@@ -516,23 +516,23 @@ const TripCard = ({ trip, favoriteLoading, onFavorite, onShare, isLineLoggedIn, 
                         onMouseEnter={(e) => {
                             if (!favoriteLoading) {
                                 e.currentTarget.style.transform = 'scale(1.1)';
-                                e.currentTarget.style.boxShadow = '0 6px 16px rgba(239, 68, 68, 0.4)';
+                                e.currentTarget.style.boxShadow = '0 6px 16px rgba(217, 119, 6, 0.4)';
                             }
                         }}
                         onMouseLeave={(e) => {
                             if (!favoriteLoading) {
                                 e.currentTarget.style.transform = 'scale(1)';
-                                e.currentTarget.style.boxShadow = '0 4px 12px rgba(239, 68, 68, 0.3)';
+                                e.currentTarget.style.boxShadow = '0 4px 12px rgba(217, 119, 6, 0.3)';
                             }
                         }}
                     >
                         <div style={{ fontSize: '20px', marginBottom: '2px' }}>
-                            {favoriteLoading ? '⏳' : !isLineLoggedIn ? '💙' : '❤️'}
+                            {favoriteLoading ? '⏳' : !isLineLoggedIn ? '💙' : '⭐'}
                         </div>
                         <div style={{
                             fontSize: '10px',
                             fontWeight: '600',
-                            color: isLineLoggedIn ? '#dc2626' : '#2563eb',
+                            color: isLineLoggedIn ? '#d97706' : '#2563eb',
                             letterSpacing: '0.5px'
                         }}>
                             {favoriteLoading ? '...' : '收藏'}

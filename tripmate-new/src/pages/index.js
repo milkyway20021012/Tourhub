@@ -1160,13 +1160,13 @@ const HomePage = () => {
                   onClick={handleFavoritesNavigation}
                   style={{
                     background: 'rgba(255, 255, 255, 0.15)',
-                    borderRadius: '8px',
-                    padding: '6px 12px',
+                    borderRadius: '20px',
+                    padding: '8px 16px',
                     backdropFilter: 'blur(10px)',
                     border: '1px solid rgba(255, 255, 255, 0.3)',
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '6px',
+                    gap: '8px',
                     fontSize: '14px',
                     fontWeight: '600',
                     color: 'white',
@@ -1182,16 +1182,16 @@ const HomePage = () => {
                     e.currentTarget.style.transform = 'scale(1)';
                   }}
                 >
-                  <span>❤️</span>
                   <span>我的收藏</span>
                   <span style={{
-                    background: 'rgba(255, 255, 255, 0.3)',
-                    borderRadius: '12px',
-                    padding: '2px 8px',
+                    background: 'rgba(156, 163, 175, 0.8)',
+                    borderRadius: '50%',
+                    padding: '2px 6px',
                     fontSize: '12px',
                     fontWeight: '700',
                     minWidth: '20px',
-                    textAlign: 'center'
+                    textAlign: 'center',
+                    color: 'white'
                   }}>
                     {state.totalFavorites}
                   </span>
