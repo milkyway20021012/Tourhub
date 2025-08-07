@@ -1,6 +1,7 @@
 import React, { useReducer } from 'react';
 import dynamic from 'next/dynamic';
 import TripCard from '../components/TripCard';
+import CustomToast from '../components/CustomToast';
 import Pagination from '../components/Pagination';
 import LoadingIndicator from '../components/LoadingIndicator';
 import SearchBar from '../components/SearchBar';
@@ -294,12 +295,15 @@ const HomePage = () => {
         favoritesSize: state.favorites.size
       });
 
-      if (userId && state.favorites.size === 0) {
-        // 只有在收藏列表為空時才從緩存載入，避免覆蓋已載入的數據
-        console.log('嘗試載入收藏狀態，用戶 ID:', userId);
+      if (userId) {
+        console.log('嘗試載入收藏狀態，用戶 ID:', userId, '當前收藏數量:', state.favorites.size);
+
+        // 先嘗試從緩存載入
         const cacheLoaded = loadFavoritesFromCache(userId);
-        if (!cacheLoaded) {
-          console.log('無有效緩存，將從 API 載入收藏狀態');
+
+        // 如果緩存載入失敗或收藏數量仍為 0，則從 API 載入
+        if (!cacheLoaded || state.favorites.size === 0) {
+          console.log('從 API 載入收藏狀態');
           fetchUserFavorites();
         }
       }
@@ -308,19 +312,23 @@ const HomePage = () => {
 
   // 額外的收藏狀態載入檢查 - 確保在所有情況下都能載入
   React.useEffect(() => {
-    if (state.mounted && state.favorites.size === 0) {
+    if (state.mounted) {
       const userId = getCurrentUserId();
       if (userId) {
-        console.log('額外檢查：嘗試載入收藏狀態');
+        console.log('額外檢查：嘗試載入收藏狀態，當前收藏數量:', state.favorites.size);
+
+        // 延遲檢查，確保其他初始化完成
         setTimeout(() => {
-          if (state.favorites.size === 0) { // 再次檢查是否仍為空
+          console.log('延遲檢查：當前收藏數量:', state.favorites.size);
+          if (state.favorites.size === 0) {
+            console.log('收藏數量為 0，嘗試重新載入');
             const cacheLoaded = loadFavoritesFromCache(userId);
             if (!cacheLoaded) {
               console.log('額外檢查：從 API 載入收藏狀態');
               fetchUserFavorites();
             }
           }
-        }, 2000); // 2秒後檢查
+        }, 3000); // 3秒後檢查
       }
     }
   }, [state.mounted]);
@@ -578,8 +586,11 @@ const HomePage = () => {
     }
   };
 
+  // 防止重複載入的標記
+  const [favoritesLoading, setFavoritesLoading] = React.useState(false);
+
   const fetchUserFavorites = async () => {
-    if (!state.mounted) return;
+    if (!state.mounted || favoritesLoading) return;
 
     const userId = getCurrentUserId();
     if (!userId) {
@@ -588,6 +599,7 @@ const HomePage = () => {
     }
 
     console.log('fetchUserFavorites: 開始，用戶 ID:', userId);
+    setFavoritesLoading(true);
 
     try {
       console.log('fetchUserFavorites: 開始獲取收藏列表', { userId });
@@ -623,6 +635,8 @@ const HomePage = () => {
       // 如果 API 失敗，嘗試從 localStorage 載入緩存
       console.log('fetchUserFavorites: API 失敗，嘗試從緩存載入');
       loadFavoritesFromCache(userId);
+    } finally {
+      setFavoritesLoading(false);
     }
   };
 
@@ -917,7 +931,8 @@ const HomePage = () => {
         console.error('更新收藏緩存失敗:', e);
       }
 
-      // 收藏操作完成，不顯示提示
+      // 顯示收藏操作提示
+      showToast(isFavorited ? '取消收藏成功' : '收藏成功', 'success');
 
     } catch (err) {
       // 回滾
@@ -1055,7 +1070,25 @@ const HomePage = () => {
     window.location.href = '/favorites';
   };
 
-  // 移除 Toast 功能
+  // Toast 功能
+  const [toastQueue, setToastQueue] = React.useState([]);
+  const [currentToast, setCurrentToast] = React.useState(null);
+
+  const showToast = (msg, type = 'info') => {
+    const id = Date.now() + Math.random();
+    setToastQueue(q => [...q, { message: msg, type, id }]);
+  };
+
+  React.useEffect(() => {
+    if (!currentToast && toastQueue.length > 0) {
+      setCurrentToast(toastQueue[0]);
+      const timer = setTimeout(() => {
+        setCurrentToast(null);
+        setToastQueue(q => q.slice(1));
+      }, 2000); // 2秒後自動隱藏
+      return () => { clearTimeout(timer); };
+    }
+  }, [toastQueue, currentToast]);
 
   if (!state.mounted) {
     return null;
@@ -1100,18 +1133,35 @@ const HomePage = () => {
           <div>收藏數量: {state.favorites.size}</div>
           <div>收藏列表: {Array.from(state.favorites).join(', ') || '無'}</div>
           <div>LIFF狀態: {state.liffReady ? '就緒' : '未就緒'}</div>
-          <button
-            onClick={() => {
-              const userId = getCurrentUserId();
-              if (userId) {
-                loadFavoritesFromCache(userId);
-                fetchUserFavorites();
-              }
-            }}
-            style={{ marginTop: '5px', padding: '2px 5px', fontSize: '10px' }}
-          >
-            重新載入收藏
-          </button>
+          <div>收藏載入中: {favoritesLoading ? '是' : '否'}</div>
+          <div style={{ marginTop: '5px', display: 'flex', gap: '5px', flexWrap: 'wrap' }}>
+            <button
+              onClick={() => {
+                const userId = getCurrentUserId();
+                if (userId) {
+                  console.log('手動重新載入收藏');
+                  loadFavoritesFromCache(userId);
+                  fetchUserFavorites();
+                }
+              }}
+              style={{ padding: '2px 5px', fontSize: '10px' }}
+            >
+              重新載入收藏
+            </button>
+            <button
+              onClick={() => {
+                const userId = getCurrentUserId();
+                if (userId) {
+                  console.log('清除收藏緩存');
+                  safeLocalStorage.removeItem(`userFavorites_${userId}`);
+                  dispatch({ type: 'SET_FAVORITES', favorites: new Set() });
+                }
+              }}
+              style={{ padding: '2px 5px', fontSize: '10px' }}
+            >
+              清除緩存
+            </button>
+          </div>
         </div>
       )}
 
@@ -1868,6 +1918,17 @@ const HomePage = () => {
           isLoading={state.loginLoading}
         />
 
+        {/* Toast 提示 */}
+        {currentToast && (
+          <CustomToast
+            message={currentToast.message}
+            type={currentToast.type}
+            onClose={() => {
+              setCurrentToast(null);
+              setToastQueue(q => q.slice(1));
+            }}
+          />
+        )}
 
         {/* 添加CSS動畫 */}
         <style jsx>{`
