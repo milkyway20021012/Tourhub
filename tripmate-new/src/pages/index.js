@@ -84,7 +84,7 @@ const LineLoginModal = ({ isOpen, onClose, onLogin, isLoading }) => {
           color: '#1f2937',
           marginBottom: '12px'
         }}>
-          登入 LINE 享受完整功能
+          需要登入才能使用收藏功能
         </h3>
 
         <p style={{
@@ -92,7 +92,7 @@ const LineLoginModal = ({ isOpen, onClose, onLogin, isLoading }) => {
           marginBottom: '24px',
           lineHeight: '1.5'
         }}>
-          登入您的 LINE 帳號即可收藏喜愛的行程，並同步您的收藏資料
+          您可以繼續瀏覽行程，但需要登入 LINE 帳號才能收藏喜愛的行程並同步您的收藏資料
         </p>
 
         <div style={{
@@ -852,9 +852,12 @@ const HomePage = () => {
   const toggleFavorite = async (tripId, event) => {
     event.stopPropagation();
     if (state.favoriteLoading[tripId]) return;
-    if (!isLineLoggedIn()) {
-      const shouldLogin = confirm('需要登入 LINE 才能使用收藏功能，是否要立即登入？');
-      if (shouldLogin) dispatch({ type: 'SET_SHOW_LOGIN_MODAL', value: true });
+
+    // 檢查是否真正登入 LINE（不包括瀏覽器 ID）
+    const isReallyLoggedIn = state.liffReady && state.liffLoggedIn && state.userProfile;
+    if (!isReallyLoggedIn) {
+      // 使用更友好的提示框
+      dispatch({ type: 'SET_SHOW_LOGIN_MODAL', value: true });
       return;
     }
     const userId = getCurrentUserId();
@@ -1038,12 +1041,11 @@ const HomePage = () => {
   };
 
   const handleFavoritesNavigation = () => {
-    // 如果未登入，提示用戶登入，但不強制
-    if (!isLineLoggedIn()) {
-      const shouldLogin = confirm('需要登入 LINE 才能查看收藏列表，是否要立即登入？');
-      if (shouldLogin) {
-        dispatch({ type: 'SET_SHOW_LOGIN_MODAL', value: true });
-      }
+    // 檢查是否真正登入 LINE（不包括瀏覽器 ID）
+    const isReallyLoggedIn = state.liffReady && state.liffLoggedIn && state.userProfile;
+    if (!isReallyLoggedIn) {
+      // 使用更友好的提示框
+      dispatch({ type: 'SET_SHOW_LOGIN_MODAL', value: true });
       return;
     }
     // 修正導航到正確的收藏頁面
@@ -1246,7 +1248,7 @@ const HomePage = () => {
             ) : state.liffLoading ? (
               <div>
               </div>
-            ) : isLineLoggedIn() ? (
+            ) : (state.liffReady && state.liffLoggedIn && state.userProfile) ? (
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
                 <span>👋 歡迎，{state.userProfile?.displayName || '用戶'}</span>
                 {state.userProfile?.pictureUrl && (
@@ -1355,14 +1357,14 @@ const HomePage = () => {
                   fontWeight: '800',
                   marginBottom: '8px',
                   textShadow: '0 2px 4px rgba(0,0,0,0.1)',
-                  background: isLineLoggedIn()
+                  background: (state.liffReady && state.liffLoggedIn && state.userProfile)
                     ? 'linear-gradient(45deg, #ef4444, #dc2626)'
                     : 'linear-gradient(45deg, #9ca3af, #6b7280)',
                   WebkitBackgroundClip: 'text',
                   WebkitTextFillColor: 'transparent',
                   backgroundClip: 'text'
                 }}>
-                  {isLineLoggedIn() ? state.favorites.size : '--'}
+                  {(state.liffReady && state.liffLoggedIn && state.userProfile) ? state.favorites.size : '--'}
                   {/* 開發環境調試信息 */}
                   {process.env.NODE_ENV === 'development' && (
                     <div style={{ fontSize: '10px', color: '#666', marginTop: '4px' }}>
@@ -1376,7 +1378,7 @@ const HomePage = () => {
                   fontWeight: '600',
                   letterSpacing: '0.5px'
                 }}>
-                  ❤️ 我的收藏 {!isLineLoggedIn() && '(需登入)'}
+                  ❤️ 我的收藏 {!(state.liffReady && state.liffLoggedIn && state.userProfile) && '(需登入)'}
                 </div>
               </div>
 
