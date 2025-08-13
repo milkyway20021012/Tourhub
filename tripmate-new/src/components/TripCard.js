@@ -634,6 +634,11 @@ const areEqual = (prevProps, nextProps) => {
         return false;
     }
 
+    // 收藏狀態改變時必須重新渲染，否則星星顏色不會更新
+    if (prevProps.isFavorited !== nextProps.isFavorited) {
+        return false;
+    }
+
     // 檢查 trip 對象的關鍵屬性
     if (prevProps.trip.trip_id !== nextProps.trip.trip_id ||
         prevProps.trip.title !== nextProps.trip.title ||
