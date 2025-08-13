@@ -272,8 +272,9 @@ const HomePage = () => {
         if (cached) {
           const parsed = JSON.parse(cached);
           if (parsed && Array.isArray(parsed.favorites)) {
-            dispatch({ type: 'SET_FAVORITES', favorites: new Set(parsed.favorites) });
-            dispatch({ type: 'SET_TOTAL_FAVORITES', totalFavorites: parsed.favorites.length });
+            const normalized = parsed.favorites.map(id => Number(id));
+            dispatch({ type: 'SET_FAVORITES', favorites: new Set(normalized) });
+            dispatch({ type: 'SET_TOTAL_FAVORITES', totalFavorites: normalized.length });
           }
         }
       }
@@ -613,7 +614,7 @@ const HomePage = () => {
       const response = await getUserFavorites(userId);
 
       if (response.data.success) {
-        const favoritesArr = response.data.favorites.map(f => f.trip_id);
+        const favoritesArr = response.data.favorites.map(f => Number(f.trip_id));
         const totalCount = favoritesArr.length;
         dispatch({ type: 'SET_TOTAL_FAVORITES', totalFavorites: totalCount });
         dispatch({ type: 'SET_FAVORITES', favorites: new Set(favoritesArr) });
@@ -1240,7 +1241,7 @@ const HomePage = () => {
               <div>
                 <span>👤 訪客模式</span>
                 <button
-                  onClick={() => dispatch({ type: 'SET_SHOW_LOGIN_MODAL', value: true })}
+                  onClick={handleLogin}
                   style={{
                     marginLeft: '8px',
                     padding: '4px 8px',
