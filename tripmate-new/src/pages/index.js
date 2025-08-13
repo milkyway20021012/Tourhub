@@ -258,6 +258,8 @@ const HomePage = () => {
 
   // 分享狀態（不在 reducer 中）
   const [shareModalData, setShareModalData] = React.useState(null);
+  // 帳號選單
+  const [accountMenuOpen, setAccountMenuOpen] = React.useState(false);
   // 初始化
   React.useEffect(() => {
     dispatch({ type: 'SET_MOUNTED', value: true });
@@ -1541,57 +1543,95 @@ const HomePage = () => {
         {!state.isSearchMode && (
           <div style={{
             display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
             gap: '8px',
             marginBottom: '24px',
             flexWrap: 'wrap'
           }}>
-            {[
-              { key: 'all', label: '全部行程' },
-              { key: 'favorites', label: '我的收藏' }
-            ].map(tab => (
-              <button
-                key={tab.key}
-                style={{
-                  padding: '12px 24px',
-                  border: '1px solid #d1d5db',
-                  background: 'white',
-                  color: '#374151',
-                  borderRadius: '8px',
-                  cursor: 'pointer',
-                  fontSize: '14px',
-                  fontWeight: '500',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  minHeight: '44px'
-                }}
-                onClick={() => {
-                  if (tab.key === 'favorites') {
-                    handleFavoritesNavigation();
-                  }
-                }}
-              >
-                <span>{tab.label}</span>
-                {tab.key === 'favorites' && (
-                  <span
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+              {[
+                { key: 'all', label: '全部行程' },
+                { key: 'favorites', label: '我的收藏' }
+              ].map(tab => (
+                <button
+                  key={tab.key}
+                  style={{
+                    padding: '12px 24px',
+                    border: '1px solid #d1d5db',
+                    background: 'white',
+                    color: '#374151',
+                    borderRadius: '8px',
+                    cursor: 'pointer',
+                    fontSize: '14px',
+                    fontWeight: '500',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    minHeight: '44px'
+                  }}
+                  onClick={() => {
+                    if (tab.key === 'favorites') {
+                      handleFavoritesNavigation();
+                    }
+                  }}
+                >
+                  <span>{tab.label}</span>
+                  {tab.key === 'favorites' && (
+                    <span
+                      style={{
+                        background: '#9ca3af',
+                        color: 'white',
+                        width: '22px',
+                        height: '22px',
+                        borderRadius: '50%',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '12px',
+                        fontWeight: 700
+                      }}
+                    >
+                      {(state.liffReady && state.liffLoggedIn && state.userProfile) ? (state.favorites.size || 0) : 0}
+                    </span>
+                  )}
+                </button>
+              ))}
+            </div>
+
+            {/* 常駐登入/帳號按鈕 */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              {(state.liffReady && state.liffLoggedIn && state.userProfile) ? (
+                <div style={{ position: 'relative' }}>
+                  <button
+                    onClick={() => setAccountMenuOpen(v => !v)}
                     style={{
-                      background: '#9ca3af',
-                      color: 'white',
-                      width: '22px',
-                      height: '22px',
-                      borderRadius: '50%',
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontSize: '12px',
-                      fontWeight: 700
+                      display: 'inline-flex', alignItems: 'center', gap: '8px',
+                      border: '1px solid #d1d5db', background: 'white', color: '#374151',
+                      borderRadius: '9999px', padding: '6px 10px', cursor: 'pointer'
                     }}
                   >
-                    {(state.liffReady && state.liffLoggedIn && state.userProfile) ? (state.favorites.size || 0) : 0}
-                  </span>
-                )}
-              </button>
-            ))}
+                    {state.userProfile?.pictureUrl && (
+                      <img src={state.userProfile.pictureUrl} alt="頭像" style={{ width: 24, height: 24, borderRadius: '50%' }} />
+                    )}
+                    <span style={{ fontSize: 13, fontWeight: 600 }}>{state.userProfile?.displayName || '我的帳號'}</span>
+                  </button>
+                  {accountMenuOpen && (
+                    <div style={{ position: 'absolute', right: 0, marginTop: 6, background: 'white', border: '1px solid #e5e7eb', borderRadius: 8, boxShadow: '0 8px 16px rgba(0,0,0,0.08)', minWidth: 160, zIndex: 10 }}>
+                      <div style={{ padding: '10px 12px', fontSize: 12, color: '#6b7280' }}>已登入</div>
+                      <button onClick={handleLogout} style={{ width: '100%', textAlign: 'left', padding: '10px 12px', background: 'white', border: 'none', cursor: 'pointer' }}>登出</button>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <button
+                  onClick={handleLogin}
+                  style={{ border: '1px solid #d1d5db', background: 'white', color: '#374151', borderRadius: '8px', padding: '10px 14px', cursor: 'pointer', fontSize: 14, fontWeight: 600 }}
+                >
+                  登入 LINE
+                </button>
+              )}
+            </div>
           </div>
         )}
 
