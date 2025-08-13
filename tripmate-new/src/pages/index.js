@@ -1528,7 +1528,11 @@ const HomePage = () => {
                   borderRadius: '8px',
                   cursor: 'pointer',
                   fontSize: '14px',
-                  fontWeight: '500'
+                  fontWeight: '500',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  minHeight: '44px'
                 }}
                 onClick={() => {
                   if (tab.key === 'favorites') {
@@ -1536,35 +1540,24 @@ const HomePage = () => {
                   }
                 }}
               >
-                {tab.label}
+                <span>{tab.label}</span>
                 {tab.key === 'favorites' && (
-                  <>
-                    {(state.liffReady && state.liffLoggedIn && state.userProfile) && (
-                      <span style={{
-                        marginLeft: '8px',
-                        background: state.favorites.size > 0 ? '#ef4444' : '#9ca3af',
-                        color: 'white',
-                        borderRadius: '10px',
-                        padding: '2px 6px',
-                        fontSize: '12px',
-                        fontWeight: '600'
-                      }}>
-                        {state.favorites.size}
-                      </span>
-                    )}
-                    {!(state.liffReady && state.liffLoggedIn && state.userProfile) && (
-                      <span style={{
-                        marginLeft: '8px',
-                        background: '#60a5fa',
-                        color: 'white',
-                        borderRadius: '10px',
-                        padding: '2px 6px',
-                        fontSize: '12px'
-                      }}>
-                        登入查看
-                      </span>
-                    )}
-                  </>
+                  <span
+                    style={{
+                      background: '#9ca3af',
+                      color: 'white',
+                      width: '22px',
+                      height: '22px',
+                      borderRadius: '50%',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '12px',
+                      fontWeight: 700
+                    }}
+                  >
+                    {(state.liffReady && state.liffLoggedIn && state.userProfile) ? (state.favorites.size || 0) : 0}
+                  </span>
                 )}
               </button>
             ))}
