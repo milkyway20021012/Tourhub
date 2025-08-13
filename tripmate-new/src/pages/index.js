@@ -471,7 +471,8 @@ const HomePage = () => {
 
       await window.liff.init({
         liffId: liffId,
-        withLoginOnExternalBrowser: false
+        // 不自動登入，但允許在外部瀏覽器中觸發登入流程
+        withLoginOnExternalBrowser: true
       });
 
       dispatch({ type: 'SET_LIFF_READY', value: true });
@@ -790,8 +791,9 @@ const HomePage = () => {
   };
   // 收藏功能
   const updateFavoriteCount = (tripId, delta) => {
-    dispatch({ type: 'SET_TRIPS', trips: state.trips.map(trip => trip.trip_id === tripId ? { ...trip, favorite_count: Math.max(0, (trip.favorite_count || 0) + delta) } : trip) });
-    dispatch({ type: 'SET_SEARCH_RESULTS', searchResults: state.searchResults.map(trip => trip.trip_id === tripId ? { ...trip, favorite_count: Math.max(0, (trip.favorite_count || 0) + delta) } : trip) });
+    const normalizeId = Number(tripId);
+    dispatch({ type: 'SET_TRIPS', trips: state.trips.map(trip => trip.trip_id === normalizeId ? { ...trip, favorite_count: Math.max(0, (trip.favorite_count || 0) + delta) } : trip) });
+    dispatch({ type: 'SET_SEARCH_RESULTS', searchResults: state.searchResults.map(trip => trip.trip_id === normalizeId ? { ...trip, favorite_count: Math.max(0, (trip.favorite_count || 0) + delta) } : trip) });
   };
   const toggleFavorite = async (tripId, event) => {
     event.stopPropagation();
@@ -814,14 +816,14 @@ const HomePage = () => {
 
     try {
       // 判斷當前是否已收藏
-      const isFavorited = state.favorites.has(tripId);
+      const isFavorited = state.favorites.has(Number(tripId));
       if (!isFavorited) {
         const response = await addFavorite(userId, tripId);
         if (response.data.success) {
           await updateTripStatsWrapper(tripId, 'favorite_add');
           updateFavoriteCount(tripId, 1);
           const next = new Set(state.favorites);
-          next.add(tripId);
+          next.add(Number(tripId));
           dispatch({ type: 'SET_FAVORITES', favorites: next });
           dispatch({ type: 'SET_TOTAL_FAVORITES', totalFavorites: state.totalFavorites + 1 });
           // 持久化到 localStorage
@@ -837,7 +839,7 @@ const HomePage = () => {
           await updateTripStatsWrapper(tripId, 'favorite_remove');
           updateFavoriteCount(tripId, -1);
           const next = new Set(state.favorites);
-          next.delete(tripId);
+          next.delete(Number(tripId));
           dispatch({ type: 'SET_FAVORITES', favorites: next });
           dispatch({ type: 'SET_TOTAL_FAVORITES', totalFavorites: Math.max(0, state.totalFavorites - 1) });
           // 更新 localStorage
@@ -914,13 +916,15 @@ const HomePage = () => {
     try {
 
       if (typeof window !== 'undefined' && window.liff) {
-        if (!window.liff.isLoggedIn()) {
+        try {
+          // 優先關閉登入提示
           dispatch({ type: 'SET_SHOW_LOGIN_MODAL', value: false });
 
-          window.liff.login({
-            redirectUri: window.location.href
-          });
-        } else {
+          if (!window.liff.isLoggedIn()) {
+            window.liff.login({ redirectUri: window.location.href });
+            return; // 之後會重導
+          }
+
           dispatch({ type: 'SET_LIFF_LOGGED_IN', value: true });
           const profile = await window.liff.getProfile();
           dispatch({ type: 'SET_USER_PROFILE', value: profile });
@@ -929,6 +933,9 @@ const HomePage = () => {
           }, 100);
           dispatch({ type: 'SET_SHOW_LOGIN_MODAL', value: false });
           alert(`歡迎，${profile.displayName}！`);
+        } catch (e) {
+          console.error('LIFF 登入流程出錯:', e);
+          alert('登入啟動失敗，請重試');
         }
       }
     } catch (error) {
