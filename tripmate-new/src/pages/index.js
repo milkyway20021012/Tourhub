@@ -1204,9 +1204,9 @@ const HomePage = () => {
                   />
                 )}
 
-                {/* 我的收藏按鈕 */}
+                {/* 登出按鈕（取代頂部我的收藏） */}
                 <button
-                  onClick={handleFavoritesNavigation}
+                  onClick={handleLogout}
                   style={{
                     background: 'rgba(255, 255, 255, 0.15)',
                     borderRadius: '20px',
@@ -1231,19 +1231,7 @@ const HomePage = () => {
                     e.currentTarget.style.transform = 'scale(1)';
                   }}
                 >
-                  <span>我的收藏</span>
-                  <span style={{
-                    background: 'rgba(156, 163, 175, 0.8)',
-                    borderRadius: '50%',
-                    padding: '2px 6px',
-                    fontSize: '12px',
-                    fontWeight: '700',
-                    minWidth: '20px',
-                    textAlign: 'center',
-                    color: 'white'
-                  }}>
-                    {state.totalFavorites}
-                  </span>
+                  <span>登出</span>
                 </button>
 
 
