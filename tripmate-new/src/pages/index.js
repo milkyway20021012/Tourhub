@@ -1200,51 +1200,6 @@ const HomePage = () => {
               </div>
             ) : (state.liffReady && state.liffLoggedIn && state.userProfile) ? (
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                <span>👋 歡迎，{state.userProfile?.displayName || '用戶'}</span>
-                {state.userProfile?.pictureUrl && (
-                  <img
-                    src={state.userProfile.pictureUrl}
-                    alt="頭像"
-                    style={{
-                      width: '32px',
-                      height: '32px',
-                      borderRadius: '50%',
-                      verticalAlign: 'middle'
-                    }}
-                  />
-                )}
-
-                {/* 登出按鈕（取代頂部我的收藏） */}
-                <button
-                  onClick={handleLogout}
-                  style={{
-                    background: 'rgba(255, 255, 255, 0.15)',
-                    borderRadius: '20px',
-                    padding: '8px 16px',
-                    backdropFilter: 'blur(10px)',
-                    border: '1px solid rgba(255, 255, 255, 0.3)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    fontSize: '14px',
-                    fontWeight: '600',
-                    color: 'white',
-                    cursor: 'pointer',
-                    transition: 'all 0.3s ease'
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.background = 'rgba(255, 255, 255, 0.25)';
-                    e.currentTarget.style.transform = 'scale(1.05)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = 'rgba(255, 255, 255, 0.15)';
-                    e.currentTarget.style.transform = 'scale(1)';
-                  }}
-                >
-                  <span>登出</span>
-                </button>
-
-
               </div>
             ) : (
               <div>
