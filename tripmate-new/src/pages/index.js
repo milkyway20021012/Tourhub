@@ -264,6 +264,23 @@ const HomePage = () => {
     initializeLiff();
     loadSearchHistory();
 
+    // 優先從本機快取載入上次的收藏狀態（在 LIFF/登入完成前先給 UI 正確顏色）
+    try {
+      const lastKnownUserId = typeof window !== 'undefined' ? localStorage.getItem('last_known_user_id') : null;
+      if (lastKnownUserId) {
+        const cached = typeof window !== 'undefined' ? localStorage.getItem(`userFavorites_${lastKnownUserId}`) : null;
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          if (parsed && Array.isArray(parsed.favorites)) {
+            dispatch({ type: 'SET_FAVORITES', favorites: new Set(parsed.favorites) });
+            dispatch({ type: 'SET_TOTAL_FAVORITES', totalFavorites: parsed.favorites.length });
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('載入本機收藏快取失敗（可忽略）:', e);
+    }
+
     // 延遲載入收藏狀態 - 等待 LIFF 初始化完成
     setTimeout(() => {
       const userId = getCurrentUserId();
@@ -599,6 +616,10 @@ const HomePage = () => {
         dispatch({ type: 'SET_FAVORITES', favorites: new Set(favoritesArr) });
         // 同步到 localStorage（持久化）
         safeLocalStorage.setItem(`userFavorites_${userId}`, JSON.stringify({ favorites: favoritesArr }));
+        // 保存最後一次成功登入的 userId，供下次優先載入快取
+        if (typeof window !== 'undefined') {
+          try { localStorage.setItem('last_known_user_id', userId); } catch (e) { }
+        }
         console.log('fetchUserFavoritesCount: 收藏總數載入成功', { totalCount });
       } else {
         console.log('fetchUserFavoritesCount: API 回應失敗', response.data);
