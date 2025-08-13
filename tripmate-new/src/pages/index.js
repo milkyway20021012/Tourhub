@@ -470,7 +470,7 @@ const HomePage = () => {
 
       await window.liff.init({
         liffId: liffId,
-        withLoginOnExternalBrowser: true
+        withLoginOnExternalBrowser: false
       });
 
       dispatch({ type: 'SET_LIFF_READY', value: true });
@@ -487,6 +487,9 @@ const HomePage = () => {
           console.log('LIFF 登入成功，載入收藏總數');
           fetchUserFavoritesCount();
         }, 100);
+      } else {
+        // 不自動登入：保留訪客模式，直到用戶主動進行需要登入的操作
+        console.log('LIFF 準備完成（訪客模式）');
       }
 
     } catch (error) {
