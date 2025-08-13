@@ -6,7 +6,7 @@ import Pagination from '../components/Pagination';
 import LoadingIndicator from '../components/LoadingIndicator';
 import SearchBar from '../components/SearchBar';
 import { getStatistics, getAreas, getTripRankings, getTripDetail, searchTrips, updateTripStats } from '../services/tripService';
-import { getUserFavorites, addFavorite } from '../services/userService';
+import { getUserFavorites, addFavorite, removeFavorite } from '../services/userService';
 
 // 動態載入組件
 const TripDetail = dynamic(() => import('../components/TripDetail'), {
@@ -593,8 +593,12 @@ const HomePage = () => {
       const response = await getUserFavorites(userId);
 
       if (response.data.success) {
-        const totalCount = response.data.favorites.length;
+        const favoritesArr = response.data.favorites.map(f => f.trip_id);
+        const totalCount = favoritesArr.length;
         dispatch({ type: 'SET_TOTAL_FAVORITES', totalFavorites: totalCount });
+        dispatch({ type: 'SET_FAVORITES', favorites: new Set(favoritesArr) });
+        // 同步到 localStorage（持久化）
+        safeLocalStorage.setItem(`userFavorites_${userId}`, JSON.stringify({ favorites: favoritesArr }));
         console.log('fetchUserFavoritesCount: 收藏總數載入成功', { totalCount });
       } else {
         console.log('fetchUserFavoritesCount: API 回應失敗', response.data);
@@ -784,22 +788,43 @@ const HomePage = () => {
     dispatch({ type: 'SET_FAVORITE_LOADING', payload: { [tripId]: true } });
 
     try {
-      const response = await addFavorite(userId, tripId);
-      if (response.data.success) {
-        await updateTripStatsWrapper(tripId, 'favorite_add');
-        updateFavoriteCount(tripId, 1);
-
-        // 更新收藏總數
-        dispatch({ type: 'SET_TOTAL_FAVORITES', totalFavorites: state.totalFavorites + 1 });
-
-        // 顯示收藏操作提示
-        showToast('收藏成功', 'success');
+      // 判斷當前是否已收藏
+      const isFavorited = state.favorites.has(tripId);
+      if (!isFavorited) {
+        const response = await addFavorite(userId, tripId);
+        if (response.data.success) {
+          await updateTripStatsWrapper(tripId, 'favorite_add');
+          updateFavoriteCount(tripId, 1);
+          const next = new Set(state.favorites);
+          next.add(tripId);
+          dispatch({ type: 'SET_FAVORITES', favorites: next });
+          dispatch({ type: 'SET_TOTAL_FAVORITES', totalFavorites: state.totalFavorites + 1 });
+          // 持久化到 localStorage
+          safeLocalStorage.setItem(`userFavorites_${userId}`, JSON.stringify({ favorites: Array.from(next) }));
+          showToast('收藏成功', 'success');
+        } else {
+          throw new Error(response.data.message || '收藏失敗');
+        }
       } else {
-        throw new Error(response.data.message || '收藏失敗');
+        // 已收藏則移除
+        const response = await removeFavorite(userId, tripId);
+        if (response.data.success) {
+          await updateTripStatsWrapper(tripId, 'favorite_remove');
+          updateFavoriteCount(tripId, -1);
+          const next = new Set(state.favorites);
+          next.delete(tripId);
+          dispatch({ type: 'SET_FAVORITES', favorites: next });
+          dispatch({ type: 'SET_TOTAL_FAVORITES', totalFavorites: Math.max(0, state.totalFavorites - 1) });
+          // 更新 localStorage
+          safeLocalStorage.setItem(`userFavorites_${userId}`, JSON.stringify({ favorites: Array.from(next) }));
+          showToast('已取消收藏', 'info');
+        } else {
+          throw new Error(response.data.message || '取消收藏失敗');
+        }
       }
     } catch (err) {
       console.error('收藏操作失敗:', err);
-      showToast('收藏失敗，請稍後再試', 'error');
+      showToast('操作失敗，請稍後再試', 'error');
     } finally {
       dispatch({ type: 'SET_FAVORITE_LOADING', payload: { [tripId]: false } });
     }
@@ -1667,6 +1692,7 @@ const HomePage = () => {
                     isLineLoggedIn={state.liffReady && state.liffLoggedIn && state.userProfile}
                     shareLoading={state.shareLoading[trip.trip_id]}
                     onClick={() => handleTripClick(trip.trip_id)}
+                    isFavorited={state.favorites.has(trip.trip_id)}
                   />
                 ))}
                 {/* infinite scroll 載入更多 */}
