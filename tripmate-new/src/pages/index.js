@@ -1247,20 +1247,6 @@ const HomePage = () => {
             ) : (
               <div>
                 <span>👤 訪客模式</span>
-                <button
-                  onClick={handleLogin}
-                  style={{
-                    marginLeft: '8px',
-                    padding: '4px 8px',
-                    background: 'rgba(255,255,255,0.2)',
-                    border: '1px solid rgba(255,255,255,0.3)',
-                    borderRadius: '4px',
-                    color: 'white',
-                    cursor: 'pointer'
-                  }}
-                >
-                  登入 LINE
-                </button>
               </div>
             )}
           </div>
